@@ -108,6 +108,18 @@ hud.action("cockpit");assert.equal(navigation[0],"enemy");assert.equal(menu.hidd
 reset();open();hud.action("inspect");assert.equal(context.Scene.selectedActor,"enemy");assert.equal(navigation[0],"inspector");assert.deepEqual(context.Scene.targetIds,["hero"]);
 reset();open();hud.action("more");assert.equal(navigation[0].target.actor.id,"enemy");assert.equal(menu.classList.contains("is-token-hud"),false);assert.equal(menu.attributes.role,"menu");
 
+reset();open();input().value="-5";
+assert.equal(key("Escape",{matches:()=>true}).stopped,true,"Escape closes HUD even while editing health");
+assert.equal(menu.hidden,true);assert.equal(commands.length,0,"dismissing an unfinished edit does not apply it");
+assert.equal(menu.style.maxHeight,"","HUD height limit does not leak into the shared context menu");
+assert.equal(document.activeElement,token,"keyboard dismissal returns focus to the token");
+reset();open();dialog={};key("Escape");assert.equal(menu.hidden,false,"a modal retains Escape ownership");dialog=null;
+const originalTokenRect=token.getBoundingClientRect;
+token.getBoundingClientRect=()=>({left:400,right:440,top:775,bottom:815,width:40,height:40});
+hud.refresh();assert.ok(Number.parseFloat(menu.style.top)+menu.offsetHeight<=792,"HUD stays inside the field bottom margin");
+assert.equal(menu.style.maxHeight,"684px","HUD height is bounded by the visible field");
+token.getBoundingClientRect=originalTokenRect;
+
 for(const change of [()=>{context.Scene.id="local-b";},()=>{shared="table-b";},()=>{context.Scene.lionwing.sceneSerial++;},()=>{context.Scene.actors.pop();},()=>{context.store.mode="hero";}]){
   reset();open();change();assert.equal(hud.applyHealth(),undefined);assert.equal(menu.hidden,true);assert.equal(commands.length,0,"stale token binding cannot write to a different scene");
 }

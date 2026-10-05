@@ -20,7 +20,7 @@
     return Number.isSafeInteger(next)&&next<=9999?Math.max(0,next):null;
   }
   function close(){
-    state=null;menu.hidden=true;menu.classList.remove("is-token-hud");menu.setAttribute("role","menu");menu.removeAttribute("aria-label");delete menu.dataset.tokenHudActor;sceneContextTarget=null;
+    state=null;menu.hidden=true;menu.style.maxHeight="";menu.classList.remove("is-token-hud");menu.setAttribute("role","menu");menu.removeAttribute("aria-label");delete menu.dataset.tokenHudActor;sceneContextTarget=null;
   }
   function healthBusy(){
     return sceneNumericCorrectionReason();
@@ -35,11 +35,13 @@
     if(!actor||!token||menu.hidden)return close();
     const rect=token.getBoundingClientRect(),field=wrap.getBoundingClientRect();
     if(rect.bottom<field.top||rect.top>field.bottom||rect.right<field.left||rect.left>field.right)return close();
+    menu.style.maxHeight=`${Math.max(44,Math.min(innerHeight-8,field.bottom-8)-Math.max(8,field.top+8))}px`;
     const width=menu.offsetWidth,height=menu.offsetHeight,minLeft=Math.max(8,field.left+8),maxLeft=Math.max(minLeft,Math.min(innerWidth-8,field.right-8)-width);
-    const above=rect.top-height-12,top=above>=field.top+50?above:rect.bottom+12;
+    const minTop=Math.max(8,field.top+8),maxTop=Math.max(minTop,Math.min(innerHeight-8,field.bottom-8)-height);
+    const above=rect.top-height-12,top=above>=minTop?above:rect.bottom+12;
     menu.style.left=`${clamp(rect.left+rect.width/2-width/2,minLeft,maxLeft)}px`;
-    menu.style.top=`${clamp(top,8,Math.max(8,innerHeight-height-8))}px`;
-    menu.dataset.placement=above>=field.top+50?"above":"below";
+    menu.style.top=`${clamp(top,minTop,maxTop)}px`;
+    menu.dataset.placement=above>=minTop?"above":"below";
   }
   function draw({resetHealth=false}={}){
     const actor=liveActor();if(!actor)return close();
@@ -49,8 +51,8 @@
     if(draft===null)state.health=hp.value;
     menu.classList.add("is-token-hud");menu.dataset.tokenHudActor=actor.id;menu.setAttribute("role","dialog");menu.setAttribute("aria-label",copy(`Управление токеном: ${actor.name}`,`Token controls: ${actor.name}`));
     menu.innerHTML=`<header class="token-hud-head"><strong>${esc(actor.name)}</strong><button type="button" data-token-hud-action="close" aria-label="${copy("Закрыть меню токена","Close token controls")}">×</button></header>
-      ${gm?`<form class="token-hud-health"><label for="token-hud-health-input">${copy("ЗД","HP")}</label><input id="token-hud-health-input" type="text" inputmode="numeric" maxlength="6" value="${esc(draft??hp.value)}" aria-label="${copy("Здоровье токена","Token health")}" title="${copy("Число — точное значение; +5 или -5 — изменение. Enter применяет.","A number sets health; +5 or -5 changes it. Enter applies.")}"><span>/ ${hp.maximum||"—"}</span><button type="submit" title="${copy("Применить Здоровье · Enter","Apply health · Enter")}" aria-label="${copy("Применить Здоровье","Apply health")}">✓</button></form>`:`<div class="token-hud-health-read">${copy("ЗД","HP")} <b>${hp.value} / ${hp.maximum||"—"}</b></div>`}
-      <div class="token-hud-actions">${owns?`<button type="button" data-token-hud-action="cockpit" title="${copy("Действия и Техники в Пульте","Actions and Techniques in the cockpit")}"><i aria-hidden="true">⌘</i>${copy("Пульт","Actions")}</button>`:""}<button type="button" data-token-hud-action="inspect"><i aria-hidden="true">ⓘ</i>${copy("Инфо","Info")}</button><button type="button" data-token-hud-action="target" aria-pressed="${targeted}" ${actor.knockedOut?"disabled":""} title="${copy("Отметить или снять цель · T","Toggle target · T")}"><i aria-hidden="true">◎</i>${copy(targeted?"Снять цель":"Цель",targeted?"Untarget":"Target")}</button><button type="button" class="token-hud-more" data-token-hud-action="more" aria-label="${copy("Другие команды токена","More token commands")}" title="${copy("Другие команды токена","More token commands")}">•••</button></div>
+      ${gm?`<form class="token-hud-health"><label for="token-hud-health-input">${copy("ЗД","HP")}</label><input id="token-hud-health-input" type="text" inputmode="numeric" maxlength="6" value="${esc(draft??hp.value)}" aria-label="${copy("Здоровье токена","Token health")}" aria-describedby="token-hud-health-help" title="${copy("Число — точное значение; +5 или -5 — изменение. Enter применяет.","A number sets health; +5 or -5 changes it. Enter applies.")}"><span>/ ${hp.maximum||"—"}</span><button type="submit" title="${copy("Применить Здоровье · Enter","Apply health · Enter")}" aria-label="${copy("Применить Здоровье","Apply health")}">${copy("Применить","Apply")}</button></form><p id="token-hud-health-help" class="token-hud-help">${copy("Число — задать ЗД; -5 / +5 — изменить. Enter или «Применить».","A number sets HP; -5 / +5 changes it. Enter or Apply.")}</p>`:`<div class="token-hud-health-read">${copy("ЗД","HP")} <b>${hp.value} / ${hp.maximum||"—"}</b></div>`}
+      <div class="token-hud-actions">${owns?`<button type="button" data-token-hud-action="cockpit" title="${copy("Действия и Техники в Пульте","Actions and Techniques in the cockpit")}"><i aria-hidden="true">⌘</i>${copy("Действия","Actions")}</button>`:""}<button type="button" data-token-hud-action="inspect"><i aria-hidden="true">ⓘ</i>${copy("Профиль","Profile")}</button><button type="button" data-token-hud-action="target" aria-pressed="${targeted}" ${actor.knockedOut?"disabled":""} title="${copy("Отметить или снять цель · T","Toggle target · T")}"><i aria-hidden="true">◎</i>${copy(targeted?"Снять цель":"Цель",targeted?"Untarget":"Target")}</button><button type="button" class="token-hud-more" data-token-hud-action="more" aria-label="${copy("Другие команды токена","More token commands")}" title="${copy("Другие команды токена","More token commands")}"><i aria-hidden="true">•••</i>${copy("Ещё","More")}</button></div>
       <p class="token-hud-status" role="status" aria-live="polite"></p>`;
     menu.hidden=false;updateHealthControls();position();
     if(focusedAction)menu.querySelector(`[data-token-hud-action="${focusedAction}"]`)?.focus({preventScroll:true});
@@ -108,7 +110,9 @@
   menu.addEventListener("click",event=>{const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
   menu.addEventListener("submit",event=>{if(!event.target.matches(".token-hud-health"))return;event.preventDefault();event.stopPropagation();applyHealth();});
   document.addEventListener("keydown",event=>{
-    if(!state||menu.hidden||store.mode!=="play"||event.defaultPrevented||document.querySelector("dialog[open]")||event.ctrlKey||event.metaKey||event.altKey||event.target.matches("input,textarea,select,[contenteditable]"))return;
+    if(!state||menu.hidden||store.mode!=="play"||event.defaultPrevented||document.querySelector("dialog[open]"))return;
+    if(event.key==="Escape"){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor();close();if(actor)board.querySelector(`[data-scene-actor="${CSS.escape(actor.id)}"]`)?.focus?.({preventScroll:true});return;}
+    if(event.ctrlKey||event.metaKey||event.altKey||event.target.matches("input,textarea,select,[contenteditable]"))return;
     if(event.key.toLowerCase()==="t"){event.preventDefault();event.stopImmediatePropagation();action("target");}
   },true);
   document.addEventListener("scroll",schedule,true);window.addEventListener("resize",schedule);
