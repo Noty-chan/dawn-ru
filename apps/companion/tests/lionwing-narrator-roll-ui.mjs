@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const sceneSource=fs.readFileSync(path.join(root,"scene-ui.js"),"utf8");
 const playSource=fs.readFileSync(path.join(root,"app-play-events.js"),"utf8");
+const targetSource=fs.readFileSync(path.join(root,"play-ui.js"),"utf8");
+const targetFunctions=targetSource.slice(targetSource.indexOf("function defaultChallengeTarget"),targetSource.indexOf("function currentChallengeRequest"));
 const sceneFunctions=sceneSource.slice(sceneSource.indexOf("function sceneUtilityActorAvailable"),sceneSource.indexOf("function sceneReferenceId"));
 const rollFunction=sceneSource.slice(sceneSource.indexOf("function rollSceneDice"),sceneSource.indexOf("function applySceneZoom"));
 const utilityClickHandler=playSource.slice(playSource.indexOf('$("scene-utility").addEventListener("click"'),playSource.indexOf("function handleSceneDiceUtilityInput"));
@@ -57,7 +59,9 @@ const SceneEngine={
   diceHookStatus(_scene,actorId,request){statusCalls.push({actorId,request:clone(request)});return{available:true,count:Math.max(1,request.baseCount+request.advantage-request.hindrance),threshold:4,criticalAt:6,sources:[]}},
   diceRollPayload(_scene,actorId,_request,result){const successes=result.rolls.filter(value=>value>=4).length;return{available:true,payload:{actorId,rolls:result.rolls,successes,crits:result.rolls.filter(value=>value>=6).length,formula:`${result.rolls.length}D6`}}},
 };
-const Logic={rollXd6({count}){return{rolls:Array.from({length:count},()=>4)}}};
+const logicContext={};
+vm.runInNewContext(fs.readFileSync(path.join(root,"logic.js"),"utf8"),logicContext);
+const Logic={...logicContext.DAWN_LOGIC,rollXd6({count}){return{rolls:Array.from({length:count},()=>4)}}};
 const D={effects:{positive:[],negative:[]}};
 const esc=value=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0));
@@ -72,12 +76,13 @@ const uid=()=>"request-1";
 const commitSceneEvents=(label,events)=>{committed.push({label,events:clone(events)});return{pending:false}};
 const applyOptimisticToolsEvents=()=>{};
 
-const context={console,Date,D,Logic,SceneEngine,esc,clamp,skillDisplayName,$,$$,toast,setScenePanel,renderScene,requestAnimationFrame,uid,commitSceneEvents,applyOptimisticToolsEvents,root:rootElement,controls,listeners,Scene,S,Sync,activeSceneMode};
+const context={console,Date,D,Logic,SceneEngine,esc,clamp,skillDisplayName,$,$$,toast,setScenePanel,renderScene,requestAnimationFrame,uid,commitSceneEvents,applyOptimisticToolsEvents,root:rootElement,controls,listeners,Scene,S,Sync,activeSceneMode,isLionwingEdition:()=>true,isEnglishPreview:()=>false};
 vm.createContext(context);
 vm.runInContext(`
   let Scene=this.Scene,S=this.S,Sync=this.Sync,activeUtilityPreset={skillId:"",abilityKey:""},activeUtilityActorId=null;
   const currentHeroActor=()=>Scene.actors.find(item=>item.heroId===S.id)||null;
   const activeSceneView=()=>Sync?.state?.().sceneId?(Sync.state().canNarrate?"gm":"player"):activeSceneMode;
+  ${targetFunctions}
   ${sceneFunctions}
   ${rollFunction}
   ${utilityClickHandler}
