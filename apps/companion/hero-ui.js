@@ -192,11 +192,31 @@ function heroSheetConsequenceMarkup(){
   const legacy=legacyNotes.map(note=>`<li><strong>${esc(heroSheetCopy("Старое решение","Legacy note"))}</strong><p>${esc(note.note||"")}</p></li>`).join("");
   return`<section class="hero-sheet-card hero-sheet-consequences"><header><div><span class="eyebrow">06</span><h2>${esc(heroSheetCopy("Последствия Уязвимости", "Vulnerability consequences"))}</h2></div><small>${esc(actor?heroSheetCopy("История связана с участником Стола и доступна только для чтения.","History is linked to the Table actor and is read-only."):heroSheetCopy("История пришла из экспорта и ещё не привязана к участнику Стола.","History came from an export and is not linked to a Table actor yet."))}</small></header>${rows||legacy?`<ul>${rows}${legacy}</ul>`:`<p>${esc(heroSheetCopy("Записанных последствий пока нет.","No recorded consequences yet."))}</p>`}<button type="button" data-hero-sheet-table>${esc(t("heroView.openTable"))}</button></section>`;
 }
+function heroSheetResourceCorrectionReason(){
+  if(!heroSheetLinkedActor())return"";
+  if(typeof lwCanNarrate==="function"&&!lwCanNarrate())return heroSheetCopy("Изменяет Нарратор","Only the Narrator can edit.");
+  return typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";
+}
 function heroSheetResourceMarkup(key,value,displayValue=value,maximumOverride=null){
   const adjustable=key==="influence"||key==="stress",maximum=key==="stress"?(maximumOverride??3):null,label=t(`heroView.resource.${key}`),numeric=clamp(value,0,maximum??999),display=displayValue==null?(maximum===null?numeric:`${numeric} / ${maximum}`):displayValue;
   if(!adjustable)return`<article data-resource="${key}"><span>${esc(label)}</span><strong>${esc(display)}</strong></article>`;
-  const decrease=isEnglishPreview()?`Decrease ${label}`:`Уменьшить ${label}`,increase=isEnglishPreview()?`Increase ${label}`:`Увеличить ${label}`;
-  return`<article class="hero-sheet-resource-adjustable" data-resource="${key}"><span>${esc(label)}</span><div class="hero-sheet-resource-counter"><button type="button" data-hero-resource="${key}" data-hero-resource-delta="-1" aria-label="${esc(decrease)}" ${numeric<=0?"disabled":""}>−</button><strong>${esc(display)}</strong><button type="button" data-hero-resource="${key}" data-hero-resource-delta="1" aria-label="${esc(increase)}" ${maximum!==null&&numeric>=maximum?"disabled":""}>+</button></div></article>`;
+  const decrease=isEnglishPreview()?`Decrease ${label}`:`Уменьшить ${label}`,increase=isEnglishPreview()?`Increase ${label}`:`Увеличить ${label}`,reason=heroSheetResourceCorrectionReason(),suffix=reason?`. ${reason}`:"";
+  return`<article class="hero-sheet-resource-adjustable" data-resource="${key}"><span>${esc(label)}</span><div class="hero-sheet-resource-counter"><button type="button" data-hero-resource="${key}" data-hero-resource-delta="-1" aria-label="${esc(decrease+suffix)}" title="${esc(reason)}" ${reason||numeric<=0?"disabled":""}>−</button><strong>${esc(display)}</strong><button type="button" data-hero-resource="${key}" data-hero-resource-delta="1" aria-label="${esc(increase+suffix)}" title="${esc(reason)}" ${reason||maximum!==null&&numeric>=maximum?"disabled":""}>+</button></div><small class="hero-sheet-resource-reason" ${reason?"":"hidden"}>${esc(reason)}</small></article>`;
+}
+function refreshHeroSheetResourceControls(){
+  const root=$("hero-play-sheet");if(!root)return;
+  const runtime=heroViewRuntime(),reason=heroSheetResourceCorrectionReason(),english=isEnglishPreview();
+  for(const key of ["influence","stress"]){
+    const card=root.querySelector(`.hero-sheet-resource-adjustable[data-resource="${key}"]`);if(!card)continue;
+    const maximum=key==="stress"?runtime.maxStress:null,value=clamp(runtime[key],0,maximum??999),label=t(`heroView.resource.${key}`),count=card.querySelector("strong"),note=card.querySelector(".hero-sheet-resource-reason");
+    if(count)count.textContent=maximum===null?String(value):`${value} / ${maximum}`;
+    if(note){note.textContent=reason;note.hidden=!reason;}
+    for(const button of card.querySelectorAll("[data-hero-resource]")){
+      const decrease=Number(button.dataset.heroResourceDelta)<0,action=english?`${decrease?"Decrease":"Increase"} ${label}`:`${decrease?"Уменьшить":"Увеличить"} ${label}`;
+      button.disabled=Boolean(reason)||(decrease?value<=0:maximum!==null&&value>=maximum);button.title=reason;
+      button.setAttribute("aria-label",`${action}${reason?`. ${reason}`:""}`);
+    }
+  }
 }
 function heroSheetActionCost(action){if(typeof actionCostLabel==="function")return actionCostLabel(action);if(!action?.cost)return"";return typeof action.cost==="string"?action.cost:`${action.cost.amount} ${action.cost.resource}`}
 function heroSheetActionsMarkup(){

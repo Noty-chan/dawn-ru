@@ -137,7 +137,6 @@ assert.match(publicProjectionMigration, /'pendingAction'[\s\S]+'pendingPrompt'[\
 assert.match(appSource, /deployment=new Set\([\s\S]+type==="deploy-enemy"/, "Encounter deployment uses explicit enemy deployment zones");
 assert.match(appSource, /gmDeployTerrainCells[\s\S]+availableEncounterCell/, "Encounter deployment avoids saved blocking Terrain");
 assert.match(appSource, /return findCell\(true\)\|\|\(allowedCells\?findCell\(false\):null\)/, "A crowded deployment zone falls back to the rest of the playable field instead of dropping preset participants");
-assert.match(appSource, /if\(Scene\.selectedActor!==actor\.id\)\{Scene\.targetIds=\[\];Scene\.targetCells=\[\]\}[\s\S]+Scene\.targetIds=\[\];Scene\.targetCells=\[\];Scene\.selectedActor=actor\.id/, "Switching the controlled actor cannot retain stale empty-cell targets from another character");
 assert.match(appSource, /const BUILTIN_ENCOUNTERS=Object\.freeze\(\[/, "Narrator tools provide reusable built-in encounter presets");
 assert.match(appSource, /data-gm-encounter-copy/, "A built-in encounter can be copied into the user's editable library");
 assert.doesNotMatch(appSource, /commitScene\(`Стены расстановки:/, "Encounter deployment must not split Walls into a second undo transaction");

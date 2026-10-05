@@ -5,7 +5,8 @@ const read = name => fs.readFileSync(new URL("../"+name,import.meta.url),"utf8")
 const source=read("lionwing-ui.js"), handlers=[];
 const actor={id:"hero",rulesEdition:"lionwing",team:"heroes",space:"main",x:2,y:2,ap:8,focus:3,knownTechniques:{"ruiner.creation-ascetic":3,"powerhouse.gunslinger":1,"vagabond.enchained":1},lionwing:{automation:{"ruiner.creation-ascetic.1":true,"ruiner.creation-ascetic.3":true,"powerhouse.gunslinger.1":true,"vagabond.enchained.1":true}},ruleResources:{material:{value:2},bullets:{value:3}}};
 const scene={actors:[actor,{id:"enemy",name:"Враг",team:"enemies",space:"main",x:3,y:2}],spaces:[{id:"main",width:9,height:9}],objects:[],selectedActor:"hero",activeSpace:"main",turnSerial:1,lionwing:{activeTurnInstanceId:"turn"},targetIds:[],version:1};
-const commands=[], context={window:{},Scene:scene,esc:String,lwOwns:()=>true,lwActive:()=>true,lwCanNarrate:()=>true,lwGeometrySceneIdentity:()=>"scene",renderScene:()=>{},toast:()=>{},SceneEngine:{ACTION_IDS:{spell:"action.атаки.заклинание",finish:"action.атаки.завершение",skirmish:"action.атаки.стычка"}},document:{addEventListener:(_,handler)=>handlers.push(handler)},lwDraftEnabled:false,lwSubmit:(actorId,payload)=>{commands.push({actorId,payload});return true;}};
+let openDialog=null;
+const commands=[], context={window:{},Scene:scene,store:{mode:"play"},esc:String,lwOwns:()=>true,lwActive:()=>true,lwCanNarrate:()=>true,lwGeometrySceneIdentity:()=>"scene",renderScene:()=>{},toast:()=>{},SceneEngine:{ACTION_IDS:{spell:"action.атаки.заклинание",finish:"action.атаки.завершение",skirmish:"action.атаки.стычка"}},document:{addEventListener:(_,handler)=>handlers.push(handler),querySelector:selector=>selector==="dialog[open]"?openDialog:null},lwDraftEnabled:false,lwSubmit:(actorId,payload)=>{commands.push({actorId,payload});return true;}};
 vm.createContext(context);
 vm.runInContext(read("lionwing-restored-techniques.js"),context);
 context.LionwingEngine={actionDef:id=>({id}),actionStatus:()=>({actionQuote:{focusLimit:2}}),prepare:(scene,payload)=>{try{context.window.DAWN_LIONWING_RESTORED_TECHNIQUES.plan(scene,actor,payload);return {ok:true};}catch(error){return {ok:false,errors:[error.message]};}}};
@@ -94,6 +95,16 @@ assert.equal(keyboardClicks,1,"Enter selects a focused grid cell through the poi
 handlers.at(-1)({target:keyboardCell,key:"Escape",preventDefault(){}});
 assert.equal(run('lwTechniqueDraft'),null,"Escape cancels the uncommitted technique selection");
 assert.equal(commands.length,paid,"keyboard cancellation pays no resources");
+for(const mode of ["rules","tools"]){
+  context.store.mode=mode;
+  run('lwTechniqueDraft={actorId:"hero",mode:"idol",cells:[],payload:{}};lwDestination={actorId:"hero",field:"destination"}');
+  handlers.at(-1)({target:keyboardCell,key:"Escape",preventDefault(){throw Error("Escape belongs to the current section");}});
+  assert.ok(run('lwTechniqueDraft&&lwDestination'),`${mode}: Escape retains the hidden Scene preparation`);
+}
+context.store.mode="play";openDialog={open:true};
+handlers.at(-1)({target:keyboardCell,key:"Escape",preventDefault(){throw Error("Escape belongs to the open app dialog");}});
+assert.ok(run('lwTechniqueDraft&&lwDestination'),"an app dialog protects the underlying Scene draft and destination");
+openDialog=null;run('lwTechniqueDraft=null;lwDestination=null');
 for(const draft of [{payload:{kind:"action",actionId:"jump"}},{payload:{kind:"reaction",choice:"dodge"}},{payload:{kind:"action",actionId:"finish"},field:"destination"},{payload:{kind:"choice"},field:"destination"},{payload:{kind:"action",actionId:"finish"},field:"areaCenter"}]){
   context.keyboardDraft=draft;run('lwDestination=keyboardDraft');
   const beforeClicks=keyboardClicks;

@@ -34,7 +34,7 @@
     "test:core-contracts": "node tests/scene-core-contracts.mjs && node tests/lionwing-destination-contracts.mjs && node tests/lionwing-projection-previews.mjs && node tests/lionwing-technique-destination-ui.mjs && npm run test:action-lifecycle && npm run test:composition-properties",
     "test:action-lifecycle": "node tests/lionwing-action-lifecycle.mjs && node tests/lionwing-action-identity.mjs",
     "test:composition-properties": "node tests/lionwing-composition-properties.mjs",
-    "test:workspace": "node tests/app-workspace.mjs && node tests/app-navigation.mjs && node tests/scene-reference-pagination.mjs"
+    "test:workspace": "node tests/app-workspace.mjs && node tests/app-navigation.mjs && node tests/scene-reference-pagination.mjs && node tests/scene-viewport.mjs && node tests/scene-pointer-routing.mjs && node tests/scene-token-hud.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8"

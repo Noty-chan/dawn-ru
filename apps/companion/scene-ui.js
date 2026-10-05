@@ -73,6 +73,7 @@ function selectSceneDirectorActor(actorId){
   if(activeSceneView()!=="gm")return false;
   const actor=Scene.actors.find(item=>item.id===actorId);if(!actor)return false;
   sceneDirectorActorContext={actorId:actor.id,stamp:sceneDirectorSourceStamp()};
+  if(typeof renderSceneChrome==="function")renderSceneChrome();
   return true;
 }
 function openSceneActorCockpit(actorId,{section="turn"}={}){
@@ -170,7 +171,7 @@ function sceneNumericSourcesHtml(actor){
   const activeEffects=sceneActorEffects(actor),speedDetail=activeEffects.includes("positive.ускорен")?"Ускорен ×2":activeEffects.includes("negative.замедлен")?"Замедлен ÷2":"без временного множителя";
   const numericQuote=typeof SceneEngine.numericQuote==="function"?SceneEngine.numericQuote:typeof window.DAWN_LIONWING_ENGINE?.numericQuote==="function"?window.DAWN_LIONWING_ENGINE.numericQuote:typeof window.DAWN_LIONWING_ADAPTERS?.numericQuote==="function"?window.DAWN_LIONWING_ADAPTERS.numericQuote:null;
   const advantage=numericQuote?.(actor,{scene:Scene,kind:"attack",key:"attackPool",actionId:"action.атаки.стычка",baseValue:0,targetDistance:1,targetIds:[],targetEffectIds:[],sourceEffectIds:activeEffects,techniqueIds:[]})||null;
-  return `<details class="scene-numeric-sources" open><summary>Источники числовых характеристик</summary><p class="scene-numeric-intro">Сначала показана база листа, затем активные канонические и временные операции. Контекстные строки зависят от выбранного Действия.</p><div class="scene-numeric-grid">${statCard("maxHp",SCENE_NUMERIC_LABELS.maxHp,summary.maxHp)}${statCard("speed",SCENE_NUMERIC_LABELS.speed,summary.speed,summary.speed.value,speedDetail)}${statCard("armor",SCENE_NUMERIC_LABELS.armor,summary.armor)}${statCard("evasion",SCENE_NUMERIC_LABELS.evasion,summary.evasion)}${ranges}${statCard("advantage","Пример Преимущества Стычки",advantage,advantage?.value,"цель в 1 клетке")}</div></details>`;
+  return `<details class="scene-numeric-sources"><summary>Источники числовых характеристик</summary><p class="scene-numeric-intro">Сначала показана база листа, затем активные канонические и временные операции. Контекстные строки зависят от выбранного Действия.</p><div class="scene-numeric-grid">${statCard("maxHp",SCENE_NUMERIC_LABELS.maxHp,summary.maxHp)}${statCard("speed",SCENE_NUMERIC_LABELS.speed,summary.speed,summary.speed.value,speedDetail)}${statCard("armor",SCENE_NUMERIC_LABELS.armor,summary.armor)}${statCard("evasion",SCENE_NUMERIC_LABELS.evasion,summary.evasion)}${ranges}${statCard("advantage","Пример Преимущества Стычки",advantage,advantage?.value,"цель в 1 клетке")}</div></details>`;
 }
 function sceneEffectTitle(actor,effect){const status=SceneEngine.effectStatus(Scene,actor.id,effect.id),sourceNames=status.sourceActorIds.map(id=>Scene.actors.find(item=>item.id===id)?.name).filter(Boolean);return[effect.text,status.direct?`Срок: ${status.expiresAt}`:status.ambient?"Источник: область, маркер или связанный Эффект":"Не наложен",sourceNames.length?`Наложил: ${sourceNames.join(", ")}`:"",status.direct&&!status.removable?"Нельзя снять до конца Сцены":""].filter(Boolean).join("\n")}
 function sceneResourceChips(actor){const definition=SceneEngine.ruleResourceDefinitions(actor)[0],secondary=definition?`${SceneEngine.ruleResourceStatus(Scene,actor.id,{resource:definition.resource}).balance} ${definition.label}`:`${actor.focus} Фокус`,clocks=SceneEngine.ruleClockDefinitions(actor).map(item=>SceneEngine.clockStatus(Scene,actor.id,item.clockId)).filter(status=>status.active).map(status=>`<i>${status.value}/${status.size} ${esc(status.label)}</i>`).join(""),modes=SceneEngine.ruleModeDefinitions(actor).map(item=>actor.ruleModes?.[item.groupId]?.label?`<i>${esc(item.label)}: ${esc(actor.ruleModes[item.groupId].label)}</i>`:"").join("");return`${definition?.replaces?.includes("ap")?"":`<i>${actor.ap} ОД</i>`}<i>${secondary}</i>${clocks}${modes}`}
@@ -291,6 +292,11 @@ function applyNarratorOverride({targets,damage=0,effectId="",note=""}){
   const label=`Решение Нарратора: ${unique.map(item=>item.name).join(", ")}${note?` · ${note}`:""}`;
   return commitScene(label,scene=>{for(const target of unique){const compound=SceneEngine.compoundEnemyStatus(scene,target.id),parts=compound.active?compound.parts:[scene.actors.find(item=>item.id===target.id)].filter(Boolean);if(damage>0){let remaining=Math.max(0,(compound.active?compound.hp:Number(parts[0]?.hp||0))-damage);for(const part of parts){part.hp=Math.min(Number(part.maxHp||remaining),remaining);remaining-=part.hp}const knockedOut=parts.every(part=>Number(part.hp||0)<=0);parts.forEach(part=>part.knockedOut=knockedOut);if(knockedOut&&parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null}if(effectId){for(const part of parts){part.effects=[...new Set([...(part.effects||[]),effectId])];part.effectStates||={};part.effectStates[effectId]={duration:"default",removable:true,appliedTurnSerial:Number(scene.turnSerial||0),appliedRound:Number(scene.round||1),appliedEventId:"narrator.override",sourceBound:false,exclusiveBySource:false,sources:[]}}}}});
 }
+function sceneNumericCorrectionReason(){
+  if(!Sync?.state?.()?.sceneId||typeof networkV2QueueStatus!=="function")return "";
+  const queued=networkV2QueueStatus(),english=typeof isEnglishPreview==="function"&&isEnglishPreview();
+  return queued.failed?(english?"Unsaved changes. Open Network.":"Есть несохранённые изменения. Откройте «Сеть»."):queued.pending?(english?"Saving…":"Сохранение…"):"";
+}
 function narratorActorValue(actor,key){if(key!=="hp")return Math.max(0,Number(actor?.[key]||0));const compound=actor&&SceneEngine.compoundEnemyStatus(Scene,actor.id);return Math.max(0,Number(compound?.active?compound.hp:actor?.hp||0))}
 function setNarratorActorValue(actor,key,value,label=""){const next=Math.max(0,Number(value)||0);return commitScene(label||`Решение Нарратора: ${actor.name} · ${key} = ${next}`,scene=>{if(key==="hp"){const compound=SceneEngine.compoundEnemyStatus(scene,actor.id),parts=compound.active?compound.parts:[scene.actors.find(item=>item.id===actor.id)].filter(Boolean);let remaining=next;for(const part of parts){part.hp=Math.min(Number(part.maxHp||remaining),remaining);remaining-=part.hp}if(remaining>0&&parts[0])parts[0].hp=Number(parts[0].hp||0)+remaining;const knockedOut=parts.every(part=>Number(part.hp||0)<=0);parts.forEach(part=>part.knockedOut=knockedOut);if(knockedOut&&parts.some(part=>part.id===scene.activeActorId))scene.activeActorId=null;return}const target=scene.actors.find(item=>item.id===actor.id);if(target)target[key]=next})}
 function adjustNarratorActorValue(actor,key,delta,label){return setNarratorActorValue(actor,key,narratorActorValue(actor,key)+Number(delta||0),label)}
@@ -319,6 +325,7 @@ function renderCompoundBuilder(){const root=$("scene-compound-parts");if(!root)r
 function renderSceneSources(){const sources=sceneSources();for(const id of ["scene-area-source","scene-marker-source"]){const select=$(id),previous=select.value;select.innerHTML=sources.map(source=>`<option value="${esc(source)}">${esc(source)}</option>`).join("");if([...select.options].some(option=>option.value===previous))select.value=previous}}
 function hideSceneTokenTip(delay=80){clearTimeout(sceneTokenTipTimer);sceneTokenTipTimer=setTimeout(()=>{const tip=$("scene-token-popover");if(tip)tip.hidden=true},delay)}
 function showSceneTokenTip(token,{sticky=false}={}){
+  const menu=$("scene-context-menu");if(menu&&!menu.hidden&&menu.dataset.tokenHudActor)return;
   const actor=Scene.actors.find(item=>item.id===token?.dataset.sceneActor),tip=$("scene-token-popover");if(!actor||!tip)return;
   clearTimeout(sceneTokenTipTimer);
   const maxHp=Number(actor.maxHp)||0,hpRatio=maxHp?clamp(actor.hp/maxHp*100,0,100):100,effects=sceneActorEffects(actor).map(id=>sceneEffectList().find(effect=>effect.id===id)?.name||id),state=actor.knockedOut?"Вне боя":Scene.activeActorId===actor.id?"Сейчас Ход":actor.acted?"Уже действовал":"Готов";
@@ -361,6 +368,7 @@ function focusSceneActorOnBoard(actorId,{select=false,announce=true}={}){
   return true;
 }
 function hideSceneContextMenu(){
+  if(typeof window!=="undefined"&&window.DAWN_SCENE_TOKEN_HUD){window.DAWN_SCENE_TOKEN_HUD.close();return;}
   const menu=$("scene-context-menu");if(menu)menu.hidden=true;sceneContextTarget=null;
 }
 function showSceneContextMenu(event,{actor=null,cell=null,marker=null}={}){
@@ -618,6 +626,7 @@ function syncScenePanels(previous=null){
   document.body.classList.toggle("scene-density-comfortable",sceneInterfaceDensity==="comfortable");
   if(workbench){workbench.style.setProperty("--scene-left-panel",leftOpen?`${SCENE_PANEL_WIDTHS[scenePanelWidths.left]}px`:"0px");workbench.style.setProperty("--scene-right-panel",rightOpen?`${SCENE_PANEL_WIDTHS[scenePanelWidths.right]}px`:"0px")}
   $$('[data-scene-panel]').forEach(button=>button.setAttribute("aria-pressed",String(isScenePanelOpen(button.dataset.scenePanel))));
+  if(typeof scheduleSceneViewportFit==="function")scheduleSceneViewportFit();
 }
 function setScenePanel(panel,toggle=false){
   if(panel&&activeSceneView()==="player"&&document.querySelector(`[data-scene-panel-content="${panel}"]`)?.classList.contains("gm-only"))panel=null;
@@ -902,6 +911,9 @@ function renderSceneChrome(){
 const renderSceneChromeWithoutActionPlanLock=renderSceneChrome;
 renderSceneChrome=function(){
   renderSceneChromeWithoutActionPlanLock();
+  // Chrome also renders independently when its source or action quote changes.
+  // Recreated session buttons must receive the same gates as a full render.
+  if(typeof refreshSceneRoundControls==="function")refreshSceneRoundControls();
   if(!Scene.pendingActionPlan)return;
   const tray=$("scene-action-tray");
   if(!tray)return;
@@ -925,12 +937,15 @@ function sceneActionDisplayName(action,fallbackName="Действие"){
   }
   return typeof action==="string"?(D.actions.list.find(item=>item.id===actionId)?.name||fallback):fallback;
 }
+function refreshSceneRoundControls(){
+  const roundStatus=SceneEngine.roundEndStatus(Scene);for(const button of $$("#new-round, [data-scene-session-action='round']")){button.disabled=!roundStatus.available;button.title=roundStatus.reason||"Завершить Раунд"}
+}
 function refreshSceneControlStates(){
   for(const button of $$("#scene-inspector .enemy-rule button:disabled")){const reason=button.title?.trim(),meta=button.querySelector("small");if(reason&&meta)meta.textContent=reason}
   for(const button of $$("[data-scene-turn-actor]")){const actor=Scene.actors.find(item=>item.id===button.dataset.sceneTurnActor);if(!actor||Scene.activeActorId===actor.id)continue;const status=sceneTurnStatusAfterCurrent(actor);if((actor.kind==="enemy"||actor.profileId)&&actor.acted&&status.available){const meta=button.querySelector("small");if(meta)meta.textContent=`Можно повторить · ${actor.hp}/${actor.maxHp||"—"} ЗД`;button.title=`${actor.name} · доступен повторный Ход`}}
   for(const button of $$("[data-enemy-turn]")){const actor=Scene.actors.find(item=>item.id===button.dataset.enemyActor),active=actor&&Scene.activeActorId===actor.id,status=active?{available:true,reason:""}:sceneTurnStatusAfterCurrent(actor);button.disabled=Boolean(!actor||actor.knockedOut||!status.available);button.title=active?"Завершить текущий Ход":status.reason||"Начать Ход"}
   for(const button of $$("#scene-inspector [data-scene-turn='start']")){const actor=Scene.actors.find(item=>item.id===button.dataset.sceneActorId),active=actor&&Scene.activeActorId===actor.id,status=active?{available:false,reason:"Этот участник уже ходит"}:sceneTurnStatusAfterCurrent(actor);button.disabled=Boolean(!actor||actor.knockedOut||!status.available);button.title=status.reason||"Начать Ход"}
-  const roundStatus=SceneEngine.roundEndStatus(Scene);for(const button of $$("#new-round, [data-scene-session-action='round']")){button.disabled=!roundStatus.available;button.title=roundStatus.reason||"Завершить Раунд"}
+  refreshSceneRoundControls();
 }
 function rollSceneDice(actorId){
   const actor=sceneUtilityActor();if(!sceneUtilityActorAvailable(actor))return toast("Участник броска больше не доступен");if(actorId&&actor.id!==actorId)return toast("Выбранный участник броска устарел; выберите его снова");
@@ -938,8 +953,22 @@ function rollSceneDice(actorId){
   const sceneRollEvent={type:"roll.public",actorId:actor.id,payload},committed=commitSceneEvents(`Публичный бросок: ${actor.name}`,[sceneRollEvent]);if(!committed)return;if(committed.pending&&typeof applyOptimisticToolsEvents==="function"){applyOptimisticToolsEvents([sceneRollEvent]);renderScene()}toast(`${actor.name}: ${payload.successes} успехов · ${outcome}`)
   if(fundingSpend){S.runtime.funding=Math.max(0,Number(S.runtime.funding||0)-fundingSpend);persistAfterPaint();renderSceneUtility()}
 }
-function applySceneZoom(next=sceneZoom){sceneZoom=clamp(next,30,180);const board=$("scene-board"),input=$("scene-zoom"),output=$("scene-zoom-value");board?.style.setProperty("--scene-zoom",String(sceneZoom/100));if(input)input.value=sceneZoom;if(output)output.textContent=`${sceneZoom}%`;persist()}
-function fitSceneZoom(comfortable=false){const wrap=$("scene-board-wrap"),space=activeSceneSpace();if(!wrap||!space)return;const width=Math.max(246,wrap.clientWidth-24),height=Math.max(246,wrap.clientHeight-24),boardWidth=820,boardHeight=boardWidth*(space.height/space.width),fitted=clamp(Math.floor(Math.min(width/boardWidth,height/boardHeight)*100)-1,30,180),next=comfortable&&sceneViewportMode==="desktop"?Math.max(58,fitted):fitted;sceneNeedsInitialFit=false;applySceneZoom(next)}
+function applySceneZoom(next=sceneZoom,{manual=false}={}){
+  sceneZoom=clamp(next,30,180);if(manual){sceneZoomMode="manual";sceneNeedsInitialFit=false}
+  const board=$("scene-board"),input=$("scene-zoom"),output=$("scene-zoom-value"),fit=$("scene-zoom-fit");
+  board?.style.setProperty("--scene-zoom",String(sceneZoom/100));if(input)input.value=sceneZoom;if(output)output.textContent=`${sceneZoom}%`;
+  if(fit){fit.classList.toggle("on",sceneZoomMode==="fit");fit.setAttribute("aria-pressed",String(sceneZoomMode==="fit"));fit.title=sceneZoomMode==="fit"?"Поле автоматически вписывается при открытии панелей":"Вписывать поле при открытии панелей"}
+  persist();
+}
+function fitSceneZoom(comfortable=false){
+  const wrap=$("scene-board-wrap"),space=activeSceneSpace();if(!wrap||!space||!wrap.clientWidth||!wrap.clientHeight)return;
+  const desktop=usingNextSceneInterface()&&sceneViewportMode==="desktop",width=Math.max(246,wrap.clientWidth-40),height=Math.max(246,wrap.clientHeight-(desktop?110:40)),boardWidth=820,boardHeight=boardWidth*(space.height/space.width),fitted=clamp(Math.floor(Math.min(width/boardWidth,height/boardHeight)*100)-1,30,180);
+  sceneNeedsInitialFit=false;sceneZoomMode="fit";applySceneZoom(fitted);
+}
+function scheduleSceneViewportFit(){
+  if(store.mode!=="play"||sceneZoomMode!=="fit"||sceneViewportFitFrame!==null)return;
+  sceneViewportFitFrame=requestAnimationFrame(()=>{sceneViewportFitFrame=null;if(store.mode==="play"&&sceneZoomMode==="fit")fitSceneZoom(false)});
+}
 function reconcileLocalSceneFlow(){
   let reset=false;
   const hero=currentHeroActor(),pendingStatus=SceneEngine.pendingActionStatus(Scene,D);
@@ -986,7 +1015,7 @@ function renderScene(){
   const cameraActions=document.querySelector(".scene-view-actions");
   if(cameraActions&&!cameraActions.querySelector("[data-scene-camera]"))cameraActions.insertAdjacentHTML("afterbegin",'<button type="button" data-scene-camera="active" title="Показать текущего участника на поле">К ходу</button><button type="button" data-scene-camera="selected" title="Показать выбранного участника на поле">К выбранному</button>');
   for(const button of $$("[data-scene-camera]")){const hasActor=button.dataset.sceneCamera==="active"?Boolean(active):Boolean(selected);button.disabled=!hasActor;button.title=hasActor?button.dataset.sceneCamera==="active"?"Показать текущего участника на поле":"Показать выбранного участника на поле":button.dataset.sceneCamera==="active"?"Ход ещё не начат":"Сначала выберите участника на поле"}
-  renderSceneTurnStrip();renderSceneFlow();renderSceneDirector();renderSceneUtility();renderSceneReference();renderGmLibraries();renderCompoundBuilder();renderSceneHeroSheet();renderSceneChrome();refreshSceneControlStates();applySceneZoom();setScenePanel(activeScenePanel);setSheetTab(activeSheetTab);if(sceneNeedsInitialFit)requestAnimationFrame(()=>fitSceneZoom(true));
+  renderSceneTurnStrip();renderSceneFlow();renderSceneDirector();renderSceneUtility();renderSceneReference();renderGmLibraries();renderCompoundBuilder();renderSceneHeroSheet();renderSceneChrome();refreshSceneControlStates();applySceneZoom();setScenePanel(activeScenePanel);setSheetTab(activeSheetTab);if(sceneNeedsInitialFit){sceneNeedsInitialFit=false;scheduleSceneViewportFit()};
   document.body.classList.toggle("scene-player-view",store.mode==="play"&&view==="player");
   $("scene-log").innerHTML=Scene.log.filter(row=>activeSceneView()==="gm"||row.visibility!=="gm").map(row=>`<li><time>${esc(String(row.at||"").slice(11,19)||row.at)}</time>${esc(clockEventText(row)||wallEventText(row)||eventText(row))}</li>`).join("")||`<li class="autosave">Изменения Сцены появятся здесь.</li>`;
 }

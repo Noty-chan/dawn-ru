@@ -338,6 +338,7 @@ function installUndoHarness(context, scene) {
   context.S = { id: "hero-a", runtime: {} };
   context.store = { mode: "tools", gmLibrary: null, heroes: [context.S], current: 0 };
   context.sceneZoom = 70;
+  context.sceneZoomMode = "fit";
   context.sceneControlMode = "guided";
   context.sceneInterfaceVersion = "next";
   context.SCENE_INTERFACE_ROLLOUT_VERSION = 3;
@@ -451,6 +452,7 @@ app.Scene = scene;
 app.store = { mode: "tools", gmLibrary: null, heroes: [{ id: "hero-a", rulesEdition: "lionwing", runtime: {} }], current: 0 };
 app.S = app.store.heroes[0];
 app.sceneZoom = 70;
+app.sceneZoomMode = "fit";
 app.sceneControlMode = "guided";
 app.sceneInterfaceVersion = "next";
 app.scenePanelLayoutMode = "split";

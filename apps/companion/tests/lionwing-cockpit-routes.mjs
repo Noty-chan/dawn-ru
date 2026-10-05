@@ -44,6 +44,8 @@ const context = {
   sceneNarratorBasicActionsHtml: () => { profileCalls.push("actions"); return '<button data-gm-core-action="spell">action</button>'; },
   sceneNarratorTechniquesHtml: () => { profileCalls.push("techniques"); return '<button data-lw-action="spell">technique</button>'; },
   renderSceneDirector: () => calls.push({ kind: "render", source: vm.runInContext("sceneDirectorActor()?.id", context) }),
+  renderSceneChrome: () => calls.push({ kind: "chrome", source: vm.runInContext("sceneDirectorActor()?.id", context) }),
+  refreshSceneRoundControls: () => calls.push({ kind: "availability", source: vm.runInContext("sceneDirectorActor()?.id", context) }),
   setScenePanel: panel => calls.push({ kind: "panel", panel }), setSheetTab: tab => calls.push({ kind: "sheet-tab", tab }),
   setMode: mode => calls.push({ kind: "mode", mode }), toast: message => calls.push({ kind: "toast", message }),
   isEnglishPreview: () => false, t: key => key,
@@ -52,6 +54,7 @@ const context = {
 vm.createContext(context);
 vm.runInContext("let Scene=fixture, sceneDirectorActorContext=null, activeDirectorTab='turn', activeSheetTab='main';", context);
 vm.runInContext(between(sceneUi, "const sceneUsesLionwing=", "function sceneEffects("), context);
+vm.runInContext(between(sceneUi,"const renderSceneChromeWithoutActionPlanLock=","function sceneTurnStatusAfterCurrent("),context);
 const run = script => vm.runInContext(script, context);
 assert.equal(context.Scene, undefined, "the harness uses the application's real lexical Scene binding");
 assert.equal(run("sceneDirectorActor().id"), "hero", "inspecting a target cannot change the active action source");
@@ -59,7 +62,11 @@ const before = run("JSON.stringify(Scene)");
 assert.equal(run('openSceneActorCockpit("enemy",{section:"manual"})'), true);
 assert.equal(run("sceneDirectorActor().id"), "enemy", "an explicit manual transition pins the inspected actor");
 assert.equal(run("activeDirectorTab"), "manual");
+assert.equal(calls.findLast(call=>call.kind==="chrome")?.source,"enemy","an explicit token route updates actor-bound footer controls immediately");
 assert.equal(run("JSON.stringify(Scene)"), before, "navigation changes neither actor state, turn, targets, inspection nor journal");
+run('selectSceneDirectorActor("hero")');assert.equal(calls.at(-1).source,"hero");
+run('selectSceneDirectorActor("enemy")');assert.deepEqual(calls.at(-2),{kind:"chrome",source:"enemy"},"picker, roster and arrows share the same footer refresh");
+assert.deepEqual(calls.at(-1),{kind:"availability",source:"enemy"},"rebuilt footer controls immediately receive canonical availability");
 run('Scene.selectedActor="hero"');
 assert.equal(run("sceneDirectorActor().id"), "enemy", "later inspection remains independent of the explicit source");
 run("Scene.turnSerial+=1");
@@ -257,5 +264,17 @@ vm.runInContext(functionBlock(sceneUi,"renderSceneLayoutSettings","sceneBattleCo
 run("renderSceneLayoutSettings()");
 assert.match(element("scene-layout-settings").innerHTML,/<span>Инфо<\/span><select data-scene-panel-side="inspector"/,"layout settings use the same Info label as the main navigation");
 assert.doesNotMatch(element("scene-layout-settings").innerHTML,/<span>Цель<\/span>/);
+
+// Re-quoting action parameters rebuilds Chrome outside a full Scene render.
+// Its session controls still obey the actual engine's active-Turn gate.
+const roundButtons=[{disabled:false,title:""},{disabled:false,title:""}];
+context.$$=selector=>selector==="#new-round, [data-scene-session-action='round']"?roundButtons:[];
+vm.runInContext(functionBlock(sceneUi,"refreshSceneRoundControls","refreshSceneControlStates"),context);
+vm.runInContext(between(sceneEvents,"function refreshSceneShortcutQuote(",'document.addEventListener("input",refreshSceneShortcutQuote)'),context);
+run('Scene.activeActorId="hero"');const beforeQuote=run("JSON.stringify(Scene)"),roundStatus=engine.roundEndStatus(run("Scene"));
+assert.equal(roundStatus.available,false);
+context.refreshSceneShortcutQuote({target:{matches:()=>true,closest:()=>({})}});
+assert.ok(roundButtons.every(button=>button.disabled));assert.ok(roundButtons.every(button=>button.title===roundStatus.reason));
+assert.equal(run("JSON.stringify(Scene)"),beforeQuote,"a parameter quote cannot change the Turn or other canonical state");
 
 console.log("LionWing cockpit routes passed: independent action source, explicit read-only navigation, one executor/reference, visible NPC gate reasons, compact panes and lexical Hero linkage");

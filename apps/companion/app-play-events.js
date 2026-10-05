@@ -25,11 +25,12 @@ document.addEventListener("change",event=>{
 });
 
 function setPlayCounter(key,value){
-  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene)&&currentHeroActor()){
+  const native=window.DAWN_LIONWING_ENGINE?.isScene(Scene),actor=native?heroSheetLinkedActor():currentHeroActor();
+  if(native&&actor){
     if(!lwCanNarrate())return toast("Точные исправления доступны Нарратору");
-    return lwSubmit(currentHeroActor().id,key==="tension"?{kind:"tension",amount:Number(value)}:{kind:"correct",resource:key,amount:Number(value)},"Исправление Нарратора");
+    return lwSubmit(actor.id,key==="tension"?{kind:"tension",amount:Number(value)}:{kind:"correct",resource:key,amount:Number(value)},"Исправление Нарратора");
   }
-  const actor=currentHeroActor();value=Math.max(0,Number(value)||0);if(key==="stress")value=Math.min(stressMaximumFor(actor||S),value);const sync=Sync?.state(),actorKeys=new Set(["hp","wounds","stress","focus","influence","ap"]);
+  value=Math.max(0,Number(value)||0);if(key==="stress")value=Math.min(stressMaximumFor(actor||S),value);const sync=Sync?.state(),actorKeys=new Set(["hp","wounds","stress","focus","influence","ap"]);
   if(sync?.sceneId&&sync.role==="player"&&key==="tension")return toast("Общее Напряжение меняет Нарратор");
   if(actor&&actorKeys.has(key)){if(sync?.sceneId&&sync.role==="player"){if(submitNetworkV2Intent({kind:"runtime",label:`${actor.name}: ${key} → ${value}`,actorId:actor.id,key,value}))toast("Изменение ресурса отправлено за стол");return}commitScene(`${actor.name}: ${key} → ${value}`,()=>{actor[key]=value});renderPlay();return}
   S.runtime[key]=value;persist();renderPlay();

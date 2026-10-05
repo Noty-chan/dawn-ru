@@ -745,6 +745,11 @@ function lwGeneralHtml(){
 }
 
 function lwSubmit(actorId, payload, label = "Действие LionWing") {
+  // These UI commands carry absolute numbers, sometimes derived from +/-.
+  // Derive the next value only after previous canonical writes are confirmed.
+  const numericCorrection=payload.kind==="correct"&&!["consequence","knockedOut"].includes(payload.resource)||["tension","configure-resource"].includes(payload.kind)||payload.kind==="clock"&&payload.value!=null;
+  const correctionReason=numericCorrection&&typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";
+  if(correctionReason){toast(correctionReason);return false;}
   if(lwDraftEnabled&&["plan","batch","attack","damage","heal","effect","move","geometry-move","resource","modifier","wound","stress","recover-track","record-action","allow-action","grant-turn","usage","note","prompt"].includes(payload.kind)){
     if(!lwCanNarrate())return false;
     if(lwDraftBatch&&lwDraftBatch.actorId!==actorId){toast("Сначала примените или отмените пакет прежнего источника");return false;}
@@ -1490,7 +1495,7 @@ document.addEventListener("change", event => {
 // for keyboard and pointer input.
 document.addEventListener("keydown", event => {
   if(!lwActive())return;
-  if(event.key==="Escape"&&(lwTechniqueDraft||lwDestination)){event.preventDefault();lwTechniqueDraft=null;if(lwDestination)lwCancelDestination();renderScene();return;}
+  if(event.key==="Escape"&&(lwTechniqueDraft||lwDestination)){if(event.defaultPrevented||store.mode!=="play"||document.querySelector("dialog[open]"))return;event.preventDefault();lwTechniqueDraft=null;if(lwDestination)lwCancelDestination();renderScene();return;}
   const cell=event.target.closest("[data-scene-cell]");
   if(cell&&event.target===cell&&(event.key==="Enter"||event.key===" ")){event.preventDefault();cell.click();}
 });
