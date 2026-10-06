@@ -9,7 +9,7 @@ const SCRIPT_ASSETS = [
   "./app-bootstrap.js", "./app-reference-data.js", "./app-core.js", "./hero-ui.js", "./scene-ui.js", "./scene-effects.js", "./scene-actions-ui.js", "./scene-sync-ui.js", "./app-workspace.js", "./app-navigation.js", "./play-ui.js",
   "./app-builder-events.js", "./app-sync-events.js", "./app-scene-events.js", "./app-play-events.js", "./scene-token-hud.js", "./app.js",
 ];
-const ASSETS = ["./", "./index.html", versioned("./app.css"), versioned("./hero-gadgets.css"), versioned("./vtt-interface-classic.css"), versioned("./vtt-cockpit.css"), ...SCRIPT_ASSETS.map(versioned), "./manifest.webmanifest", "./icon.svg"];
+const ASSETS = ["./", "./index.html", "./testing.html", versioned("./prototype-test-ui.css"), versioned("./prototype-test-ui.js"), versioned("./app.css"), versioned("./hero-gadgets.css"), versioned("./vtt-interface-classic.css"), versioned("./vtt-cockpit.css"), ...SCRIPT_ASSETS.map(versioned), "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", event => {
@@ -17,10 +17,13 @@ self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
   if (event.request.mode === "navigate") {
+    const scope = new URL("./", self.location.href);
+    const shell = url.pathname === scope.pathname || url.pathname === new URL("index.html", scope).pathname;
+    const cacheKey = shell ? "./index.html" : event.request;
     event.respondWith(fetch(event.request).then(response => {
-      if (response.ok) caches.open(CACHE).then(cache => cache.put("./index.html", response.clone()));
+      if (response.ok) caches.open(CACHE).then(cache => cache.put(cacheKey, response.clone()));
       return response;
-    }).catch(() => caches.match("./index.html")));
+    }).catch(() => caches.match(cacheKey)));
     return;
   }
   event.respondWith(fetch(event.request).then(response => {

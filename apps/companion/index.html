@@ -10,6 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="app.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="hero-gadgets.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="prototype-test-ui.css?v=__BUILD_VERSION__">
   <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<3||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
   <link id="scene-interface-classic-styles" rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
   <link id="scene-interface-next-styles" rel="stylesheet" href="vtt-cockpit.css?v=__BUILD_VERSION__" disabled>
@@ -24,12 +25,12 @@
     </div>
     <nav class="mode-tabs" aria-label="Режим компаньона" data-i18n-aria-label="app.modes">
       <button type="button" data-mode="build" data-i18n="nav.builder" aria-current="page">Герой</button>
-      <button type="button" data-mode="play" data-i18n="nav.table">Стол</button>
       <button type="button" data-mode="tools" data-i18n="nav.tools">Инструменты</button>
+      <button type="button" data-mode="play" data-i18n="nav.table">Стол</button>
       <button type="button" data-mode="rules" data-i18n="nav.rules">Правила</button>
       <button type="button" data-mode="reference" data-i18n="nav.reference">Справочник</button>
     </nav>
-    <div class="topbar-actions"><button type="button" id="active-edition-badge" class="active-edition-badge" data-open-app-settings aria-label="Редакция правил">LionWing</button><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
+    <div class="topbar-actions"><a class="prototype-test-tab" href="testing.html">Тестирование</a><button type="button" id="active-edition-badge" class="active-edition-badge" data-open-app-settings aria-label="Редакция правил">LionWing</button><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
   </header>
 
   <dialog id="app-settings-dialog" class="app-settings-dialog" aria-labelledby="app-settings-title">

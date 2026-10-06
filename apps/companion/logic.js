@@ -225,6 +225,13 @@
     return reconcileHealthRuntime({ current, previousMax, nextMax: maximum });
   }
 
+  function standardChallengeTarget({ edition = "ru-v0.9", tier = 1 } = {}) {
+    const currentTier = Math.max(1, Number(tier) || 1);
+    if (edition !== "lionwing") return currentTier + 1;
+    // lionwing.core.unstructured.tier-difficulty, PDF p. 41. No benchmark exists above Tier 6.
+    return Number.isInteger(currentTier) ? [2, 3, 5, 6, 8, 9][currentTier - 1] ?? null : null;
+  }
+
   function challengeOutcome({ successes = 0, target = 1 } = {}) {
     const required = clamp(target, 1, 99);
     const total = Math.max(0, Number(successes) || 0);
@@ -262,5 +269,5 @@
     };
   }
 
-  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateDerivedStatistics, calculateRankSpend, challengeOutcome, clamp, freeplayBondAdvantage, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, reconcileSceneActorHealth, resolveSelectedGifts, rollXd6, scaleTierFormula, swapAttributeBase };
+  global.DAWN_LOGIC = { areaCells, calculateAbilityCost, calculateCreationBudgets, calculateDerivedStatistics, calculateRankSpend, challengeOutcome, clamp, freeplayBondAdvantage, normalizeAttributeBases, normalizeAttributeGrowth, reconcileHealthRuntime, reconcileSceneActorHealth, resolveSelectedGifts, rollXd6, scaleTierFormula, standardChallengeTarget, swapAttributeBase };
 })(typeof window === "object" ? window : globalThis);
