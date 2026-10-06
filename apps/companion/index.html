@@ -10,6 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="app.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="hero-gadgets.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="mobile-header.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="prototype-test-ui.css?v=__BUILD_VERSION__">
   <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<3||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
   <link id="scene-interface-classic-styles" rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
@@ -30,7 +31,12 @@
       <button type="button" data-mode="rules" data-i18n="nav.rules">Правила</button>
       <button type="button" data-mode="reference" data-i18n="nav.reference">Справочник</button>
     </nav>
-    <div class="topbar-actions"><a class="prototype-test-tab" href="testing.html">Тестирование</a><button type="button" id="active-edition-badge" class="active-edition-badge" data-open-app-settings aria-label="Редакция правил">LionWing</button><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
+    <div id="mobile-header-controls" class="mobile-header-controls" hidden>
+      <button type="button" id="mobile-header-sections" aria-expanded="false" aria-controls="mobile-header-sections-panel" data-i18n="navigation.sections">Разделы</button>
+      <button type="button" id="mobile-header-more" aria-expanded="false" aria-controls="topbar-actions" data-i18n="navigation.more">Ещё</button>
+    </div>
+    <div id="mobile-header-sections-panel" class="mobile-header-sections-panel" hidden></div>
+    <div id="topbar-actions" class="topbar-actions"><a class="prototype-test-tab" href="testing.html">Тестирование</a><button type="button" id="active-edition-badge" class="active-edition-badge" data-open-app-settings aria-label="Редакция правил">LionWing</button><button type="button" class="bug-report-open" id="bug-report-open">Баг-репорт</button><button type="button" class="icon-button app-settings-open" id="app-settings-open" data-open-app-settings aria-label="Открыть настройки" title="Настройки">⚙</button></div>
   </header>
 
   <dialog id="app-settings-dialog" class="app-settings-dialog" aria-labelledby="app-settings-title">
@@ -462,6 +468,7 @@
   <script src="scene-sync-ui.js?v=__BUILD_VERSION__"></script>
   <script src="app-workspace.js?v=__BUILD_VERSION__"></script>
   <script src="app-navigation.js?v=__BUILD_VERSION__"></script>
+  <script src="mobile-header.js?v=__BUILD_VERSION__"></script>
   <script src="play-ui.js?v=__BUILD_VERSION__"></script>
   <script src="app-builder-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-sync-events.js?v=__BUILD_VERSION__"></script>

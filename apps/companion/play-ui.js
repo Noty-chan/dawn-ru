@@ -453,6 +453,7 @@ function renderAll(){renderHeroSelect();renderSupplementPicker();renderProfile()
 function initCollapsibleBuildPanels(){$$('.mode-page[data-page="build"]>.panel').forEach(panel=>{const title=panel.querySelector(':scope>.section-title');if(!title)return;panel.classList.add("build-collapsible");title.tabIndex=0;title.setAttribute("role","button");title.setAttribute("aria-expanded","true");const toggle=()=>{const collapsed=panel.classList.toggle("collapsed");title.setAttribute("aria-expanded",String(!collapsed))};title.addEventListener("click",toggle);title.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();toggle()}})})}
 function setMode(mode,options={}){
   const nextMode=["build","play","tools","rules","reference"].includes(mode)?mode:"build",previousMode=store.mode;
+  window.DAWN_MOBILE_HEADER?.prepareNavigation();
   window.DAWN_APP_NAVIGATION?.beforeModeChange(previousMode,nextMode);
   if(options.hash!==undefined){const url=new URL(location.href);url.hash=options.hash;history.replaceState(history.state,"",url);if(nextMode==="rules"){rulesAudience="all";$("rules-search").value=""}}
   store.mode=nextMode;

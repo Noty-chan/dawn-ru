@@ -5,6 +5,8 @@
 // system messages. New or edited UI text must be added here rather than adding
 // a second language directly to feature code.
 window.DAWN_I18N?.registerLocale("ru", {
+  "navigation.sections": "Разделы",
+  "navigation.more": "Ещё",
   "lionwing.cockpit.health": "Здоровье",
   "lionwing.cockpit.invertedPrice": "{price} (увеличение ресурса)",
   "lionwing.cockpit.noSpend": "Сейчас без расхода ресурсов",

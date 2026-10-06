@@ -3,6 +3,8 @@
 // Preview catalogue for the new-edition character builder. Loading this file
 // does not expose English in the public locale selector or change saved heroes.
 window.DAWN_I18N?.registerLocale("en", {
+  "navigation.sections": "Sections",
+  "navigation.more": "More",
   "lionwing.technique.automation.manual.label": "Manual mode",
   "lionwing.technique.automation.manual.detail": "Automation is not connected for this level yet. You can record the result manually.",
   "lionwing.technique.automation.assisted.label": "Partially automated",
