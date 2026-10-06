@@ -12,6 +12,7 @@ window.DAWN_MOBILE_HEADER = (() => {
     const more = document.getElementById("mobile-header-more");
     const actions = document.getElementById("topbar-actions");
     const controls = document.getElementById("mobile-header-controls");
+    const dock = document.getElementById("scene-dock");
     if (!header || !navigation || !sections || !panel || !more || !actions || !controls || typeof window.matchMedia !== "function") return null;
 
     const home = document.createComment("Workspace navigation returns here on desktop");
@@ -34,6 +35,9 @@ window.DAWN_MOBILE_HEADER = (() => {
     const measure = () => {
       if (!mobile) return;
       height = Math.ceil(header.getBoundingClientRect().height);
+      const dockHeight = dock ? Math.ceil(dock.getBoundingClientRect().height) : 0;
+      if (dockHeight > 0) style.setProperty("--scene-mobile-dock-height", `${dockHeight}px`);
+      else style.removeProperty("--scene-mobile-dock-height");
       style.setProperty("--mobile-header-height", `${height}px`);
       style.setProperty("--mobile-header-visible-height", `${header.classList.contains("mobile-header-hidden") ? 0 : height}px`);
     };
@@ -95,7 +99,7 @@ window.DAWN_MOBILE_HEADER = (() => {
       controls.hidden = !mobile;
       if (mobile) panel.append(navigation); else home.after(navigation);
       visible(true); resetDirection(); refresh();
-      if (!mobile) { style.removeProperty("--mobile-header-height"); style.removeProperty("--mobile-header-visible-height"); }
+      if (!mobile) { style.removeProperty("--mobile-header-height"); style.removeProperty("--mobile-header-visible-height"); style.removeProperty("--scene-mobile-dock-height"); }
       // Moving DOM can reset focus to body; capture ownership before closing or moving it.
       if (mobile && navigationFocus) sections.focus({ preventScroll: true });
       else if (mobile && actionsFocus) more.focus({ preventScroll: true });
@@ -132,7 +136,11 @@ window.DAWN_MOBILE_HEADER = (() => {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", () => { measure(); resetDirection(); });
     media.addEventListener("change", breakpoint);
-    if (typeof ResizeObserver === "function") new ResizeObserver(measure).observe(header);
+    if (typeof ResizeObserver === "function") {
+      const chromeObserver = new ResizeObserver(measure);
+      chromeObserver.observe(header);
+      if (dock) chromeObserver.observe(dock);
+    }
     controller = Object.freeze({ refresh, prepareNavigation });
     breakpoint();
     return controller;
