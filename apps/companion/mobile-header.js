@@ -85,6 +85,8 @@ window.DAWN_MOBILE_HEADER = (() => {
       measure();
     }
     function breakpoint() {
+      const focused = document.activeElement;
+      const navigationFocus = navigation.contains(focused), actionsFocus = actions.contains(focused), controlsFocus = controls.contains(focused);
       mobile = media.matches;
       closeMenus();
       if (navigationTimer !== null) clearTimeout(navigationTimer);
@@ -94,8 +96,11 @@ window.DAWN_MOBILE_HEADER = (() => {
       if (mobile) panel.append(navigation); else home.after(navigation);
       visible(true); resetDirection(); refresh();
       if (!mobile) { style.removeProperty("--mobile-header-height"); style.removeProperty("--mobile-header-visible-height"); }
-      // A breakpoint must not strand keyboard focus in a now-hidden disclosure.
-      if (!mobile && controls.contains(document.activeElement)) header.querySelector('[aria-current="page"]')?.focus({ preventScroll: true });
+      // Moving DOM can reset focus to body; capture ownership before closing or moving it.
+      if (mobile && navigationFocus) sections.focus({ preventScroll: true });
+      else if (mobile && actionsFocus) more.focus({ preventScroll: true });
+      else if (!mobile && controlsFocus) header.querySelector('[aria-current="page"]')?.focus({ preventScroll: true });
+      else if (!mobile && (navigationFocus || actionsFocus)) focused.focus({ preventScroll: true });
     }
     function toggle(button) {
       const open = !expanded(button);
