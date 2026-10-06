@@ -43,7 +43,7 @@ function applyContentPreferences({render=false}={}){
 $("locale-select").addEventListener("change",event=>{contentPreferences.locale=event.target.value;if(event.target.value==="en")contentPreferences.edition="lionwing";applyContentPreferences({render:true})});
 $("edition-select").addEventListener("change",event=>{contentPreferences.edition=event.target.value;applyContentPreferences({render:true})});
 applyContentPreferences();
-document.documentElement.classList.toggle("light",store.theme==="light");initCollapsibleBuildPanels();setMode(store.mode||"build");renderAll();renderSync();if(importedPresetName)toast(`Создан персонаж «${importedPresetName}»`);
+document.documentElement.classList.toggle("light",store.theme==="light");initCollapsibleBuildPanels();setMode(store.mode||"build");renderAll();window.DAWN_MOBILE_HEADER?.init();renderSync();if(importedPresetName)toast(`Создан персонаж «${importedPresetName}»`);
 initializeHeroMediaStorage().catch(error=>console.warn("DAWN extended media storage unavailable",error));
 if(Sync?.hasConfig())window.addEventListener("load",()=>setTimeout(()=>Sync.connect().catch(()=>renderSync()),250),{once:true});
 if(location.protocol.startsWith("http")&&"serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});

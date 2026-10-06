@@ -48,14 +48,14 @@ function renderWorkspaceNavigation() {
   const mode = store.mode, build = document.querySelector('[data-page="build"]');
   const sheet = mode === "build" && build?.dataset.heroView === "sheet";
   document.body.dataset.workspaceView = sheet ? "sheet" : mode === "build" ? "builder" : mode;
-  const sidebar = root.closest(".sidebar");
+  const sidebar = document.querySelector(".sidebar");
   for (const [selector, visible] of [[".hero-switcher",mode === "build"],[".summary",mode === "build" && !sheet],[".hero-files",mode === "build"],[".autosave",mode === "build" && !sheet]]) {
     const element = sidebar?.querySelector(selector); if (element) element.hidden = !visible;
   }
   root.hidden = !["build", "tools", "rules"].includes(mode);
   index.hidden = mode !== "rules";
   links.hidden = mode === "rules";
-  if (root.hidden) return;
+  if (root.hidden) { window.DAWN_MOBILE_HEADER?.refresh(); return; }
   let entries = [];
   if (mode === "rules") {
     $("workspace-nav-title").textContent = workspaceCopy("Главы правил", "Rule chapters");
@@ -79,6 +79,7 @@ function renderWorkspaceNavigation() {
   }
   const key = document.body.dataset.workspaceView, active = workspaceAnchors.get(key);
   links.innerHTML = entries.filter(entry => document.getElementById(entry.id)).map(entry => `<a href="#${esc(entry.id)}" data-workspace-anchor="${esc(entry.id)}"${active === entry.id ? ' aria-current="location"' : ""}>${esc(entry.label)}</a>`).join("");
+  window.DAWN_MOBILE_HEADER?.refresh();
 }
 document.addEventListener("click", event => {
   const internal = event.target.closest?.('.reference-rules-link a,.scene-rule-section-intro a,.scene-reference-card footer a');
