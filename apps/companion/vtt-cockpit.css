@@ -997,3 +997,35 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 .scene-context-menu .token-hud-actions .token-hud-more{flex:0 0 44px;color:var(--muted)}
 .token-hud-status{margin:0;color:var(--gold);font-size:.7rem;line-height:1.35}
 .token-hud-status:empty{display:none}
+.token-hud-effects{display:grid;gap:.15rem;font-size:.72rem;line-height:1.35;color:var(--muted);padding-top:.35rem;border-top:1px solid var(--line)}
+.token-hud-effects>span:first-child{font-weight:800;color:var(--ink)}
+.scene-context-menu.is-token-overlay{display:block;min-width:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;backdrop-filter:none;filter:none;transform:none;overflow:visible;pointer-events:none}
+.is-token-overlay .token-hud-head strong,.is-token-overlay .token-hud-help,.is-token-overlay .token-hud-effects,.is-token-overlay .token-hud-health>label,.is-token-overlay .token-hud-health>span{display:none}
+.is-token-overlay .token-hud-head{display:contents}
+.scene-context-menu.is-token-overlay button,.is-token-overlay input,.is-token-overlay .token-hud-effect-picker{pointer-events:auto}
+.scene-context-menu.is-token-overlay .token-hud-actions{display:contents}
+.scene-context-menu.is-token-overlay [data-token-hud-action]{position:absolute;display:grid;place-items:center;width:36px;height:36px;min-height:36px;min-width:36px;padding:0;border:1px solid #ffffff38;border-radius:7px;background:#141820cf;backdrop-filter:blur(5px);color:#eee;font-size:0}
+.is-token-overlay [data-token-hud-action] i{font-size:17px}
+.scene-context-menu.is-token-overlay [data-token-hud-action="cockpit"]{left:0;top:calc(50% - 36px)}
+.scene-context-menu.is-token-overlay [data-token-hud-action="inspect"]{left:0;top:calc(50% + 3px)}
+.scene-context-menu.is-token-overlay [data-token-hud-action="target"]{right:0;top:calc(50% + 3px)}
+.scene-context-menu.is-token-overlay [data-token-hud-action="effects"]{right:0;top:calc(50% - 36px);font-size:20px}
+.scene-context-menu.is-token-overlay [data-token-hud-action="more"]{right:0;top:0}
+.scene-context-menu.is-token-overlay [data-token-hud-action="close"]{left:0;top:0;font-size:18px}
+.is-token-overlay .token-hud-health{position:absolute;bottom:0;left:38px;right:38px;display:grid;grid-template-columns:minmax(0,1fr) 25px;gap:0;margin:0;padding:0;border:1px solid var(--good);background:#141820cf;pointer-events:auto;min-width:60px}
+.is-token-overlay .token-hud-health input{min-height:32px;border:0;background:none;padding:2px;font-size:15px}
+.scene-context-menu.is-token-overlay .token-hud-health button{grid-column:auto;min-height:32px;border:0;background:none;font-size:0}
+.scene-context-menu.is-token-overlay .token-hud-health button::before{content:"✓";font-size:16px}
+.is-token-overlay .token-hud-health-read{position:absolute;bottom:0;left:38px;right:38px;justify-content:center;min-height:32px;border:1px solid var(--good);background:#141820cf;color:#eee;pointer-events:auto;font-size:11px;padding:4px}
+.is-token-overlay .token-hud-effect-picker{position:absolute;top:0;left:calc(100% + 6px);display:grid;gap:3px;width:190px;max-height:min(320px,55dvh);overflow:auto;padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}
+.is-token-overlay .token-hud-effect-picker[hidden]{display:none}
+.is-token-overlay .token-hud-effect-picker button{min-height:32px;padding:5px;text-align:left;font-size:.72rem}
+.is-token-overlay .token-hud-effect-picker button[aria-pressed="true"]{border-color:var(--good);color:var(--good)}
+.is-token-overlay .token-hud-status{position:absolute;top:100%;left:0;right:0;background:var(--surface);pointer-events:auto;border-radius:5px;padding:4px}
+@media(max-width:720px){.is-token-overlay .token-hud-effect-picker{left:auto;right:0;top:calc(100% + 6px);width:min(230px,calc(100vw - 16px));max-height:38dvh}}
+.scene-context-menu.is-token-overlay :is([data-token-hud-action="cockpit"],[data-token-hud-action="inspect"],[data-token-hud-action="close"]){left:var(--hud-left,0px);right:auto}
+.scene-context-menu.is-token-overlay :is([data-token-hud-action="target"],[data-token-hud-action="effects"],[data-token-hud-action="more"]){left:var(--hud-right,108px);right:auto}
+.scene-context-menu.is-token-overlay :is([data-token-hud-action="cockpit"],[data-token-hud-action="effects"]){top:var(--hud-row,24px)}
+.scene-context-menu.is-token-overlay :is([data-token-hud-action="inspect"],[data-token-hud-action="target"]){top:calc(var(--hud-row,24px) + 40px)}
+.scene-context-menu.is-token-overlay :is([data-token-hud-action="close"],[data-token-hud-action="more"]){top:var(--hud-cap,0px)}
+.is-token-overlay :is(.token-hud-health,.token-hud-health-read){left:var(--hud-health-left,38px);top:var(--hud-health-top,100px);right:auto;bottom:auto;width:68px}

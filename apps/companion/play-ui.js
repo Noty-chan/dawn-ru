@@ -174,6 +174,7 @@ function renderFreeplayDirector(){
   clearButton.textContent=kind==="opposed"?"Отменить встречный бросок":"Отменить запрос";
   document.body.classList.toggle("tools-narrator-mode",role==="network-narrator"&&store.mode==="tools");
   document.querySelector(".freeplay-grid").dataset.toolsRole=role;
+  document.querySelector(".freeplay-grid").dataset.toolsRequestActive=String(Boolean(request||opposed));
   document.querySelector(".freeplay-hero-tool").hidden=false;
   document.querySelector(".dice-tool").hidden=false;
   document.querySelector(".freeplay-bonds-tool").hidden=false;
@@ -209,12 +210,18 @@ function renderChallengeRequestDock(){
   const dock=$("challenge-request-dock"),context=toolsSyncContext(),request=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),result=opposedParticipantResult(participant,opposed),opponent=opposed?.participants.find(item=>item.id!==participant?.id),visible=context.shared&&!context.canEdit&&Boolean(request||participant)&&store.mode!=="tools";
   const resolved=Boolean(participant?result:request?.result);dock.hidden=!visible;dock.classList.toggle("resolved",resolved);if(visible)$("challenge-request-dock-text").textContent=participant?(result?`Запрос → Ответ · ${result.successes} Успехов · ${opposedResultSummary(opposed)}`:`Запрос · встречный бросок против ${opponent?.name||"соперника"}`):request.result?`Запрос → Ответ · ${challengeResultSummary(request.result)}`:`Запрос · ${request.requestedBy} просит бросок · цель ${request.target}`;
 }
+function syncToolsSourceSelection(){
+  for(const [selector,key,control] of [["[data-freeplay-attr]","freeplayAttr","dice-attr"],["[data-freeplay-skill]","freeplaySkill","dice-skill"],["[data-freeplay-ability]","freeplayAbility","dice-ability"],["[data-bond-use]","bondUse","dice-bond"]]){
+    const value=$(control)?.value;
+    $$(selector).forEach(button=>{const selected=Boolean(value&&button.dataset[key]===value);button.classList.toggle("tools-source-selected",selected);button.setAttribute("aria-pressed",String(selected))});
+  }
+}
 function updateDicePoolTotal(){
   const request=toolsDiceRequest(),context=toolsRollContext(),status=SceneEngine.diceHookStatus(context.scene,context.actor.id,request),total=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance),dark=$("dice-dark-urge"),copy=toolsCopy();
   if(dark){dark.disabled=!request.usesAbility;if(!request.usesAbility)dark.checked=false}
   const automatic=status.sources?.filter(source=>["advantage","hindrance"].includes(source.type)).map(source=>`${source.type==="hindrance"?"−":"+"}${source.amount} ${source.label}`)||[];
   $("dice-pool-total").innerHTML=`<span>${copy.pool}</span><strong>${total}D6</strong><small>${esc([`${request.baseCount} ${copy.fromAttribute}`,request.advantage?`+${request.advantage} ${copy.otherAdvantage}`:"",request.hindrance?`−${request.hindrance} ${copy.hindrance}`:"",...automatic].filter(Boolean).join(" · "))}</small>`;
-  $$("[data-dice-count]").forEach(button=>button.classList.toggle("on",+$("dice-count").value===+button.dataset.diceCount));renderOutcomeGuide();
+  $$("[data-dice-count]").forEach(button=>button.classList.toggle("on",+$("dice-count").value===+button.dataset.diceCount));renderOutcomeGuide();syncToolsSourceSelection();
 }
 function recalculateDicePool(){const attr=$("dice-attr").value,count=$("dice-count");count.readOnly=attr!=="manual";if(attr!=="manual")count.value=Math.max(1,attrValue(attr));updateDicePoolTotal()}
 function renderDiceComposer(){
@@ -229,20 +236,35 @@ function renderDiceComposer(){
 }
 function openToolsDicePreset({attr="",skillId="",abilityKey=""}={}){setMode("tools");renderDiceComposer();if(attr&&[...$("dice-attr").options].some(option=>option.value===attr))$("dice-attr").value=attr;if(skillId&&[...$("dice-skill").options].some(option=>option.value===skillId))$("dice-skill").value=skillId;if(abilityKey&&[...$("dice-ability").options].some(option=>option.value===abilityKey))$("dice-ability").value=abilityKey;recalculateDicePool();requestAnimationFrame(()=>$("roll-dice").focus())}
 function renderFreeplayHeroPanel(){
+  const root=$("freeplay-hero-panel"),sameHero=root.dataset.toolsHero===S.id;
+  const opened=new Set(sameHero?[...root.querySelectorAll("details[open][data-tools-feature]")].map(detail=>detail.dataset.toolsFeature):[]);
+  const focused=sameHero&&root.contains(document.activeElement)?document.activeElement:null;
+  const focusKey=focused&&["freeplayAttr","freeplaySkill","freeplayAbility","freeplayResource"].find(key=>focused.dataset[key]);
+  const focusValue=focusKey&&focused.dataset[focusKey],focusDelta=focused?.dataset.freeplayDelta;
   const actor=toolsRuntimeActor(),stressMaximum=stressMaximumFor(actor||S),stress=clamp(actor?.stress??S.runtime.stress,0,stressMaximum),influence=Math.max(0,Number(actor?.influence??S.runtime.influence)||0),gifts=selectedGifts(),techniques=Object.entries(S.techniques).filter(([,level])=>level>0).map(([id,level])=>({tech:techById(id),level})).filter(item=>item.tech),locked=toolsSyncContext().shared&&!actor,copy=toolsCopy(),attrs=activeAttrs();
   const resource=(key,label,value,maximum="")=>`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${value}${maximum?` / ${maximum}`:""}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button></div>`;
   $("freeplay-hero-panel").innerHTML=`<header class="freeplay-hero-head">${S.media.portrait?`<img src="${S.media.portrait}" alt="">`:`<i>✦</i>`}<div><span class="kind">${copy.sheet}</span><h2>${esc(S.name||copy.unnamed)}</h2><p>${esc(S.concept||(isEnglishPreview()?"No concept recorded":"Концепция не записана"))} · ${copy.tier} ${S.tier}</p></div><div class="freeplay-resources">${resource("influence",copy.influence,influence)}${resource("stress",copy.stress,stress,stressMaximum)}</div></header><div class="freeplay-sheet-picks"><section><h3>${copy.attributes}</h3><div>${attrs.map(([key,label])=>`<button type="button" data-freeplay-attr="${key}"><span>${label}</span><b>${attrValue(key)}D6</b></button>`).join("")}</div></section><section><h3>${copy.skills}</h3><div>${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-freeplay-skill="${esc(toolSkillId(skill))}"><span>${esc(skillDisplayName(skill))}</span><b>+${effectiveSkillRank(skill)}D6</b></button>`).join("")||`<p class="autosave">${copy.noSkills}</p>`}</div></section>${S.ability.enabled?`<section><h3>${copy.ability}</h3><button type="button" class="freeplay-ability-pick" data-freeplay-ability="main"><span><b>${esc(S.ability.name||abilityFormula())}</b><small>${esc(abilityFormula())}</small></span><strong>+${S.ability.rank}D6</strong></button></section>`:""}</div><div class="freeplay-features"><details><summary>${copy.boons} <small>${gifts.length}</small></summary>${gifts.map(gift=>`<article><strong>${esc(gift.name)}</strong><p>${md(gift.text)}</p></article>`).join("")||`<p class="autosave">${copy.noBoons}</p>`}</details><details><summary>${copy.techniques} <small>${techniques.reduce((sum,item)=>sum+item.level,0)} ${isEnglishPreview()?"Lv.":"ур."}</small></summary>${techniques.map(({tech,level})=>`<article><strong>${esc(tech.name)} · ${isEnglishPreview()?"Level":"Уровень"} ${level}</strong>${tech.levels.slice(0,level).map(item=>`<p><b>${item.n}: ${esc(item.name)}</b> — ${md(item.text)}</p>`).join("")}</article>`).join("")||`<p class="autosave">${copy.noTechniques}</p>`}</details></div>`;
+  root.dataset.toolsHero=S.id;
+  const features=root.querySelector(".freeplay-features");
+  if(features){
+    [...features.querySelectorAll("details")].forEach((detail,index)=>{detail.dataset.toolsFeature=index===0?"gifts":"techniques";detail.open=opened.has(detail.dataset.toolsFeature)});
+    const gadgets=typeof heroGadgetsSheetMarkup==="function"?heroGadgetsSheetMarkup():"";
+    if(gadgets){const detail=document.createElement("details"),summary=document.createElement("summary");detail.dataset.toolsFeature="gadgets";detail.open=opened.has("gadgets");summary.textContent=gadgetText("title");detail.append(summary);detail.insertAdjacentHTML("beforeend",gadgets);features.append(detail)}
+  }
+  syncToolsSourceSelection();
+  if(focusKey){const replacement=[...root.querySelectorAll("button")].find(button=>button.dataset[focusKey]===focusValue&&(!focusDelta||button.dataset.freeplayDelta===focusDelta));replacement?.focus({preventScroll:true})}
 }
 function renderFreeplayBonds(){
   const standard=D.bonds.actions.map(action=>action.tag);
   $("freeplay-bonds").innerHTML=S.bonds.map(bond=>{const status=freeplayBondStatus(bond),canRaise=bond.rank<3&&bond.tags.length>=bond.rank;return`<article class="freeplay-bond-card"><header><div><strong>${esc(bond.name)}</strong><small>${bond.quick?"Быстрая Связь · ":""}Преимущество +${status.amount}</small></div><div class="freeplay-bond-rank"><button type="button" data-bond-rank="${bond.id}" data-bond-delta="-1" ${bond.rank<=1?"disabled":""}>−</button><b>Ранг ${bond.rank}</b><button type="button" data-bond-rank="${bond.id}" data-bond-delta="1" title="${canRaise?"Повысить Ранг":"Для повышения нужны все теги текущего Ранга"}" ${canRaise?"":"disabled"}>+</button></div></header><div class="freeplay-bond-tags">${bond.tags.map(tag=>`<span>${esc(tag)}</span>`).join("")||`<small>Тегов пока нет</small>`}</div><div class="freeplay-bond-actions"><select data-bond-tag-select="${bond.id}" ${bond.tags.length>=bond.rank?"disabled":""}><option value="">${bond.tags.length>=bond.rank?"Все места тегов заняты":"Добавить тег…"}</option>${standard.filter(tag=>!bond.tags.includes(tag)).map(tag=>`<option>${esc(tag)}</option>`).join("")}<option value="__custom">Свой тег…</option></select><button type="button" data-bond-use="${bond.id}">В бросок</button><button type="button" class="remove" data-bond-remove="${bond.id}">Удалить</button></div></article>`}).join("")||`<p class="autosave">Связей пока нет. В обычной или быстрой Связи можно хранить Ранг и неизменяемые теги.</p>`;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderAllInControls(){
   renderFreeplayDirector();
-  if(toolsRole()==="network-narrator")return;
   renderDiceComposer();
   renderFreeplayHeroPanel();
   renderFreeplayBonds();
+  syncToolsSourceSelection();
   renderStressTrackers();
   updateAllInAvailability();
 }
@@ -292,12 +314,14 @@ function allIn(payment){
 function renderDiceHistory(){
   const context=toolsSyncContext(),history=context.shared?(Scene.rollFeed||[]).filter(roll=>activeSceneView()==="gm"||roll.visibility!=="gm"):S.runtime.diceHistory,empty=isEnglishPreview()?"No public rolls at this table yet.":"На этом столе ещё не было публичных бросков.";
   $("dice-history").innerHTML=history.map(h=>{const rolls=Array.isArray(h.rolls)?h.rolls:[],criticalAt=Number(h.dice?.criticalAt||6),threshold=Number(h.dice?.threshold||4),actor=h.actor|| (isEnglishPreview()?"System":"Система"),formula=h.formula||`${h.count||rolls.length}D6 ≥${threshold}`,result=isEnglishPreview()?`${h.successes} successes · ${h.crits} crits`:`${h.successes} успех. · ${h.crits} крит.`,badge=h.payment?(isEnglishPreview()?"ALL IN":"ВА-БАНК"):h.opposedRequestId?(isEnglishPreview()?"OPPOSED":"ВСТРЕЧНЫЙ"):isEnglishPreview()?"ROLL":"БРОСОК";return`<li class="roll-feed-card"><header><div><strong>${esc(actor)}</strong><small>${esc(formula)}${h.at?` · ${esc(h.at)}`:""}</small></div><span>${badge}</span></header><div class="roll-feed-dice">${rolls.map(value=>`<i class="${value>=criticalAt?"crit":value>=threshold?"success":""}">${value}</i>`).join("")}</div><div class="roll-feed-result">${esc(result)}${h.outcome?` · ${esc(h.outcome)}`:""}</div>${h.target?`<small>${isEnglishPreview()?"Success Target":"Цель Успехов"}: ${esc(h.target)}</small>`:""}</li>`}).join("")||`<li class="roll-feed-card"><small>${empty}</small></li>`;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderClocks(){
   const context=toolsSyncContext(),clocks=sessionClocks(),locked=context.shared&&!context.canEdit,addActions=$("clock-add-progress").closest(".clock-add-actions");addActions.hidden=locked;
   const editableCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock ${c.kind==="progress"?"progress":"danger"}"><div class="clock-head"><label>Название<input data-clock-name="${c.id}" value="${esc(c.name)}" maxlength="120" title="${esc(c.name)}"></label><div class="clock-head-actions"><button type="button" data-clock-save="${c.id}">✓ Сохранить</button><button type="button" data-clock-reset="${c.id}">↺ Сбросить</button><button type="button" class="remove" data-clock-remove="${c.id}">× Удалить</button></div></div><div class="clock-meta"><label>Тип<select data-clock-kind="${c.id}"><option value="progress" ${c.kind==="progress"?"selected":""}>Хорошие</option><option value="danger" ${c.kind==="progress"?"":"selected"}>Плохие</option></select></label><label>Текущее<input type="number" data-clock-current="${c.id}" min="${c.min??0}" max="${max}" value="${current}"></label><label>Максимум<select data-clock-size="${c.id}">${[4,6,8,12].map(size=>`<option value="${size}" ${max===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="segments">${Array.from({length:max},(_,i)=>`<button type="button" class="segment ${i<current?"on":""}" data-clock="${c.id}" data-value="${i+1}" aria-label="${i+1} из ${max}"></button>`).join("")}</div></article>`};
   const readOnlyCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock clock-readonly ${c.kind==="progress"?"progress":"danger"}"><div class="clock-readonly-head"><strong title="${esc(c.name)}">${esc(c.name)}</strong><small>${current} / ${max}</small></div><div class="segments" role="img" aria-label="${esc(`${c.name}: заполнено ${current} из ${max}`)}">${Array.from({length:max},(_,i)=>`<span class="segment ${i<current?"on":""}"></span>`).join("")}</div></article>`};
   const card=locked?readOnlyCard:editableCard,group=(kind,title,empty)=>{const items=clocks.filter(clock=>(clock.kind==="progress"?"progress":"danger")===kind);return`<section class="clock-group ${kind}"><h3>${title}</h3>${items.map(card).join("")||`<p class="autosave">${empty}</p>`}</section>`};$("clocks").innerHTML=isEnglishPreview()?group("progress","Good Clocks","No progress Clocks yet.")+group("danger","Bad Clocks",locked?"The Narrator has not added a threat Clock yet.":"No threat Clocks yet."):group("progress","Хорошие часы","Пока нет часов прогресса.")+group("danger","Плохие часы",locked?"Нарратор ещё не добавил часы угрозы.":"Пока нет часов угрозы.");renderToolsSyncState();
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderStressTrackers(){
   const root=$("stress-trackers"),context=toolsSyncContext(),heroes=context.shared
@@ -307,6 +331,7 @@ function renderStressTrackers(){
     ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: Стресс ${index}`)}"></button>`
     :`<span class="${index<=hero.stress?"on":""}"></span>`;
   root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress??stressMaximumFor(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${Number(hero.stress)>=maxStress?"Максимум · герой вне строя":`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${context.canEdit?"":`role="img" aria-label="${esc(`${hero.name}: Стресс ${clamp(hero.stress,0,maxStress)} из ${maxStress}`)}"`}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${context.shared?"Добавьте героев за общий стол.":"Нет текущего героя."}</p>`;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 
 function bondRuleItems(){return [

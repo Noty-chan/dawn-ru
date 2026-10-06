@@ -3,17 +3,19 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const read=name=>fs.readFileSync(new URL(`../${name}`,import.meta.url),"utf8");
-const events=new Map(),frames=[],observers=[],commands=[],navigation=[];
-let role="gm",shared=null,queued={pending:0,failed:0},dialog=null,compound=null;
+const events=new Map(),frames=[],observers=[],commands=[],navigation=[],timers=new Map();
+let role="gm",shared=null,queued={pending:0,failed:0},dialog=null,compound=null,openPanel=null;
 const document={activeElement:null,querySelector:selector=>selector==="dialog[open]"?dialog:null,
   addEventListener(type,handler,capture){events.set(`document:${type}:${Boolean(capture)}`,handler);}};
 class Element{
-  constructor(id=""){this.id=id;this.dataset={};this.hidden=false;this.style={};this.attributes={};this.controls={};this.disabled=false;
+  constructor(id=""){this.id=id;this.dataset={};this.hidden=false;this.style={setProperty(name,value){this[name]=value}};this.attributes={};this.controls={};this.disabled=false;
     const classes=new Set();this.classList={add:value=>classes.add(value),remove:value=>classes.delete(value),contains:value=>classes.has(value)};}
   addEventListener(type,handler,capture){events.set(`${this.id}:${type}:${Boolean(capture)}`,handler);}
   setAttribute(name,value){this.attributes[name]=String(value);}
   removeAttribute(name){delete this.attributes[name];}
   querySelector(selector){return this.controls[selector]||null;}
+  contains(node){return Object.values(this.controls).includes(node);}
+  insertAdjacentHTML(position,html){this.html+=html;for(const match of html.matchAll(/data-token-hud-(effect|action)="([^"]+)"/g)){const button=new Element(match[2]);button.dataset[match[1]==="effect"?"tokenHudEffect":"tokenHudAction"]=match[2];this.controls[`[data-token-hud-${match[1]}="${match[2]}"]`]=button;}}
   focus(){document.activeElement=this;}
   getBoundingClientRect(){return {left:400,right:440,top:300,bottom:340,width:40,height:40};}
   closest(selector){return selector==="[data-scene-cell]"?{dataset:{sceneCell:"3,2"}}:null;}
@@ -27,8 +29,8 @@ class Element{
       if(html.includes(`data-token-hud-action="${action}"`)){const control=new Element(action);control.dataset.tokenHudAction=action;this.controls[`[data-token-hud-action="${action}"]`]=control;}
     }
   }
-  get offsetWidth(){return 266;}
-  get offsetHeight(){return 145;}
+  get offsetWidth(){return Number.parseFloat(this.style.width)||266;}
+  get offsetHeight(){return Number.parseFloat(this.style.height)||145;}
 }
 const elements=new Map(["scene-board","scene-context-menu","scene-board-wrap","scene-sync-status"].map(id=>[id,new Element(id)]));
 const board=elements.get("scene-board"),menu=elements.get("scene-context-menu"),wrap=elements.get("scene-board-wrap"),token=new Element("token");
@@ -37,14 +39,17 @@ board.querySelector=selector=>selector==='[data-scene-actor="enemy"]'?token:null
 wrap.getBoundingClientRect=()=>({left:100,right:1000,top:100,bottom:800});
 const context={console,document,innerWidth:1200,innerHeight:900,CSS:{escape:String},$:id=>elements.get(id),
   store:{mode:"play"},sceneContextTarget:null,S:{id:"owned"},Sync:{state:()=>({sceneId:shared})},esc:String,clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),
-  activeSceneView:()=>role,isEnglishPreview:()=>false,usingNextSceneInterface:()=>context.interfaceVersion==="next",
+  isScenePanelOpen:panel=>panel===openPanel,activeSceneView:()=>role,isEnglishPreview:()=>false,usingNextSceneInterface:()=>context.interfaceVersion==="next",
   networkV2QueueStatus:()=>queued,SceneEngine:{compoundEnemyStatus:()=>compound||{active:false}},hideSceneTokenTip:()=>{},
+  sceneEffectList:()=>[{id:"positive.test",name:"Test effect"}],sceneActorEffects:actor=>actor.effects||[],
+  setNarratorEffect:(actor,effect,remove)=>{commands.push({route:"setNarratorEffect",actorId:actor.id,effect,remove});return true;},
   persist:()=>{},renderScene:()=>{},setScenePanel:panel=>navigation.push(panel),openSceneActorCockpit:id=>navigation.push(id),
   toggleSceneTarget:id=>{context.Scene.targetIds=context.Scene.targetIds.includes(id)?context.Scene.targetIds.filter(value=>value!==id):context.Scene.targetIds.concat(id);},
   showSceneContextMenu:(event,target)=>navigation.push({event,target}),
   lwSubmit:(id,payload)=>{commands.push({id,payload});if(shared){queued.pending++;return {pending:true};}context.Scene.actors.find(actor=>actor.id===id).hp=payload.amount;return {events:[]};},
   setNarratorActorValue:(actor,key,value)=>{commands.push({id:actor.id,key,value});actor[key]=value;return {events:[]};},
   requestAnimationFrame:callback=>{frames.push(callback);return frames.length;},
+  setTimeout:callback=>{const id=timers.size+1;timers.set(id,callback);return id;},clearTimeout:id=>timers.delete(id),
   MutationObserver:class{constructor(callback){this.callback=callback;observers.push(this);}observe(){}},
 };
 context.window={addEventListener(type,handler){events.set(`window:${type}`,handler);}};
@@ -56,7 +61,7 @@ vm.runInContext(identitySource.slice(identitySource.indexOf("function lwGeometry
 vm.runInContext(read("scene-token-hud.js"),context,{filename:"actual token HUD"});
 const hud=context.window.DAWN_SCENE_TOKEN_HUD;
 const reset=()=>{
-  hud.close();role="gm";shared=null;queued={pending:0,failed:0};dialog=null;compound=null;commands.length=0;navigation.length=0;frames.length=0;
+  hud.close();role="gm";shared=null;queued={pending:0,failed:0};dialog=null;compound=null;openPanel=null;context.innerWidth=1200;commands.length=0;navigation.length=0;frames.length=0;
   context.store.mode="play";context.interfaceVersion="next";
   context.Scene={id:"local-a",name:"Test",rulesEdition:"lionwing",activeActorId:"hero",selectedActor:"hero",activeSpace:"main",targetIds:["hero"],targetCells:["1,1"],
     spaces:[{id:"main",width:8,height:6}],lionwing:{sceneSerial:1},actors:[{id:"hero",heroId:"owned",name:"Hero",space:"main",hp:30,maxHp:30},{id:"enemy",name:"Enemy",space:"main",x:3,y:2,hp:30,maxHp:30}]};
@@ -83,6 +88,10 @@ reset();open();input().value="-5";document.activeElement=menu.querySelector("for
 assert.equal(input().value,"-5","Tab to Apply and a background refresh do not discard the draft");
 hud.action("target");assert.equal(input().value,"-5","targeting preserves an unfinished health edit");assert.equal(hud.applyHealth(),true);assert.equal(enemy().hp,25);
 assert.equal(document.activeElement,input(),"Enter keeps the health editor ready for another edit");
+reset();enemy().hp=15;enemy().maxHp=16;open();assert.equal(apply("+5"),true);assert.equal(commands[0].payload.amount,16,"relative healing clamps to actual maximum before canonical correction");
+assert.equal(hud.healthChange("20",15,16),20,"exact typed health retains canonical validation instead of silently clamping");
+assert.equal(hud.healthChange("-50",15,16),0);assert.equal(hud.healthChange("+5",15,null),20,"unknown maximum does not invent a health cap");
+reset();compound={active:true,hp:59,maxHp:60};open();assert.equal(apply("+5"),true);assert.equal(commands[0].payload.amount,60,"compound relative healing uses the shared health maximum");
 
 reset();open();document.activeElement=menu.querySelector('button[type="submit"]');hud.refresh();
 assert.equal(document.activeElement,menu.querySelector('button[type="submit"]'),"background draw preserves Tab focus on Apply when HP has not been edited");
@@ -124,6 +133,20 @@ token.getBoundingClientRect=()=>({left:400,right:440,top:775,bottom:815,width:40
 hud.refresh();assert.ok(Number.parseFloat(menu.style.top)+menu.offsetHeight<=792,"HUD stays inside the field bottom margin");
 assert.equal(menu.style.maxHeight,"684px","HUD height is bounded by the visible field");
 token.getBoundingClientRect=originalTokenRect;
+token.getBoundingClientRect=()=>({left:950,right:990,top:300,bottom:340,width:40,height:40});hud.refresh();
+assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-right"])+36<=950,"right-edge controls move to the free side of the token");
+token.getBoundingClientRect=originalTokenRect;
+token.getBoundingClientRect=()=>({left:105,right:145,top:300,bottom:340,width:40,height:40});hud.refresh();
+assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-left"])>=145,"at the left field edge controls move to the free side instead of painting the token centre");
+assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-right"])+36<=992);
+token.getBoundingClientRect=originalTokenRect;
+for(const top of [100,775]){
+  token.getBoundingClientRect=()=>({left:105,right:129,top,bottom:top+24,width:24,height:24});hud.refresh();
+  const cap=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-cap"]),row=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-row"]);
+  assert.equal(row-cap,40,"edge clamping keeps cap and first-row hit areas separated by 4px");
+  assert.ok(cap>=108&&row+40+36<=792,"the entire three-button stack stays inside the visible field");
+}
+token.getBoundingClientRect=originalTokenRect;
 const originalFieldRect=wrap.getBoundingClientRect;
 wrap.getBoundingClientRect=()=>({left:100,right:1000,top:870,bottom:1200});
 token.getBoundingClientRect=()=>({left:400,right:440,top:875,bottom:915,width:40,height:40});
@@ -141,6 +164,46 @@ events.get("scene-board:contextmenu:true")(rightClick);assert.equal(rightClick.p
 context.interfaceVersion="next";events.get("scene-board:contextmenu:true")(rightClick);assert.equal(rightClick.stopped,true);assert.equal(menu.dataset.tokenHudActor,"enemy");
 for(const observer of observers)observer.callback();assert.equal(frames.length,1,"render and network updates coalesce into one HUD refresh");frames.shift()();
 assert.ok(menu.attributes.role==="dialog");hud.close();assert.equal(menu.dataset.tokenHudActor,undefined);
+
+reset();context.Scene.selectedActor="enemy";context.Scene.tool="select";
+const selectedBefore=resources(),selectedTokenEvent={target:{closest:()=>token}};
+events.get("scene-board:click:false")(selectedTokenEvent);
+assert.equal(menu.hidden,false,"a normal selected-token click shows the overlay without a right-click");
+assert.equal(menu.dataset.tokenHudActor,"enemy");assert.equal(resources(),selectedBefore,"opening selection overlay preserves turn, targets and resources");
+assert.equal(document.activeElement,null,"pointer selection does not steal keyboard focus into the HUD");
+assert.equal(menu.dataset.placement,"around","controls form a perimeter around the token rather than a side card");
+assert.ok(Number.parseFloat(menu.style.left)<token.getBoundingClientRect().left);
+enemy().effects=["example.effect"];hud.refresh();assert.match(menu.html,/example.effect/,"active Effects appear in the visible overlay");
+hud.close();hud.refresh();assert.equal(menu.hidden,true,"dismissal survives background refresh of the same selection");
+events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,false,"selected token can reopen a dismissed overlay by touch/click");
+events.get("scene-board:click:false")({target:{closest:()=>null}});hud.refresh();assert.equal(menu.hidden,true,"blank-field click dismisses without reopening on stale selection");
+context.Scene.selectedActor=null;hud.refresh();context.Scene.selectedActor="enemy";hud.refresh();assert.equal(menu.hidden,false,"selection from an existing roster route can reveal the anchored overlay");
+context.Scene.tool="measure";hud.refresh();assert.equal(menu.hidden,true,"selection overlay yields to map measurement/tool interaction");
+context.Scene.tool="select";events.get("scene-board:click:false")(selectedTokenEvent);context.store.mode="tools";hud.refresh();assert.equal(menu.hidden,true,"leaving Table closes the overlay");
+reset();context.innerWidth=390;token.getBoundingClientRect=()=>({left:52,right:76,top:464,bottom:488,width:24,height:24});wrap.getBoundingClientRect=()=>({left:0,right:390,top:100,bottom:800});context.Scene.selectedActor="enemy";
+for(const panel of ["inspector","sheet","director","reference"]){
+  openPanel=null;open();assert.equal(menu.hidden,false);openPanel=panel;hud.refresh();assert.equal(menu.hidden,true,"mobile "+panel+" panel dismisses the token behind it");
+  events.get("scene-board:mouseover:false")(selectedTokenEvent);assert.equal(menu.hidden,true,"hover cannot reopen controls behind a mobile panel");
+}
+openPanel=null;events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,false,"explicit tap can reopen after the mobile drawer closes");
+const mobileHpTop=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-health-top"]),mobileStackTop=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-cap"]);
+assert.ok(mobileHpTop>=mobileStackTop+116||mobileHpTop+32<=mobileStackTop,"edge-side columns cannot overlap the HP input hit area");
+assert.equal(commands.length,0,"drawer invalidation does not write game state");wrap.getBoundingClientRect=originalFieldRect;token.getBoundingClientRect=originalTokenRect;
+reset();context.interfaceVersion="classic";context.Scene.selectedActor="enemy";events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,true,"classic interface remains unchanged");
+reset();const hoverBefore=resources();
+events.get("scene-board:mouseover:false")(selectedTokenEvent);
+assert.equal(menu.hidden,false,"hover reveals perimeter controls without selecting, targeting or right-clicking");assert.equal(resources(),hoverBefore);
+events.get("scene-board:mouseout:false")({target:selectedTokenEvent.target,relatedTarget:null});assert.equal(timers.size,1);
+events.get("scene-context-menu:mouseenter:false")();assert.equal(timers.size,0,"moving from token to its controls cancels delayed dismissal");
+input().focus();events.get("scene-context-menu:mouseleave:false")();for(const callback of [...timers.values()])callback();timers.clear();assert.equal(menu.hidden,false,"typing a health delta keeps the overlay open");
+hud.action("effects");assert.match(menu.html,/data-token-hud-effect="positive.test"/);
+menu.querySelector('[data-token-hud-effect="positive.test"]').focus();
+const effectClick={target:{closest:selector=>selector==="[data-token-hud-effect]"?{dataset:{tokenHudEffect:"positive.test"}}:null},preventDefault(){},stopImmediatePropagation(){}};
+events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands[0].route,"setNarratorEffect");assert.equal(commands[0].actorId,"enemy");assert.equal(commands[0].effect,"positive.test");assert.equal(commands[0].remove,false);
+assert.equal(document.activeElement,menu.querySelector('[data-token-hud-effect="positive.test"]'),"applying an Effect preserves keyboard position in the picker");
+enemy().effects=["positive.test"];events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands[1].remove,true,"active effect delegates removal to the existing compound-aware Narrator route");
+role="player";events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands.length,2,"players cannot apply or remove effects via the overlay");
+role="gm";effectClick.target.closest=selector=>selector==="[data-token-hud-effect]"?{dataset:{tokenHudEffect:"unknown"}}:null;events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands.length,2,"unknown stable effect IDs never reach the writer");
 console.log("Token HUD: actor binding, authority, canonical HP edits, target independence, keyboard and lifecycle OK");
 
 // Exercise the real shared numeric correction entry point used by Hero, Info
@@ -163,4 +226,6 @@ assert.equal(commands.length,1,"Hero +/- shares the guard");assert.equal(command
 queued.pending=0;context.Scene.actors[0].influence=2;context.setPlayCounter("influence",3);assert.equal(commands.length,2);
 reset();shared="table-a";context.lwSubmit("enemy",{kind:"resource",resource:"focus",operation:"gain",amount:1});context.lwSubmit("enemy",{kind:"resource",resource:"focus",operation:"gain",amount:1});
 assert.equal(commands.length,2,"relative engine commands can safely compose in the same tick");
+const overlayCss=read("vtt-cockpit.css").match(/\.scene-context-menu\.is-token-overlay\{([^}]+)\}/)?.[1];
+assert.ok(overlayCss);for(const property of ["backdrop-filter:none","filter:none","transform:none"])assert.ok(overlayCss.includes(property),"transparent overlay must not blur its token or create a containing block for its fixed picker: "+property);
 console.log("Shared numeric corrections: Hero/Info/cockpit guard preserves deltas until server acknowledgement");

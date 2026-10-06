@@ -279,7 +279,9 @@
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
-            "apps/companion/tests/service-worker-navigation.mjs"
+            "apps/companion/tests/service-worker-navigation.mjs",
+            "apps/companion/tests/tools-support-workspace.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -1293,7 +1295,8 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -1583,13 +1586,15 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -2774,7 +2779,8 @@
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/scene-engine.mjs",
           "apps/companion/tests/scene-pointer-routing.mjs",
-          "apps/companion/tests/scene-token-hud.mjs"
+          "apps/companion/tests/scene-token-hud.mjs",
+          "apps/companion/tests/tools-workspace.mjs"
         ],
         "notRun": [
           "complete trigger-to-writer trace",
@@ -2843,7 +2849,8 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
-            "apps/companion/tests/scene-token-hud.mjs"
+            "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -2902,7 +2909,8 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
-            "apps/companion/tests/scene-token-hud.mjs"
+            "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -2965,7 +2973,8 @@
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -3407,13 +3416,15 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -4160,13 +4171,15 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -4636,10 +4649,12 @@
           "apps/companion/tests/network-v2.mjs",
           "apps/companion/tests/prototype-test-ui.mjs",
           "apps/companion/tests/qa.mjs",
+          "apps/companion/tests/scene-board-tools.mjs",
           "apps/companion/tests/scene-core-contracts.mjs",
           "apps/companion/tests/scene-engine.mjs",
           "apps/companion/tests/scene-token-hud.mjs",
-          "apps/companion/tests/technique-engine.mjs"
+          "apps/companion/tests/technique-engine.mjs",
+          "apps/companion/tests/tools-support-workspace.mjs"
         ],
         "notRun": [
           "complete trigger-to-writer trace",
@@ -4748,10 +4763,12 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-support-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -4854,10 +4871,12 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-support-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -4960,10 +4979,12 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-support-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -10766,13 +10787,15 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-tools.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
-            "apps/companion/tests/technique-engine.mjs"
+            "apps/companion/tests/technique-engine.mjs",
+            "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",
