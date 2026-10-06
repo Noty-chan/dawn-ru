@@ -88,12 +88,13 @@ jobs:
           cp apps/companion/*.js _site/companion/
           cp apps/companion/*.css _site/companion/
           cp apps/companion/*.html _site/companion/
+          cp -R apps/companion/prototypes _site/companion/
           cp apps/companion/*.webmanifest _site/companion/
           cp apps/companion/*.svg _site/companion/
           cp output/qa-verification/lionwing-automation-status.js _site/companion/lionwing-automation-status.js
           cp output/qa-verification/automation-verification.json _site/companion/automation-verification.json
           cp output/qa-verification/verification-summary.json _site/companion/verification-summary.json
-          sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" _site/companion/sw.js _site/companion/index.html
+          sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" _site/companion/sw.js _site/companion/index.html _site/companion/testing.html
           cp -R media/tutorials/. _site/tutorials/
           cp -R media/tokens/. _site/media/tokens/
           cp media/tutorials/00_оглавление.html _site/tutorials/index.html

@@ -276,7 +276,8 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
-            "apps/companion/tests/scene-viewport.mjs"
+            "apps/companion/tests/scene-viewport.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -1280,6 +1281,7 @@
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
@@ -1575,12 +1577,14 @@
             "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -3396,12 +3400,14 @@
             "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -4147,12 +4153,14 @@
             "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -4621,6 +4629,7 @@
           "apps/companion/tests/lionwing-technique-surface.mjs",
           "apps/companion/tests/lionwing-turn-lifetimes.mjs",
           "apps/companion/tests/network-v2.mjs",
+          "apps/companion/tests/prototype-test-ui.mjs",
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/scene-core-contracts.mjs",
           "apps/companion/tests/scene-engine.mjs",
@@ -4732,6 +4741,7 @@
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
@@ -4837,6 +4847,7 @@
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
@@ -4942,6 +4953,7 @@
             "apps/companion/tests/lionwing-technique-surface.mjs",
             "apps/companion/tests/lionwing-turn-lifetimes.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
@@ -5133,6 +5145,7 @@
           "apps/companion/tests/scene-pointer-routing.mjs",
           "apps/companion/tests/scene-reference-pagination.mjs",
           "apps/companion/tests/scene-token-hud.mjs",
+          "apps/companion/tests/service-worker-navigation.mjs",
           "apps/companion/tests/technique-engine.mjs"
         ],
         "notRun": [
@@ -5288,6 +5301,7 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -5437,6 +5451,7 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -5592,6 +5607,7 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -8767,6 +8783,7 @@
             "apps/companion/tests/lionwing-table-data.mjs",
             "apps/companion/tests/lionwing-verification-registry.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
@@ -8940,6 +8957,7 @@
             "apps/companion/tests/network-table-switch-history.mjs",
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/raasha.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
@@ -10740,12 +10758,14 @@
             "apps/companion/tests/network-size-guard.mjs",
             "apps/companion/tests/network-timeout-abort.mjs",
             "apps/companion/tests/network-v2.mjs",
+            "apps/companion/tests/prototype-test-ui.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
+            "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
           "notRun": [
