@@ -20,7 +20,8 @@ function projectScene(scene, viewer = {}) {
     if(projected.manualTable)projected.manualTable.actorId=visibleActorIds.has(projected.manualTable.actorId)?projected.manualTable.actorId:null;
     projected.targetIds = (projected.targetIds || []).filter(id => visibleActorIds.has(id));
     projected.objects = (projected.objects || []).filter(object => !object.hidden && (!object.ownerActorId || visibleActorIds.has(object.ownerActorId)));
-    projected.markers = (projected.markers || []).filter(marker => marker.kind !== "hidden" && !marker.hidden).map(marker => {
+    projected.walls=(projected.walls||[]).filter(wall=>!wall.hidden&&(!wall.ownerActorId||visibleActorIds.has(wall.ownerActorId)));
+    projected.markers = (projected.markers || []).filter(marker => marker.kind !== "hidden" && !marker.hidden&&(!marker.ownerActorId||visibleActorIds.has(marker.ownerActorId))).map(marker => {
       if (marker.hostActorId && !visibleActorIds.has(marker.hostActorId)) { const { hostActorId, sourceActorId, offset, ...publicMarker } = marker; return publicMarker; }
       return marker;
     });

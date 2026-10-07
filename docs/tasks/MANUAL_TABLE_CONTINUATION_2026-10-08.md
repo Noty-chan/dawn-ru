@@ -38,3 +38,15 @@
 6. Применение SQL и изолированный реальный двухклиентный прогон требуют отдельного безопасного контура. Действующие игровые столы и live Supabase для тестов не использовать.
 
 Агентский поиск аналогов выполнен. Не заявлять, что ручной стол полностью готов, только на основании PASS unit suite.
+
+## Второй пакет 8 октября — ручные инструменты карты
+
+После `eed54a1` подключены UI mouse/Enter create routes областей, стен и меток через `table.command`. В области есть только визуальный appearance (terrain/difficult/high/low/custom), цвет, форма, имя и скрытость; storage type остаётся manual-area и не выполняет механику. Стена — ребро/имя/скрытость. Метка — нейтральный вид/цвет/имя/скрытость, опциональные ручные часы через marker/clock-set. Источники/автоматические сроки/ЗД Стен скрыты из этих форм. Карточки окружения read-only + GM delete; legacy append срока отключён для manual.
+
+Закрыты найденные агентом дефекты: crash renderer на manual-area, потеря manual/hidden/ownership маркеров и стен, публичность локального player preview, snapshot-delete из контекстного меню маркера, snapshot edit часов метки, silent loss 241-го объекта, неканонические координаты 01,1. Добавлены cap240 и atomic validation/replay; same wall edge повторно не создаётся. Нормализация сохраняет typed metadata после reload. SQL **ещё не применён**; подготовленный файл расширен фильтрацией скрытых стен и owned markers. Старую применённую миграцию не меняли.
+
+`table-manual-map-tools.mjs` PASS: настоящий UI helper + ядро + normalization, роли, capacity/canonical cells, сохранение private metadata, no target/resource changes, replay. PGlite projection test расширен walls/markers. Полный `npm test` PASS (exit0), `output/manual-map-20261008-test.log`; после него только удалена временная диагностика и добавлен manual guard к legacy duration append. Финальные syntax/map targeted PASS.
+
+Browser PASS: area2x2 placed, wall placed/duplicate rejected, marker placed Enter, marker clock+1; reload; GM→Player hides wall/marker while publicarea remains; A shortcut and Escape; inspector-delete and Enter erase. **Mouse erase NOT ACCEPTED:** CUA Playwright gridcell.click в erase дважды не вызвал основной click listener, но Enter на той же клетке вызвал и удалил объект. Временные QA.click/QA.erase logs удалены. Перед следующим пакетом воспроизвести настоящей мышью/координатным кликом: выяснить, виноват browser locator/pointer preview или UI. Не объявлять mouse eraser исправленным только по unit tests. Также проверить wall wheel camera/ghost в реальном браузере; старый wheel suite проходит, новый browser прогон не выполнен.
+
+Остаток порядка: завершить browser mouse erase/wall wheel; затем убрать старые автоматические surfaces (HUD/Sheet/dock/tokenAP/Tools), typed clear manual traces и snapshot/undo границу; start-rules; shared area/handout/status selector. Карта в manual еще требует итоговой эстетической проверки; полное переключение механики/интерфейса не готово. Main не сливать как завершённый редизайн.

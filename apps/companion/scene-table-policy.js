@@ -15,6 +15,15 @@
       epoch: Number.isSafeInteger(raw?.epoch) && raw.epoch >= 0 ? raw.epoch : 0 };
   }
   const isManual = scene => normalizePolicy(scene?.tablePolicy).mode === "manual";
+  const AREA_APPEARANCES = ["custom","terrain","difficult","high","low"];
+  function capacity(scene, key) { if ((scene[key] || []).length >= 240) fail("На поле уже 240 объектов этого вида. Удалите лишние перед созданием новых.","TABLE_CAPACITY"); }
+  function uniqueObjectId(scene,id) {safeId(id);if([...(scene.actors||[]),...(scene.objects||[]),...(scene.markers||[]),...(scene.walls||[])].some(row=>row.id===id))fail("ID объекта уже занят.");}
+  function annotation(value) {
+    if(value.label!==undefined&&(typeof value.label!=="string"||value.label.length>80))fail("Некорректное название объекта.");
+    if(value.color!==undefined&&(typeof value.color!=="string"||!/^#[0-9a-f]{6}$/iu.test(value.color)))fail("Некорректный цвет.");
+    if(value.hidden!==undefined&&typeof value.hidden!=="boolean")fail("Некорректная видимость объекта.");
+  }
+  function clockValue(clock) {exactKeys(clock,["size","value"]);if(!Number.isSafeInteger(clock.size)||clock.size<1||clock.size>1000000||!Number.isSafeInteger(clock.value??0)||(clock.value??0)<0||(clock.value??0)>clock.size)fail("Некорректные часы метки.");}
   const actor = (scene, id) => (scene.actors || []).find(row => row.id === id);
   function requiredActor(scene, id) {
     const row = actor(scene, id); if (!row) fail("Участник отсутствует на столе."); return row;
@@ -134,15 +143,16 @@
       if (p.kind === "clock/remove") scene.sessionClocks = scene.sessionClocks.filter(row => row.id !== p.id);
       else { if (!Number.isSafeInteger(p.value) || p.value < 0 || p.value > clock.size) fail("Некорректное значение часов."); clock.value = clock.current = p.value; }
     } else if (p.kind === "area/create") {
-      exactKeys(p, ["kind", "area"]); exactKeys(p.area, ["id", "space", "cells", "label", "color", "hidden"]);
-      const area = p.area; safeId(area.id);
+      exactKeys(p, ["kind", "area"]); exactKeys(p.area, ["id", "space", "cells", "label", "color", "hidden","appearance"]);
+      const area = p.area; capacity(scene,"objects");uniqueObjectId(scene,area.id);annotation(area);
+      if(area.appearance!==undefined&&!AREA_APPEARANCES.includes(area.appearance))fail("Неизвестное обозначение местности.");
       if (!Array.isArray(area.cells) || !area.cells.length || area.cells.length > 128 || new Set(area.cells).size !== area.cells.length) fail("Некорректная область.");
-      for (const value of area.cells) { if (typeof value !== "string" || !/^\d+,\d+$/u.test(value)) fail("Некорректная клетка области."); const [x,y] = value.split(",").map(Number); cell(scene, area.space, x, y); }
+      for (const value of area.cells) { if (typeof value !== "string" || !/^(?:0|[1-9]\d*),(?:0|[1-9]\d*)$/u.test(value)) fail("Некорректная клетка области."); const [x,y] = value.split(",").map(Number); cell(scene, area.space, x, y); }
       for (const key of ["label", "color"]) if (area[key] !== undefined && (typeof area[key] !== "string" || area[key].length > 200)) fail("Некорректная подпись области.");
       if (area.hidden !== undefined && typeof area.hidden !== "boolean") fail("Некорректная видимость области.");
       if ([...(scene.objects || []), ...(scene.markers || []), ...(scene.walls || []), ...(scene.actors || [])].some(row => row.id === area.id)) fail("ID объекта уже занят.");
       if (event.actorId) requiredActor(scene, event.actorId);
-      scene.objects ||= []; scene.objects.push({ ...copy(area), type: "manual-area", manual: true, ownerActorId: event.actorId });
+      scene.objects ||= []; scene.objects.push({ ...copy(area), appearance:area.appearance||"custom", type: "manual-area", manual: true, ownerActorId: event.actorId,source:"",duration:"persistent" });
     } else if (p.kind === "area/remove") {
       exactKeys(p, ["kind", "id"]); safeId(p.id);
       const area = (scene.objects || []).find(row => row.id === p.id);
@@ -158,14 +168,29 @@
       const value = scene.manualTable.round + p.delta;
       if (!Number.isSafeInteger(value) || value < 1) fail("Ручной раунд начинается с 1.");
       scene.manualTable.round = value;
+    } else if(p.kind === "wall/create"){
+      exactKeys(p,["kind","wall"]);exactKeys(p.wall,["id","space","a","b","label","hidden"]);
+      const wall=p.wall;capacity(scene,"walls");uniqueObjectId(scene,wall.id);annotation(wall);
+      if(event.actorId)requiredActor(scene,event.actorId);
+      const points=[wall.a,wall.b].map(value=>{if(typeof value!=="string"||!/^(?:0|[1-9]\d*),(?:0|[1-9]\d*)$/u.test(value))fail("Некорректное ребро Стены.");const[x,y]=value.split(",").map(Number);return cell(scene,wall.space,x,y)});
+      if(Math.abs(points[0].x-points[1].x)+Math.abs(points[0].y-points[1].y)!==1)fail("Стена проводится между соседними клетками.");
+      if((scene.walls||[]).some(row=>row.space===wall.space&&[row.a,row.b].sort().join("|")===[wall.a,wall.b].sort().join("|")))fail("На этом ребре уже есть Стена.");
+      scene.walls||=[];scene.walls.push({...copy(wall),manual:true,ownerActorId:event.actorId,source:"",hp:10,maxHp:10});
     } else if (p.kind === "marker/create") {
       exactKeys(p, ["kind", "marker"]);
-      exactKeys(p.marker, ["id", "space", "x", "y", "kind", "label", "color", "hidden"]);
-      const marker = p.marker; safeId(marker.id); cell(scene, marker.space, marker.x, marker.y);
+      exactKeys(p.marker, ["id", "space", "x", "y", "kind", "label", "color", "hidden","clock"]);
+      const marker = p.marker; capacity(scene,"markers");uniqueObjectId(scene,marker.id);annotation(marker);cell(scene, marker.space, marker.x, marker.y);
+      if(marker.kind!==undefined&&!["note","mark","damocles","bomb","ritual","trap","summon","weapon","objective","countdown","hidden","custom","corpse"].includes(marker.kind))fail("Неизвестный вид метки.");
+      if(event.actorId)requiredActor(scene,event.actorId);
+      if(marker.clock!==undefined)clockValue(marker.clock);
       if ([...(scene.actors || []), ...(scene.objects || []), ...(scene.markers || []), ...(scene.walls || [])].some(row => row.id === marker.id)) fail("ID объекта уже занят.");
       for (const key of ["kind", "label", "color"]) if (marker[key] !== undefined && (typeof marker[key] !== "string" || marker[key].length > 200)) fail("Некорректная подпись метки.");
       if (marker.hidden !== undefined && typeof marker.hidden !== "boolean") fail("Некорректная видимость метки.");
-      scene.markers ||= []; scene.markers.push({ ...copy(marker), manual: true });
+      scene.markers ||= [];const {clock,...record}=copy(marker);scene.markers.push({ ...record,ownerActorId:event.actorId, manual: true,source:"",duration:"persistent",metadata:clock?{clock:{size:clock.size,value:clock.value??0}}:{} });
+    } else if(p.kind === "marker/clock-set"){
+      exactKeys(p,["kind","id","value"]);safeId(p.id);
+      const marker=(scene.markers||[]).find(row=>row.id===p.id&&row.manual),clock=marker?.metadata?.clock;
+      if(!clock)fail("Ручные часы метки отсутствуют.");if(!Number.isSafeInteger(p.value))fail("Не указано значение часов.");clockValue({size:clock.size,value:p.value});clock.value=p.value;
     } else if (p.kind === "marker/move") {
       exactKeys(p, ["kind", "id", "space", "x", "y"]); safeId(p.id);
       const marker = (scene.markers || []).find(row => row.id === p.id);
@@ -198,11 +223,11 @@
       const event = { ...copy(request), id: request.id || contract.generatedId(next, `table-${Date.now()}-${++serial}`, reserved),
         at: request.at || new Date().toISOString(), actorId: request.actorId || null, payload: copy(request.payload || {}), visibility: request.visibility || "public" };
       if (!["public", "gm", "owner"].includes(event.visibility)) fail("Некорректная видимость события.");
-      const collection={"clock/set":"sessionClocks","clock/remove":"sessionClocks","actor/remove":"actors","object/remove":"objects","area/remove":"objects","marker/remove":"markers","wall/remove":"walls"}[event.payload.kind];
+      const collection={"clock/set":"sessionClocks","clock/remove":"sessionClocks","actor/remove":"actors","object/remove":"objects","area/remove":"objects","marker/remove":"markers","marker/clock-set":"markers","marker/move":"markers","wall/remove":"walls"}[event.payload.kind];
       const target=collection?(next[collection]||[]).find(row=>row.id===event.payload.id):null;
-      const privateTarget=target?.hidden||target?.manual&&target.ownerActorId&&(!actor(next,target.ownerActorId)||actor(next,target.ownerActorId).hidden);
+      const privateTarget=target?.hidden||target?.kind==="hidden"||target?.manual&&target.ownerActorId&&(!actor(next,target.ownerActorId)||actor(next,target.ownerActorId).hidden);
       if(privateTarget)event.visibility="gm";
-      if (actor(next, event.actorId)?.hidden || event.payload?.kind === "marker/create" && event.payload.marker?.hidden || event.payload?.kind === "area/create" && event.payload.area?.hidden) event.visibility = "gm";
+      if (actor(next, event.actorId)?.hidden || event.payload?.kind === "marker/create" && (event.payload.marker?.hidden||event.payload.marker?.kind==="hidden") || event.payload?.kind === "area/create" && event.payload.area?.hidden || event.payload.kind==="wall/create"&&event.payload.wall?.hidden) event.visibility = "gm";
       reduce(next, event);
       next.version = Number(next.version || 0) + 1;
       next.log ||= []; next.log.unshift(event); next.log = next.log.slice(0, 200);

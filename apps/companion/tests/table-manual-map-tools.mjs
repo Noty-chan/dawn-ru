@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {loadSceneEngine} from './load-scene-engine.mjs';
+const read=f=>fs.readFileSync(new URL(`../${f}`,import.meta.url),'utf8');
+const normal={window:{},console,uid:()=> 'new',APP_SCHEMA:14,contentPreferences:{edition:'lionwing'},cleanArray:v=>Array.isArray(v)?v.filter(x=>typeof x==='string'):[],clamp:(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0)),SceneEngine:{bodyguardsBraceIntact:()=>{throw Error('manual must not run Brace')}}};
+vm.createContext(normal);vm.runInContext(read('scene-table-policy.js'),normal);
+const core=read('app-core.js');vm.runInContext(core.slice(core.indexOf('function blankScene()'),core.indexOf('function addEnemyDeploymentPassives')),normal);
+const c={window:{},console,Date,crypto:globalThis.crypto,setTimeout,clearTimeout,isEnglishPreview:()=>false};vm.createContext(c);
+for(const f of ['data.js','edition-lionwing.js','logic.js'])vm.runInContext(read(f),c);
+c.Logic=c.window.DAWN_LOGIC;
+const Engine=loadSceneEngine(c),Policy=c.window.DAWN_TABLE_POLICY;Policy.install(Engine,c.window.DAWN_LIONWING_ENGINE);
+const plain=v=>JSON.parse(JSON.stringify(v));
+c.Scene=plain(normal.blankScene());c.Scene.actors=[{id:'actor',kind:'enemy',rulesEdition:'lionwing',name:'A',space:'main',x:2,y:2,hp:6,maxHp:10,ap:3,focus:2,effects:[]}];c.Scene.targetIds=['actor'];
+const values=JSON.stringify(c.Scene.actors);let serial=0,role='gm';c.uid=()=>`map-${++serial}`;c.activeSceneView=()=>role;c.activeSceneSpace=()=>c.Scene.spaces[0];c.sceneHasLocalPendingSelection=()=>false;c.manualTableActive=()=>Policy.isManual(c.Scene);c.manualTableCopy=ru=>ru;c.toast=()=>null;c.safeColor=(v,f)=>v||f;
+const fields={'scene-area-type':{value:'difficult'},'scene-area-shape':{value:'square2'},'scene-area-label':{value:'Area'},'scene-manual-area-color':{value:'#65c8d0'},'scene-manual-area-hidden':{checked:false},'scene-wall-direction':{value:'east'},'scene-wall-label':{value:'Wall'},'scene-manual-wall-hidden':{checked:true},'scene-marker-kind':{value:'custom'},'scene-marker-label':{value:'Marker'},'scene-marker-color':{value:'#e2b54a'},'scene-marker-clock-size':{value:'6'},'scene-manual-marker-hidden':{checked:true}};
+c.$=id=>fields[id];
+const ui=read('scene-ui.js');vm.runInContext(ui.slice(ui.indexOf('const SCENE_TYPE_NAMES'),ui.indexOf('const SCENE_DURATION_NAMES')),c);
+const integration=read('scene-manual-integration.js');vm.runInContext(integration.slice(integration.indexOf('function placeManualMapObject'),integration.indexOf('function renderManualMapTools')),c);
+c.commitSceneEvents=(label,events)=>{const result=Engine.dispatchMany(c.Scene,events);c.Scene=plain(normal.normalizeScene(result.scene));return result};
+assert.ok(c.placeManualMapObject('area',{x:2,y:2}));assert.equal(c.Scene.objects[0].type,'manual-area');assert.equal(c.Scene.objects[0].appearance,'difficult');assert.equal(c.sceneObjectDisplayName(c.Scene.objects[0]),'Трудная местность');
+assert.deepEqual(c.Scene.targetIds,['actor'],'placement does not replace combat targets');assert.equal(JSON.stringify(c.Scene.actors),JSON.stringify(normal.normalizeScene({...c.Scene,actors:JSON.parse(values)}).actors));
+assert.ok(c.placeManualMapObject('wall',{x:1,y:1}));assert.equal(c.Scene.walls[0].hidden,true);assert.equal(c.Scene.walls[0].manual,true);assert.equal(c.placeManualMapObject('wall',{x:1,y:1}),null,'same edge cannot be duplicated');
+assert.ok(c.placeManualMapObject('marker',{x:4,y:4}));assert.equal(c.Scene.markers[0].hidden,true);assert.equal(c.Scene.markers[0].manual,true);
+let reloaded=plain(normal.normalizeScene(normal.normalizeScene(c.Scene)));assert.equal(reloaded.markers[0].metadata.clock.size,6);assert.equal(reloaded.objects[0].appearance,'difficult');
+const marker=reloaded.markers[0];reloaded=Engine.dispatchMany(reloaded,[{id:'clock-change',type:'table.command',actorId:null,payload:{kind:'marker/clock-set',id:marker.id,value:4}}]).scene;assert.equal(reloaded.markers[0].metadata.clock.value,4);assert.equal(reloaded.log[0].visibility,'gm');
+assert.equal(Engine.projectScene(reloaded,{role:'player'}).markers.length,0);assert.equal(Engine.projectScene(reloaded,{role:'player'}).walls.length,0);assert.equal(c.sceneEnvironmentVisible(marker,reloaded,'player'),false);
+role='player';const before=JSON.stringify(c.Scene);assert.equal(c.placeManualMapObject('area',{x:0,y:0}),null);assert.equal(JSON.stringify(c.Scene),before);role='gm';
+const packet=payload=>[{type:'table.command',actorId:null,payload}];
+assert.throws(()=>Engine.dispatchMany(c.Scene,packet({kind:'area/create',area:{id:'bad',space:'main',cells:['01,1']}})),/клетка/);
+assert.throws(()=>Engine.dispatchMany(c.Scene,packet({kind:'wall/create',wall:{id:'bad',space:'main',a:'0,0',b:'2,0'}})),/соседними/);
+for(const [key,payload] of [['objects',{kind:'area/create',area:{id:'extra',space:'main',cells:['0,0']}}],['walls',{kind:'wall/create',wall:{id:'extra',space:'main',a:'0,0',b:'1,0'}}],['markers',{kind:'marker/create',marker:{id:'extra',space:'main',x:0,y:0}}]]){
+ const full=plain(c.Scene);full[key]=Array.from({length:240},(_,i)=>({id:`existing-${i}`}));const saved=JSON.stringify(full);assert.throws(()=>Engine.dispatchMany(full,packet(payload)),/240/);assert.equal(JSON.stringify(full),saved,'capacity refusal is atomic');
+}
+const replayScene=plain(c.Scene),event={id:'replay-map',type:'table.command',actorId:null,payload:{kind:'area/create',area:{id:'replay-area',space:'main',cells:['0,0']}}};
+const once=Engine.dispatchMany(replayScene,[event]).scene;assert.equal(Engine.dispatchMany(once,[event]).scene.version,once.version);
+vm.runInContext(read('network-v2.js'),c);assert.throws(()=>c.window.DAWN_NETWORK_V2.materializeIntent(c.Scene,c.window.DAWN_DATA,{kind:'table',actorId:'actor',policyEpoch:0,request:{kind:'wall/create'}},null),/Нарратору|не владеет/);
+console.log('Manual map UI/core: create, same-edge rejection, canonical cells/capacity, hidden persistence/projection, no targets/resources, marker clocks and replay passed');

@@ -3,6 +3,48 @@
 // Connects the shared manual policy to the existing single Scene writer.
 function manualTableActive(){return Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene))}
 function manualTableCopy(ru,en){return isEnglishPreview()?en:ru}
+function placeManualMapObject(tool,{x,y}){
+  if(!manualTableActive()||activeSceneView()!=="gm")return null;
+  if(window.DAWN_TABLE_POLICY.pendingWork(Scene)||sceneHasLocalPendingSelection())return toast(manualTableCopy("Сначала завершите ожидающее действие.","Finish the pending workflow first."));
+  const space=activeSceneSpace();let payload;
+  if(tool==="area"){
+    const appearance=$("scene-area-type").value;if(!["terrain","difficult","high","low","custom"].includes(appearance))return null;
+    const cells=Logic.areaCells({shape:$("scene-area-shape").value,x,y,width:space.width,height:space.height});
+    payload={kind:"area/create",area:{id:uid(),space:space.id,cells,appearance,label:$("scene-area-label").value.trim()||sceneObjectDisplayName({type:"manual-area",appearance}),color:$("scene-manual-area-color").value,hidden:$("scene-manual-area-hidden").checked}};
+  }else if(tool==="wall"){
+    const [dx,dy]=({north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]})[$("scene-wall-direction").value]||[1,0],a=`${x},${y}`,b=`${x+dx},${y+dy}`;
+    if(x+dx<0||y+dy<0||x+dx>=space.width||y+dy>=space.height)return toast(manualTableCopy("Стена проводится между клетками поля.","Place the wall between board cells."));
+    if(Scene.walls.some(w=>w.space===space.id&&[w.a,w.b].sort().join("|")===[a,b].sort().join("|")))return toast(manualTableCopy("На этом ребре уже есть Стена.","There is already a wall on this edge."));
+    payload={kind:"wall/create",wall:{id:uid(),space:space.id,a,b,label:$("scene-wall-label").value.trim()||manualTableCopy("Стена","Wall"),hidden:$("scene-manual-wall-hidden").checked}};
+  }else if(tool==="marker"){
+    const kind=$("scene-marker-kind").value;if(!["mark","custom","objective","countdown"].includes(kind))return null;
+    const size=Number($("scene-marker-clock-size")?.value||0);
+    payload={kind:"marker/create",marker:{id:uid(),space:space.id,x,y,kind,label:$("scene-marker-label").value.trim()||manualTableCopy("Метка","Marker"),color:safeColor($("scene-marker-color").value,"#e2b54a"),hidden:$("scene-manual-marker-hidden").checked,...(size?{clock:{size,value:0}}:{})}};
+  }else return null;
+  return commitSceneEvents(manualTableCopy("Добавлено обозначение на карту","Added a map annotation"),[{type:"table.command",actorId:null,payload}]);
+}
+function renderManualMapTools(){
+  const manual=manualTableActive();
+  for(const id of ["scene-area-source","scene-area-duration","scene-wall-hp","scene-wall-source","scene-marker-source","scene-marker-duration"]){const label=$(id)?.closest("label");if(label)label.hidden=manual}
+  for(const [id,allowed] of [["scene-area-type",["terrain","difficult","high","low","custom"]],["scene-marker-kind",["mark","custom","objective","countdown"]]]){
+    const select=$(id);if(!select)continue;
+    for(const option of select.options){option.disabled=manual&&!allowed.includes(option.value);option.hidden=option.disabled}
+    if(manual&&!allowed.includes(select.value))select.value=allowed[0];
+  }
+  const terrain=$("scene-area-type")?.querySelector('option[value="terrain"]');if(terrain)terrain.textContent=manual?manualTableCopy("Местность · обозначение","Terrain · annotation"):manualTableCopy("Местность (блокирует)","Terrain (blocking)");
+  for(const kind of ["area","wall","marker"]){
+    const controls=$(`scene-${kind}-controls`);if(!controls)continue;
+    if(kind==="area"&&!$("scene-manual-area-color")){const label=document.createElement("label");label.className="manual-map-setting";label.innerHTML='<span></span><input id="scene-manual-area-color" type="color" value="#65c8d0">';controls.append(label)}
+    const id=`scene-manual-${kind}-hidden`;
+    if(!$(id)){const label=document.createElement("label");label.className="manual-map-setting";label.innerHTML=`<input id="${id}" type="checkbox"><span></span>`;controls.append(label)}
+    for(const label of controls.querySelectorAll(".manual-map-setting")){label.hidden=!manual;label.querySelector("span").textContent=label.querySelector('[type="color"]')?manualTableCopy("Цвет","Color"):manualTableCopy("Только ведущему","Narrator only")}
+  }
+}
+function renderManualEnvironmentInspector(){
+  const gm=activeSceneView()==="gm",copy=manualTableCopy;
+  const rows=[...Scene.objects.map(o=>({record:o,kind:"object",meta:`${sceneObjectDisplayName(o)} · ${o.cells.length} ${copy("клеток","cells")}`})),...Scene.walls.map(w=>({record:w,kind:"wall",meta:`${copy("Стена","Wall")} · ${w.a} ↔ ${w.b}`})),...Scene.markers.map(m=>({record:m,kind:"marker",meta:`${copy("Метка","Marker")} · ${String.fromCharCode(65+m.x)}${m.y+1}`}))].filter(({record:r})=>r.space===Scene.activeSpace&&sceneEnvironmentVisible(r));
+  $("scene-inspector").innerHTML=`<p>${copy("Обозначения карты. Их последствия определяет ведущий.","Map annotations. The narrator resolves their consequences.")}</p>${rows.map(({record:r,kind,meta})=>`<article class="scene-rule-card"><strong>${esc(r.label||meta)}</strong><small>${esc(meta)} · ${r.hidden?copy("Только ведущему","Narrator only"):copy("Видно игрокам","Visible to players")}</small>${gm?`<button type="button" data-scene-remove-${kind}="${esc(r.id)}">${copy("Удалить","Remove")}</button>`:""}</article>`).join("")}`;
+}
 function manualClockOwner(clock){
   if(!manualTableActive())return undefined;
   if(activeSceneView()==="gm")return null;
@@ -99,6 +141,7 @@ function manualTableAbilities(actor){
 }
 function renderManualTable(){
   renderManualClocks();
+  renderManualMapTools();
   document.body.dataset.tablePolicy=manualTableActive()?"manual":"rules";
   const selector=$("scene-control-mode");if(selector)selector.value=manualTableActive()?"manual":"rules";
   window.DAWN_MANUAL_WORKSPACE?.render({scene:Scene,canNarrate:activeSceneView()==="gm",canControl:canControlSceneActor,
@@ -115,6 +158,12 @@ function renderManualTable(){
   });
 }
 window.DAWN_TABLE_POLICY?.install();
+document.addEventListener("keydown",event=>{
+  if(event.key!=="Escape"||!manualTableActive()||!document.body.classList.contains("scene-mode")||!["area","wall","marker","erase"].includes(activeSceneTool())||event.target.closest?.("input,select,textarea,dialog,[contenteditable]")||window.DAWN_TABLE_POLICY.pendingWork(Scene)||sceneHasLocalPendingSelection())return;
+  event.preventDefault();event.stopImmediatePropagation();scenePreviewCells.clear();sceneWallPreviewPoint=null;
+  document.querySelectorAll(".scene-cell.preview,.scene-erase-preview").forEach(node=>node.classList.remove("preview","scene-erase-preview"));
+  document.querySelectorAll(".scene-wall-preview,.scene-erase-label").forEach(node=>node.remove());
+},true);
 const sceneEventTextWithRules=eventText;
 eventText=function(event){
   if(event.type==="table.command"&&event.payload?.kind==="roll"){
