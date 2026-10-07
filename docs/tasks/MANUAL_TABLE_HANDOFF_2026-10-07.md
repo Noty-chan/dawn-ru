@@ -48,3 +48,5 @@ Targeted PASS: `table-manual-policy.mjs`, `table-manual-workspace.mjs`, `table-m
 Остаток при начале сохранения: 8% пятичасового окна. Network targeted `table-manual-network.mjs` PASS. Повторный полный npm test **FAIL**: `tests/lionwing-enemy-inventory.mjs:182` — S00 inventory stale (после изменения production source нужно заново сформировать inventory через его --write и проверить diff). Не обходить проверку, затем повторить полный npm test. Зафиксированные изображения — свежие screenshots из изолированного локального браузера, показывают известные недостатки.
 
 Следующий агент должен отдельно проверить bridge `scene-manual-integration.js`: он подключён, но для utility/abilities/status hints не завершён. Формулировка «рабочий стол готов» пока неверна. Все изменения checkpoint сохраняются как draft; отдельный WIP оплаты уже отправлен на GitHub. Никакой активной публикации сайта из этой ветки не было.
+
+Final targeted: network-v2.mjs PASS; workspace test updated to wait for canonical shared technique confirmation instead of claiming optimistic local success. Direct frozen DAWN_LIONWING_ENTITIES foundation API remains a snapshot-boundary risk.
