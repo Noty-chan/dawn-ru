@@ -282,6 +282,7 @@
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-environment-erase.mjs",
             "apps/companion/tests/scene-measurement.mjs",
+            "apps/companion/tests/scene-pan-lifecycle.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
@@ -294,6 +295,7 @@
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-roll-route.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/tools-support-workspace.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -1316,6 +1318,7 @@
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-roll-route.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -1618,6 +1621,7 @@
             "apps/companion/tests/table-manual-network.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -3473,6 +3477,7 @@
             "apps/companion/tests/table-manual-network.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -4233,6 +4238,7 @@
             "apps/companion/tests/table-manual-network.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -5236,6 +5242,7 @@
           "apps/companion/tests/table-manual-map-tools.mjs",
           "apps/companion/tests/table-manual-policy.mjs",
           "apps/companion/tests/table-manual-reader-data.mjs",
+          "apps/companion/tests/table-manual-surfaces.mjs",
           "apps/companion/tests/table-manual-workspace.mjs",
           "apps/companion/tests/technique-engine.mjs"
         ],
@@ -5397,6 +5404,7 @@
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -5552,6 +5560,7 @@
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -5713,6 +5722,7 @@
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -8458,6 +8468,7 @@
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-empty-state.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-pan-lifecycle.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs"
           ],
@@ -9086,6 +9097,7 @@
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-public-projection.mjs",
             "apps/companion/tests/table-manual-roll-route.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -10893,6 +10905,7 @@
             "apps/companion/tests/table-manual-network.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"

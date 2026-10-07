@@ -1,4 +1,9 @@
 /* Manual mode shares the existing board and keeps only its small table controls. */
+body.scene-mode[data-table-policy="manual"] .scene-turn-approval-label,
+body.scene-mode[data-table-policy="manual"] .scene-status-line{display:none!important}
+.scene-manual-status-label input{justify-self:start;width:22px;height:22px;min-height:22px}
+.manual-actor-settings .scene-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.manual-actor-settings>p{color:var(--muted);font-size:13px;line-height:1.5}
 .manual-map-setting[hidden],body[data-table-policy="manual"] #scene-area-controls label[hidden],body[data-table-policy="manual"] #scene-marker-controls label[hidden],body[data-table-policy="manual"] #scene-wall-controls label[hidden]{display:none!important}
 body[data-table-policy="manual"] .scene-cell.has-manual-area{box-shadow:inset 0 0 0 2px var(--manual-area-color,#65c8d0)}
 body[data-table-policy="manual"] [data-area-duration-editor],body[data-table-policy="manual"] [data-marker-duration-editor]{display:none!important}

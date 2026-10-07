@@ -137,19 +137,44 @@ function openManualTableDice(){
   dialog.showModal();dialog.querySelector("input").select();
 }
 function manualTableAbilities(actor){
+  if(activeSceneView()!=="gm"&&!canControlSceneActor(actor))return [{id:"access",name:manualTableCopy("Профиль участника","Participant profile"),text:manualTableCopy("Способности этого участника доступны Нарратору.","This participant's abilities are available to the Narrator.")}];
   return window.DAWN_MANUAL_READER_DATA.entries(actor,{english:isEnglishPreview(),enemyProfile,defense:antagonistDefense,techniqueEntries:a=>window.DAWN_LIONWING_TECHNIQUE_SURFACE?.entries?.(a)||[],wordById,t});
+}
+function renderManualActorInspector(actor){
+  const root=$("scene-inspector");if(!root)return;
+  if(!actor){root.innerHTML=`<p>${manualTableCopy("Выберите участника на поле.","Select a participant on the board.")}</p>`;return;}
+  const allowed=canControlSceneActor(actor),fields=[["hp","Здоровье","Health"],["maxHp","Максимум ЗД","Maximum HP"],["focus","Фокус","Focus"],["influence","Влияние","Influence"],["stress","Стресс","Stress"]];
+  root.innerHTML=`<section class="manual-actor-settings"><h3>${esc(actor.name)}</h3><p>${manualTableCopy("Значения записываются вручную. Последствия определяет Нарратор.","Values are recorded manually. The Narrator decides the consequences.")}</p><div class="scene-stat-grid">${fields.map(([key,ru,en])=>`<label>${manualTableCopy(ru,en)}<input type="number" min="0" max="9999" step="1" data-manual-resource="${key}" data-manual-actor="${esc(actor.id)}" value="${Number(actor[key])||0}" ${allowed?"":"disabled"}></label>`).join("")}</div>${activeSceneView()==="gm"?`<label>${manualTableCopy("Имя","Name")}<input data-scene-actor-name="${esc(actor.id)}" value="${esc(actor.name)}"></label><label>${manualTableCopy("Цвет токена","Token color")}<input type="color" data-scene-token-color="${esc(actor.id)}" value="${esc(actor.tokenColor)}"></label><button type="button" class="danger-quiet" data-scene-remove-actor="${esc(actor.id)}">${manualTableCopy("Убрать участника со стола","Remove participant from table")}</button>`:""}</section>`;
+}
+document.addEventListener("change",event=>{
+  if(event.target.id==="scene-manual-status-processing"){
+    if(!manualTableActive()||activeSceneView()!=="gm"){renderScene();return;}
+    commitSceneEvents(manualTableCopy("Подсказки статусов","Status hints"),[{type:"table.command",actorId:null,payload:{kind:"policy",mode:"manual",processStatuses:Boolean(event.target.checked)}}]);return;
+  }
+  const input=event.target.closest?.("[data-manual-resource][data-manual-actor]");if(!input||!manualTableActive())return;
+  const actor=Scene.actors.find(a=>a.id===input.dataset.manualActor),value=Number(input.value);
+  if(!actor||!canControlSceneActor(actor)||!input.value.trim()||!Number.isSafeInteger(value)||value<0||value>9999){renderScene();return;}
+  setNarratorActorValue(actor,input.dataset.manualResource,value);
+});
+function openManualActorReader(actorId){
+  if(!manualTableActive())return false;
+  const actor=Scene.actors.find(a=>a.id===actorId);if(!actor||activeSceneView()!=="gm"&&actor.hidden)return false;
+  Scene.selectedActor=actor.id;Scene.activeSpace=actor.space;persist();renderScene();
+  return window.DAWN_MANUAL_WORKSPACE.open(actor.id);
 }
 function renderManualTable(){
   renderManualClocks();
   renderManualMapTools();
   document.body.dataset.tablePolicy=manualTableActive()?"manual":"rules";
   const selector=$("scene-control-mode");if(selector)selector.value=manualTableActive()?"manual":"rules";
+  const hints=$("scene-manual-status-processing");if(hints){hints.checked=Boolean(Scene.tablePolicy?.processStatuses);hints.closest("label").hidden=!manualTableActive();}
+  for(const button of document.querySelectorAll('#scene-dock [data-scene-panel="director"],#scene-dock [data-scene-panel="sheet"],#scene-dock [data-scene-panel="utility"],#scene-dock [data-scene-panel="entities"]'))button.hidden=manualTableActive();
+  if(manualTableActive()&&["director","sheet","utility","entities"].includes(activeScenePanel))closeAllScenePanels();
   window.DAWN_MANUAL_WORKSPACE?.render({scene:Scene,canNarrate:activeSceneView()==="gm",canControl:canControlSceneActor,
     scopeId:Sync?.state?.()?.sceneId||"local",
     canRead:actor=>activeSceneView()==="gm"||!actor.hidden,
     commit:commitSceneEvents,readAbilities:manualTableAbilities,
     selectActor:actor=>{Scene.selectedActor=actor.id;persist();renderScene()},
-    openSheet:actor=>{Scene.selectedActor=actor.id;renderScene();setScenePanel(actor.heroId?"sheet":"inspector")},
     roll:openManualTableDice,
     openClocks:openManualTableClocks,
     statuses:actor=>(actor.manualStatuses||[]).map(id=>{const effect=sceneEffectList().find(e=>e.id===id);return{id,name:effect?.name||id,icon:"effects",hint:effect?.text||""}}),

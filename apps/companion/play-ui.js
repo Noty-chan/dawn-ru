@@ -7,6 +7,7 @@ function renderSync(){
   if(typeof refreshHeroSheetResourceControls==="function")refreshHeroSheetResourceControls();
 }
 function renderSceneHeroSheet(){
+  if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene)){const root=$("play-kit");if(root)root.innerHTML="";return;}
   const playKit=$("play-kit");if(!playKit)return;
   const sceneIdentity=typeof lwGeometrySceneIdentity==="function"?lwGeometrySceneIdentity():JSON.stringify([Scene.id||null,Scene.rulesEdition,Scene.name]);
   const preserve=playKit.dataset.sceneSheetIdentity===sceneIdentity;

@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../app-scene-events.js',import.meta.url),'utf8');
+const handlers=new Map(),classes=new Set();
+const wrap={scrollLeft:100,scrollTop:80,classList:{add:(...items)=>items.forEach(i=>classes.add(i)),remove:(...items)=>items.forEach(i=>classes.delete(i))},addEventListener:(type,fn)=>handlers.set(`board:${type}`,fn)};
+const context={scenePanState:null,sceneSpaceHeld:false,sceneSuppressBoardClickUntil:0,store:{mode:'play'},performance:{now:()=>1000},$:()=>wrap,window:{addEventListener:(type,fn)=>handlers.set(`window:${type}`,fn)},document:{hidden:false,addEventListener:(type,fn)=>handlers.set(`document:${type}`,fn)}};
+vm.runInNewContext(source.slice(source.indexOf('function resetScenePanGesture()'),source.indexOf('document.addEventListener("keydown",event=>{if(event.key.toLowerCase()==="m"')),context);
+const hold=()=>handlers.get('document:keydown')({code:'Space',target:{matches:()=>false},preventDefault(){}});
+const start=()=>handlers.get('board:mousedown')({button:0,currentTarget:wrap,clientX:200,clientY:300,preventDefault(){}});
+hold();start();handlers.get('window:mousemove')({clientX:180,clientY:290});
+assert.equal(wrap.scrollLeft,120);assert.equal(wrap.scrollTop,90);
+handlers.get('window:mouseup')();assert.equal(context.sceneSuppressBoardClickUntil,1150,'drag release suppresses its synthetic click');
+assert.equal(context.sceneSpaceHeld,true,'continuing Space hold permits another pan');
+handlers.get('document:keyup')({code:'Space'});assert.equal(context.sceneSpaceHeld,false);
+for(const event of ['blur','pointercancel']){hold();start();handlers.get(`window:${event}`)();assert.equal(context.sceneSpaceHeld,false);assert.equal(context.scenePanState,null);assert.equal(classes.size,0)}
+hold();context.document.hidden=false;handlers.get('document:visibilitychange')();assert.equal(context.sceneSpaceHeld,true,'visible state does not interrupt the gesture');
+start();context.document.hidden=true;handlers.get('document:visibilitychange')();assert.equal(context.sceneSpaceHeld,false);assert.equal(context.scenePanState,null);assert.equal(classes.size,0);
+handlers.get('board:mousedown')({button:0,currentTarget:wrap,clientX:0,clientY:0,preventDefault(){throw Error('ordinary click must not be cancelled')}});
+assert.equal(context.scenePanState,null,'ordinary click works after lost keyup reset');
+console.log('Pan lifecycle: actual keyboard/mouse handlers, displacement, synthetic-click suppression and lost-keyup recovery passed');

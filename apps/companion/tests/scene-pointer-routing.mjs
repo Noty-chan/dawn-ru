@@ -35,7 +35,7 @@ const run=code=>vm.runInContext(code,context),load=code=>vm.runInContext(code,co
 run(`let store={mode:"play"},Scene,sceneInterfaceVersion="next",sceneLeftPanelsEnabled=true,scenePanelLayoutMode="split";
   let activeScenePanel=null,activeScenePanels={left:null,right:null},scenePanelTrigger=null;
   const DEFAULT_SCENE_PANEL_SIDES={director:"left",inspector:"right",map:"right"},scenePanelSides={};
-  let playerSceneTool="select",sceneSuppressBoardClickUntil=0,sceneContextTarget=null;
+  let playerSceneTool="select",sceneSuppressBoardClickUntil=0,sceneContextTarget=null,sceneSpaceHeld=false,scenePanState=null;
   let activeModifierActionId=null,activeModifierPickerId=null,pendingZealotPlan=null,pendingEnemyStepActorId=null,pendingEnemyRule=null;
   let pendingTechniqueRule=null,pendingCoreReaction=null,pendingCoreAction=null,pendingCoreActionPlan=false,pendingCoreActionContext=null;
   let lwDestination=null,lwTechniqueDraft=null,sceneNeutralTool=null,sceneMeasureEnd=null,sceneMeasureStart=null,sceneMeasureLabel="",hoveredSceneActorId=null;

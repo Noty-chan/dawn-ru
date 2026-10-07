@@ -201,7 +201,7 @@ cancel();
 const fieldHandlers = new Map();
 let directorActorId = "hero";
 Object.assign(context, {
-  performance: { now: () => 1000 }, sceneSuppressBoardClickUntil: 0,
+  performance: { now: () => 1000 }, sceneSuppressBoardClickUntil: 0, sceneSpaceHeld:false, scenePanState:null,
   activeSceneView: () => narrator ? "gm" : "player", playerSceneTool: "select",
   sceneDirectorActor: () => context.Scene.actors.find(row => row.id === directorActorId),
   activeModifierActionId: null, activeModifierPickerId: null,

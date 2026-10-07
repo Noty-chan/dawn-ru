@@ -1,13 +1,13 @@
 "use strict";
 window.DAWN_I18N?.registerLocale?.("ru", {
-  "scene.manual.policyName":"Ведение", "scene.manual.policyAria":"Режим игрового стола", "scene.manual.manual":"Вручную", "scene.manual.rules":"По правилам",
+  "scene.manual.statusHints":"Подсказки статусов", "scene.manual.policyName":"Ведение", "scene.manual.policyAria":"Режим игрового стола", "scene.manual.manual":"Вручную", "scene.manual.rules":"По правилам",
   "scene.manual.select":"Выберите участника", "scene.manual.sheet":"Лист", "scene.manual.close":"Закрыть", "scene.manual.marked":"Личная отметка ✓", "scene.manual.mark":"Личная отметка",
   "scene.manual.area":"Показать область", "scene.manual.noAbilities":"Способности этого участника не добавлены.", "scene.manual.hp":"ЗД", "scene.manual.exactHp":"Записать здоровье",
   "scene.manual.commands":"Команды ручного стола", "scene.manual.read":"Читать", "scene.manual.dice":"Кубы", "scene.manual.clocks":"Часы", "scene.manual.point":"Сейчас играет",
   "scene.manual.round":"Раунд", "scene.manual.nextRound":"+1", "scene.manual.participants":"Участники", "scene.manual.abilities":"Способности участника"
 });
 window.DAWN_I18N?.registerLocale?.("en", {
-  "scene.manual.policyName":"Table mode", "scene.manual.policyAria":"Table play mode", "scene.manual.manual":"Manual", "scene.manual.rules":"With rules",
+  "scene.manual.statusHints":"Status hints", "scene.manual.policyName":"Table mode", "scene.manual.policyAria":"Table play mode", "scene.manual.manual":"Manual", "scene.manual.rules":"With rules",
   "scene.manual.select":"Select a participant", "scene.manual.sheet":"Sheet", "scene.manual.close":"Close", "scene.manual.marked":"Personal mark ✓", "scene.manual.mark":"Personal mark",
   "scene.manual.area":"Show area", "scene.manual.noAbilities":"No abilities have been added for this participant.", "scene.manual.hp":"HP", "scene.manual.exactHp":"Set Health",
   "scene.manual.commands":"Manual table commands", "scene.manual.read":"Read", "scene.manual.dice":"Dice", "scene.manual.clocks":"Clocks", "scene.manual.point":"Playing now",
@@ -48,7 +48,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     readerActorId = actor?.id || null;
     reader.hidden = !reading;
     if (!reading) return;
-    reader.innerHTML = `<header><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${button("sheet", text("sheet", "Лист"), "sheet", !actor)}${button("close-reader", text("close", "Закрыть"), "close")}</header>${actor ? `<div class="scene-manual-statuses">${statuses(actor)}</div><div class="scene-manual-abilities">${abilities(actor).map((entry, index) => {
+    reader.innerHTML = `<header><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${adapter.openSheet?button("sheet", text("sheet", "Лист"), "sheet", !actor):""}${button("close-reader", text("close", "Закрыть"), "close")}</header>${actor ? `<div class="scene-manual-statuses">${statuses(actor)}</div><div class="scene-manual-abilities">${abilities(actor).map((entry, index) => {
       const key = `${actor.id}:${entry.id || index}`, on = adapter.toggleTechnique ? Boolean(actor.manualTechniqueState?.[entry.id]) : techniqueFlags.get(key) || false;
       return `<details data-manual-ability="${index}" ${expanded.has(String(index)) ? "open" : ""}><summary>${escape(entry.name)}${entry.meta ? `<small>${escape(entry.meta)}</small>` : ""}</summary><div class="scene-manual-ability-text">${escape(entry.text || entry.description || "")}</div>${adapter.statusHints && entry.hint ? `<p class="scene-manual-hint">${escape(entry.hint)}</p>` : ""}<div class="scene-manual-ability-tools">${entry.toggle ? button("technique-toggle", on ? text("marked", "Личная отметка ✓") : text("mark", "Личная отметка"), "effects", !state.control, `data-ability-index="${index}" aria-pressed="${on}"`) : ""}${entry.area && adapter.showArea ? button("show-area", text("area", "Показать область"), "areas", false, `data-ability-index="${index}"`) : ""}</div></details>`;
     }).join("") || `<p class="scene-manual-empty">${escape(text("noAbilities", "Способности этого участника не добавлены."))}</p>`}</div>` : ""}`;
@@ -125,5 +125,10 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     if (nextScope !== scope) { techniqueFlags.clear(); reading = false; readingActorId = readerActorId = null; scope = nextScope; }
     adapter = options; if (!init(options?.mount)) return model(options); return paint();
   }
-  return Object.freeze({render, act, model});
+  function open(actorId){
+    if(!adapter||!isManual(adapter.scene))return false;
+    const actor=model(adapter).actors.find(item=>item.id===actorId);if(!actor)return false;
+    reading=true;readingActorId=actor.id;paint();return true;
+  }
+  return Object.freeze({render, act, model, open});
 })();

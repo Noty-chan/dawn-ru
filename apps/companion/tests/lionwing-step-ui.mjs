@@ -90,7 +90,7 @@ vm.runInContext(`
       pendingCoreActionContext=null, pendingCoreReaction=null, pendingEnemyStepActorId=null,
       pendingEnemyRule=null, pendingTechniqueRule=null, pendingTechniqueAnchor=null,
       pendingZealotPlan=null, activeModifierActionId=null,
-      activeModifierPickerId=null, sceneSuppressBoardClickUntil=0, lwDestination=null;
+      activeModifierPickerId=null, sceneSuppressBoardClickUntil=0, sceneSpaceHeld=false, scenePanState=null, lwDestination=null;
   const Sync={state:()=>({sceneId:"",canNarrate:true})};
   const lwActive=()=>true, lwCanNarrate=()=>true, lwOwns=()=>true;
   const lwActor=()=>Scene.actors.find(record=>record.id===Scene.selectedActor)||Scene.actors.find(record=>record.id===Scene.activeActorId);
