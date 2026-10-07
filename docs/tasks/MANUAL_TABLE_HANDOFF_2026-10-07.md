@@ -60,3 +60,8 @@ Final targeted: network-v2.mjs PASS; workspace test updated to wait for canonica
 ## Ещё один малый пакет: ручные записи после reload
 
 Исправлена потеря ownership/manual/type у ручных часов и информационных областей в app-core sceneCore. Счётчик сохраняет kind counter, размер и значение; область остаётся manual-area и не превращается в механическую местность. Сохранены owner/manual/hidden/color. Расширенный actual persistence тест загружает настоящее ядро и выполняет clock/set и area/remove уже после двух normalize/reload: PASS без изменения HP. Existing lionwing-counters PASS. QA static contract remote-join обновлён под намеренный manual guard (старый regex требовал прежний код). Повторный полный npm всё ещё не запускался; остаётся ранее отмеченный stale S00 inventory.
+
+
+## Последний результат полного прогона — актуальнее прежнего FAIL
+
+После пакета 2ea7e43 и пересборки S00-INVENTORY.json команда `npm test` из apps/companion завершилась с exit code 0: **PASS**. Проверены весь pretest/test, новые ручные policy/network/persistence/workspace/dice tests и прежние сценарии. Изменение inventory просмотрено: только обнаруженные ссылки на новые тесты, 51 insertion / 4 deletion; канонические профили/тексты не меняются. Полный временный лог: root output/manual-table-test-post-checkpoint.log (ignored). Сетевые проверки в этом suite — локальные тестовые контракты; live two-client Realtime/RLS по-прежнему not-run. Browser нового диалога броска по-прежнему not-run. Перечень незавершённой интеграции выше сохраняет силу; PASS тестов не означает готовый ручной UI.
