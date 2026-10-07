@@ -84,6 +84,6 @@ context.renderAllInControls();
 assert.ok(calls.includes('renderDiceComposer')&&calls.includes('renderFreeplayHeroPanel')&&calls.includes('renderFreeplayBonds'),'Narrator sheet changes refresh the actual local sheet and source choices');
 assert.ok(calls.indexOf('syncToolsSourceSelection')>calls.indexOf('renderFreeplayBonds'));
 const css=fs.readFileSync(path.join(base,'tools-workspace.css'),'utf8');
-assert.match(css,/@media\(max-width:720px\)/);assert.match(css,/\.roll-feed \{max-height:420px;overflow:auto/);
+assert.match(css,/@media\(max-width:720px\)/);assert.match(css,/tools-next-drawer[^}]*overflow:hidden/);
 assert.doesNotMatch(css,/#[0-9a-f]{3,8}\b/i,'Tools use existing production colour tokens');
 console.log('Tools workspace VM PASS: real hero/resource/source rendering, selection changes, redraw focus/disclosures, conditional real gadgets and narrator refresh. Browser layout/network not exercised.');

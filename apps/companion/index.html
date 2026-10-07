@@ -12,12 +12,13 @@
   <link rel="stylesheet" href="hero-gadgets.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="mobile-header.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="prototype-test-ui.css?v=__BUILD_VERSION__">
-  <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<3||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
+  <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<4||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
   <link id="scene-interface-classic-styles" rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
   <link id="scene-interface-next-styles" rel="stylesheet" href="vtt-cockpit.css?v=__BUILD_VERSION__" disabled>
   <script>{const next=document.documentElement.classList.contains("scene-interface-next");document.getElementById("scene-interface-classic-styles").disabled=next;document.getElementById("scene-interface-next-styles").disabled=!next}</script>
   <link rel="stylesheet" href="scene-board-tools.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="tools-workspace.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="scene-workspace-next.css?v=__BUILD_VERSION__">
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="app.skip">К содержимому</a>
@@ -47,6 +48,7 @@
       <section class="app-settings-section"><div><h3 data-i18n="settings.contentTitle">Язык и правила</h3><p data-i18n="settings.contentHelp">Редакция определяет правила и отдельный лист героя.</p></div><div class="content-switchers" aria-label="Язык и редакция правил" data-i18n-aria-label="settings.content"><label><span data-i18n="settings.language">Язык</span><select id="locale-select"><option value="ru">Русский</option><option value="en">English</option></select></label><label><span data-i18n="settings.edition">Редакция</span><select id="edition-select"><option value="ru-v0.9">RU v0.9</option><option value="lionwing">LionWing</option></select></label></div></section>
       <section class="app-settings-section"><div><h3 data-i18n="settings.appearance">Оформление</h3><p data-i18n="settings.appearanceHelp">Тема хранится только на этом устройстве.</p></div><button type="button" id="theme-toggle" data-i18n="settings.toggleTheme">Сменить светлую и тёмную тему</button></section>
       <details id="supplement-picker" class="supplement-picker app-settings-section"><summary><span data-i18n="supplements.title">Дополнения</span><small id="supplement-count"></small></summary><div id="supplement-options" class="supplement-options"></div></details>
+      <section class="app-settings-section"><div><h3 data-i18n="settings.toolsTitle">Интерфейс Инструментов</h3><p data-i18n="settings.toolsHelp">Тестовая версия включена по умолчанию. Переключение сохраняет лист, броски и ресурсы.</p></div><label><span data-i18n="settings.toolsVersion">Версия</span> <select id="tools-interface-version"><option value="next" data-i18n="tools.version.next">Новая · тестовая</option><option value="classic" data-i18n="tools.version.classic">Старая</option></select></label></section>
       <section class="app-settings-section app-table-settings"><div><h3 data-i18n="settings.tableTitle">Интерфейс стола</h3><p data-i18n="settings.tableHelp">Компоновка, размеры панелей и вид ленты участников.</p></div><div id="scene-layout-settings" class="scene-layout-settings"></div></section>
     </div>
   </dialog>
@@ -319,20 +321,13 @@
       <section class="mode-page" data-page="tools" aria-labelledby="tools-title">
         <div class="page-heading tools-heading"><div><p class="eyebrow" data-i18n="tools.eyebrow">ИНСТРУМЕНТЫ</p><h1 id="tools-title" data-i18n="tools.title">Неструктурированная игра</h1><p data-i18n="tools.description">Соберите действие из листа героя, бросьте открыто и продолжайте сцену без боевого Стола.</p></div><output id="tools-sync-state" class="tools-sync-state">Локальные инструменты</output></div>
         <div class="freeplay-grid">
-          <div class="tools-workspace-column tools-workspace-sheet">
-          <section id="tools-sheet" class="panel freeplay-hero-tool">
-            <div class="tools-step"><span>2</span><div><strong data-i18n="tools.sheet.title">Источник листа</strong><small data-i18n="tools.sheet.help">Атрибуты, Навыки, Способности, Связи, Дары и ресурсы выбранного локального героя.</small></div></div>
-            <label id="freeplay-local-hero-wrap"><span data-i18n="tools.sheetSource">Источник листа</span><select id="freeplay-local-hero"></select></label>
-            <div id="freeplay-hero-panel"></div>
-          </section>
-          </div>
-          <div class="tools-workspace-column tools-workspace-action">
           <section id="tools-context" class="panel freeplay-director-tool">
             <div class="tools-step"><span>1</span><div><strong data-i18n="tools.context.title">Контекст действия</strong><small data-i18n="tools.context.help">Источник листа и адресат сетевого запроса выбираются независимо.</small></div></div>
             <div id="tools-view-switch" class="tools-view-switch" role="group" aria-label="Вид Инструментов"><span data-i18n="tools.view.label">Рабочий вид</span><button type="button" data-tools-view="player" data-i18n="tools.view.player">Игрок</button><button type="button" data-tools-view="narrator" data-i18n="tools.view.narrator">Нарратор</button></div>
             <div class="subpanel-head"><div><span class="kind" id="freeplay-director-kind">ЛОКАЛЬНЫЙ СТОЛ</span><h2 id="freeplay-director-title">Испытание</h2><small id="freeplay-director-help">Нарратор назначает сложность, затем передаёт устройство нужному игроку.</small></div></div>
             <div class="freeplay-director-controls">
               <label id="freeplay-request-kind-wrap"><span data-i18n="tools.rollKind">Тип броска</span><select id="freeplay-request-kind"><option value="challenge" data-i18n="tools.roll.challenge">Обычный бросок</option><option value="opposed" data-i18n="tools.roll.opposed">Встречный бросок</option></select></label>
+              <label id="freeplay-local-hero-wrap"><span data-i18n="tools.sheetSource">Источник листа</span><select id="freeplay-local-hero"></select></label>
               <label id="freeplay-request-actor-wrap" hidden><span data-i18n="tools.requestRecipient">Адресат запроса</span><select id="freeplay-request-actor"></select></label>
               <label id="freeplay-opponent-wrap" hidden><span data-i18n="tools.opponent">Противник</span><select id="freeplay-opponent"></select></label>
               <label id="freeplay-opponent-name-wrap" hidden><span data-i18n="tools.opponentName">Имя противника</span><input id="freeplay-opponent-name" maxlength="120" placeholder="Безымянный NPC" data-i18n-placeholder="tools.unnamedNpc"></label>
@@ -341,6 +336,10 @@
             </div>
             <output id="freeplay-request-state" class="freeplay-request-state" aria-live="polite"></output>
             <div id="freeplay-opposed-status" class="freeplay-opposed-status" aria-live="polite" hidden></div>
+          </section>
+          <section id="tools-sheet" class="panel freeplay-hero-tool">
+            <div class="tools-step"><span>2</span><div><strong data-i18n="tools.sheet.title">Источник листа</strong><small data-i18n="tools.sheet.help">Атрибуты, Навыки, Способности, Связи, Дары и ресурсы выбранного локального героя.</small></div></div>
+            <div id="freeplay-hero-panel"></div>
           </section>
           <section id="tools-dice" class="panel dice-tool">
             <div class="tools-step"><span>3</span><div><strong data-i18n="tools.pool.title">Соберите пул</strong><small data-i18n="tools.pool.help">Выберите по одному источнику с листа и добавьте ситуативные Преимущество и Помеху.</small></div></div>
@@ -359,26 +358,23 @@
             <div id="freeplay-risk-actions" class="freeplay-risk-actions"></div>
             <details class="tools-outcome-help"><summary data-i18n="tools.outcomeHelp">Как определяется результат</summary><output id="dice-outcome-guide" class="dice-outcome-guide" aria-live="polite"></output></details>
           </section>
-          </div>
-          <aside class="tools-workspace-column tools-workspace-session">
           <section id="tools-feed" class="panel roll-feed-tool">
             <div class="subpanel-head"><div><span class="kind" data-i18n="tools.feed.eyebrow">ОБЩИЙ СТОЛ</span><h2 data-i18n="tools.feed.title">Лента бросков</h2><small data-i18n="tools.feed.help">Кубики и итоги всех публичных бросков видны участникам Сцены.</small></div></div>
             <ol id="dice-history" class="history roll-feed" aria-live="polite"></ol>
-          </section>
-          <section id="tools-clocks" class="panel clocks-tool">
-            <div class="subpanel-head"><h2 data-i18n="tools.clocks.title">Часы сцены</h2><div class="clock-add-actions"><button type="button" id="clock-add-progress" data-i18n="tools.clocks.good">+ Хорошие</button><button type="button" id="clock-add-danger" data-i18n="tools.clocks.bad">+ Плохие</button></div></div>
-            <div id="clocks" class="clock-list"></div>
           </section>
           <section id="tools-bonds" class="panel freeplay-bonds-tool">
             <div class="subpanel-head"><div><h2 data-i18n="tools.bonds.title">Связи персонажа</h2><small data-i18n="tools.bonds.help">В испытании можно применить Ранг одной Связи. Нестандартный тег даёт ещё 1 Преимущество.</small></div></div>
             <div class="freeplay-bond-create"><label><span data-i18n="tools.bonds.name">Имя Связи</span><input id="freeplay-bond-name" maxlength="120" placeholder="Имя персонажа или оружия" data-i18n-placeholder="tools.bonds.placeholder"></label><label class="switch"><input id="freeplay-bond-quick" type="checkbox"><span data-i18n="tools.bonds.quick">Быстрая Связь</span></label><button type="button" id="freeplay-bond-add" data-i18n="tools.bonds.add">+ Создать Связь</button></div>
             <div id="freeplay-bonds" class="freeplay-bonds"></div>
           </section>
+          <section id="tools-clocks" class="panel clocks-tool">
+            <div class="subpanel-head"><h2 data-i18n="tools.clocks.title">Часы сцены</h2><div class="clock-add-actions"><button type="button" id="clock-add-progress" data-i18n="tools.clocks.good">+ Хорошие</button><button type="button" id="clock-add-danger" data-i18n="tools.clocks.bad">+ Плохие</button></div></div>
+            <div id="clocks" class="clock-list"></div>
+          </section>
           <section id="tools-stress" class="panel stress-tool">
             <div class="subpanel-head"><div><h2 data-i18n="tools.stress.title">Стресс героев</h2><small data-i18n="tools.stress.help">При заполнении шкалы (обычно 3; 4 с «Глухотой к сверхъестественному») герой выводится из строя и возвращается в следующей Сцене с лимитом минус 1.</small></div></div>
             <div id="stress-trackers" class="stress-trackers"></div>
           </section>
-          </aside>
         </div>
       </section>
 
@@ -484,6 +480,8 @@
   <script src="app-scene-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-play-events.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-ui.js?v=__BUILD_VERSION__"></script>
+  <script src="ui-icons.js?v=__BUILD_VERSION__"></script>
+  <script src="scene-workspace-next.js?v=__BUILD_VERSION__"></script>
   <script src="scene-board-tools.js?v=__BUILD_VERSION__"></script>
   <script src="scene-token-hud.js?v=__BUILD_VERSION__"></script>
   <script src="diagnostics.js?v=__BUILD_VERSION__"></script>

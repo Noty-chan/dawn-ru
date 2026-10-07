@@ -31,7 +31,7 @@ assert.equal(frames.length,1,"panel changes and ResizeObserver share one pending
 flush();
 const wide=run("sceneZoom");
 assert.ok(wide*820/100<=wrap.clientWidth-40);
-assert.ok(wide*615/100<=wrap.clientHeight-110,"field tools and board shadow retain their own space");
+assert.ok(wide*615/100<=wrap.clientHeight-40,"the new toolbar has its own column, so only board padding is reserved");
 
 wrap.clientWidth=540;
 run("scheduleSceneViewportFit()");flush();

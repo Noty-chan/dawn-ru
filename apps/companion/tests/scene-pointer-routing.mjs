@@ -25,7 +25,7 @@ const context={
   console,performance:{now:()=>1000},HTMLElement:class {},requestAnimationFrame:()=>{},
   document:{activeElement:null,querySelector:selector=>selector==="dialog[open]"?openDialog:null,
     addEventListener(type,handler,capture=false){if(type==="keydown")keyboard.push({handler,capture});}},
-  $:element,activeSceneView:()=>role,canControlScenePrompt:()=>false,
+   $:element,sceneViewportProfile:()=>"desktop",activeSceneView:()=>role,canControlScenePrompt:()=>false,
   syncScenePanels:()=>{},persist:()=>{},renderScene:()=>{renders++;},toast:text=>messages.push(text),
   focusSceneActorOnBoard:()=>{},SceneEngine:{},window:{},S:{id:"owned-hero"},
   lwActive:()=>true,cancelSceneFlow:()=>{cancellations++;},

@@ -18,24 +18,43 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     { id: "view", label: "Обзор", icon: "⛶", selectors: ['#scene-zoom-fit'] },
     { id: "history", label: "История", icon: "↶", gm: true, selectors: ['#scene-undo','#scene-redo'] }
   ];
-  let toolbar = null, strip = null, tools = null, selected = "tokens";
+  let toolbar = null, strip = null, tools = null, oldPrimary = null, primaryHidden = false, enabled = false, selected = "tokens";
+  const homes = new Map();
+  const next = () => typeof usingNextSceneInterface === "function" && usingNextSceneInterface();
+  const icon = name => window.DAWN_UI_ICONS?.html(name) || "";
+  const escape = value => String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+  function remember(node, button = false) {
+    if (homes.has(node)) return homes.get(node);
+    const anchor = document.createComment("board tool home");
+    node.before(anchor);
+    const record = { anchor, html: button ? node.innerHTML : null, label: button ? node.textContent.trim() : "", aria: button ? node.getAttribute("aria-label") : null };
+    homes.set(node, record); return record;
+  }
+  function decorate(node) {
+    const home = remember(node, true);
+    const operation = ({area:"areas",wall:"walls",marker:"markers",topology:"edit",erase:"clear"})[node.dataset?.sceneTool] || node.dataset?.sceneTool || ({"scene-zoom-fit":"view","scene-undo":"undo","scene-redo":"redo","scene-clear-targets":"clear","scene-clear-movement-traces":"traces"})[node.id];
+    const svg = icon(operation);
+    if (svg && !node.querySelector(".scene-board-tool-original-label")) node.innerHTML = svg + `<span class="scene-board-tool-original-label">${escape(home.label)}</span>`;
+    if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", home.label);
+  }
   const categories = new Map(), panels = new Map(), toolGroups = new Map();
   let lastActiveTool = null;
   const player = () => document.body.classList.contains("scene-player-view");
   function select(id) {
     const group = groups.find(item => item.id === id);
-    if (!group || !categories.has(id) || group.gm && player()) return false;
+    if (!enabled || !group || !categories.has(id) || group.gm && player()) return false;
     selected = id;
     for (const [key, button] of categories) button.setAttribute("aria-pressed", String(key === selected));
     for (const [key, panel] of panels) panel.hidden = key !== selected;
     return true;
   }
   function refresh() {
-    if (!toolbar) return false;
+    if (!toolbar || !enabled) return false;
     if (player() && groups.find(item => item.id === selected)?.gm) select("tokens");
     return true;
   }
   function reflectTool() {
+    if (!enabled) return;
     const active = [...toolGroups.keys()].find(button => button.getAttribute("aria-pressed") === "true");
     for (const [id, button] of categories) button.setAttribute("data-active-tool", String(Boolean(active && toolGroups.get(active) === id)));
     // A genuine tool change, including a keyboard shortcut, reveals its group.
@@ -44,7 +63,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     lastActiveTool = active || null;
   }
   function enhance() {
-    if (!toolbar || !strip || !tools) return;
+    if (!enabled || !toolbar || !strip || !tools) return;
     for (const group of groups) {
       const nodes = group.selectors.flatMap(selector => [...document.querySelectorAll(selector)]).filter(node => !node.classList.contains("scene-stage-quick-action"));
       if (!nodes.length) continue;
@@ -55,7 +74,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       button.type = "button";
       button.id = `scene-board-category-${group.id}`;
       button.className = "scene-board-tool-category" + (group.gm ? " gm-only" : "");
-      button.textContent = group.icon;
+      button.innerHTML = icon(group.id) || group.icon;
       button.title = labelFor(group);
       button.setAttribute("aria-label", labelFor(group));
       button.setAttribute("aria-controls", `scene-board-group-${group.id}`);
@@ -71,10 +90,13 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       categories.set(group.id, button); panels.set(group.id, panel);
       strip.append(button); tools.append(panel);
       }
-      for (const node of nodes) if (node.parentNode !== panel) panel.append(node);
+      for (const node of nodes) { decorate(node); if (node.parentNode !== panel) panel.append(node); }
       if (group.controls) {
         const controls = document.getElementById(group.controls);
-        if (controls && controls.parentNode !== panel) panel.append(controls);
+        // Parameters belong to the existing Map task panel, which is opened
+        // by the tool controller. They cannot fit in the two square columns.
+        const destination = document.getElementById('scene-map-tools') || panel;
+        if (controls) { remember(controls); if (controls.parentNode !== destination) destination.append(controls); }
       }
     }
     const orderedCategories = groups.map(group => categories.get(group.id)).filter(Boolean);
@@ -87,18 +109,19 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   }
   function init() {
     if (toolbar) return refresh();
+    if (!next()) return false;
     const candidate = document.querySelector(".scene-toolbar");
-    const oldPrimary = candidate?.querySelector(".scene-tool-group");
+    oldPrimary = candidate?.querySelector(".scene-tool-group");
     const oldActions = candidate?.querySelector(".scene-tool-actions");
     if (!candidate || !oldPrimary || !oldActions) return false;
-    toolbar = candidate;
+    toolbar = candidate; enabled = true; primaryHidden = oldPrimary.hidden;
     strip = document.createElement("nav");
     strip.className = "scene-board-tool-categories";
     strip.setAttribute("aria-label", copy("scene.boardTools.categoriesLabel", "Категории инструментов поля"));
     tools = document.createElement("div");
     tools.className = "scene-board-tool-panels";
     enhance();
-    oldPrimary.remove();
+    oldPrimary.hidden = true;
     toolbar.prepend(strip, tools);
     toolbar.classList.add("scene-board-tools-ready");
     toolbar.closest(".scene-stage")?.classList.add("scene-board-tools-stage");
@@ -113,7 +136,30 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     // invoke tool/controller events when its category changes.
     return true;
   }
-  return Object.freeze({ init, refresh, select, enhance });
+  function setEnabled(value) {
+    if (value) {
+      if (!toolbar) return init();
+      enabled = true; oldPrimary.hidden = true;
+      toolbar.prepend(strip, tools);
+      toolbar.classList.add("scene-board-tools-ready");
+      toolbar.closest(".scene-stage")?.classList.add("scene-board-tools-stage");
+      enhance(); return true;
+    }
+    if (!toolbar) return false;
+    enabled = false;
+    for (const [node, home] of homes) {
+      if (home.anchor.parentNode) home.anchor.after(node);
+      if (home.html !== null) {
+        node.innerHTML = home.html;
+        if (home.aria === null) node.removeAttribute("aria-label"); else node.setAttribute("aria-label", home.aria);
+      }
+    }
+    strip.remove(); tools.remove(); oldPrimary.hidden = primaryHidden;
+    toolbar.classList.remove("scene-board-tools-ready");
+    toolbar.closest(".scene-stage")?.classList.remove("scene-board-tools-stage");
+    return true;
+  }
+  return Object.freeze({ init, refresh, select, enhance, setEnabled, isEnabled: () => enabled });
 })();
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.DAWN_SCENE_BOARD_TOOLS.init(), { once: true });
 else window.DAWN_SCENE_BOARD_TOOLS.init();

@@ -1,9 +1,9 @@
 /* Experimental whole workspace; classic styles remain independently available. */
 .dawn-control-icon{display:block;flex:none;width:24px;height:24px;margin:auto;pointer-events:none}
 #scene-mobile-controls{display:none}
-body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench.scene-workbench{--scene-left-used:min(var(--scene-left-panel),26vw);--scene-right-used:min(var(--scene-right-panel),27vw);--scene-initiative:170px;display:grid;grid-template-columns:var(--scene-initiative) 108px minmax(260px,1fr) var(--scene-right-used) 54px;grid-template-rows:auto minmax(0,1fr) auto;gap:0;height:100%;min-height:0;padding:0;overflow:hidden;border-radius:12px;background:var(--surface)}
-body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-turn-strip-hidden #scene-workbench.scene-workbench{--scene-initiative:var(--scene-left-used)}
-body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-panel-open-left #scene-workbench.scene-workbench{--scene-initiative:max(170px,var(--scene-left-used))}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench.scene-workbench{--scene-left-used:0px;--scene-right-used:0px;--scene-initiative:170px;display:grid;grid-template-columns:max(var(--scene-initiative),var(--scene-left-used)) 108px minmax(0,1fr) var(--scene-right-used) 54px;grid-template-rows:auto minmax(0,1fr) auto;gap:0;height:100%;min-height:0;padding:0;overflow:hidden;border-radius:12px;background:var(--surface)}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-turn-strip-hidden #scene-workbench.scene-workbench{--scene-initiative:0px}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-panel-open-left #scene-workbench.scene-workbench{--scene-left-used:min(var(--scene-left-panel),26vw)}
 body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench>.scene-stage{display:contents}
 body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench .scene-stage-head{grid-column:1/-1;grid-row:1;margin:0;padding:.5rem .65rem;border-bottom:1px solid var(--line)}
 body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-rail-left.scene-rail{display:flex!important;flex-direction:column;position:static;grid-column:1;grid-row:2/4;width:auto;height:auto;min-height:0;max-height:none;border-right:1px solid var(--line);overflow:hidden;visibility:visible;pointer-events:auto;opacity:1;transform:none;padding:0;background:var(--surface)}
@@ -34,7 +34,7 @@ body.scene-mode.scene-interface-next .is-token-overlay .token-hud-effect-picker{
 body.scene-mode.scene-interface-next .is-token-overlay .token-hud-effect-picker>strong,body.scene-mode.scene-interface-next .is-token-overlay .token-hud-effect-picker>p{grid-column:1/-1}
 body.scene-mode.scene-interface-next .is-token-overlay .token-hud-effect-picker>button{position:static!important;width:auto;height:auto;min-height:40px;padding:.4rem;text-align:left;font-size:.7rem}
 body.scene-mode.scene-interface-next .is-token-overlay .token-hud-effect-picker[hidden]{display:none}
-@media(max-width:1279px){body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench.scene-workbench{--scene-initiative:116px;--scene-left-used:min(var(--scene-left-panel),24vw);--scene-right-used:min(var(--scene-right-panel),28vw)}body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-turn-strip .scene-turn-chip{font-size:.65rem}}
+@media(max-width:1279px){body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench.scene-workbench{--scene-initiative:116px;}body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-turn-strip .scene-turn-chip{font-size:.65rem}}
 body.scene-mode.scene-interface-next.scene-next-narrow #scene-workbench.scene-workbench{display:flex;flex-direction:column;position:relative;min-height:0;height:calc(100dvh - var(--mobile-header-height,96px) - 20px);padding:0;gap:0;border-radius:10px;overflow:hidden}
 body.scene-mode.scene-interface-next.scene-next-narrow #scene-workbench>.scene-stage{display:contents}
 body.scene-mode.scene-interface-next.scene-next-narrow #scene-workbench .scene-stage-head{flex:none;display:flex;align-items:center;min-height:42px;padding:.3rem .5rem;gap:.4rem;margin:0;border-bottom:1px solid var(--line)}
@@ -64,3 +64,33 @@ body.scene-mode.scene-interface-next.scene-next-narrow .scene-field-palette .sce
 body.scene-mode.scene-interface-next.scene-next-narrow .scene-field-palette .scene-board-tool-panel h3{width:100%;font-size:.85rem;padding:.25rem;margin:0}
 body.scene-mode.scene-interface-next.scene-next-narrow .scene-field-palette .scene-board-tool-panel>button{width:auto;min-width:44px;min-height:44px;font-size:.75rem;display:flex;padding:.4rem;gap:.4rem}
 body.scene-mode.scene-interface-next.scene-next-narrow .scene-context-menu.is-token-overlay{display:none!important}
+
+body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-panel-open-right #scene-workbench.scene-workbench{--scene-right-used:min(var(--scene-right-panel),27vw)}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-turn-strip-hidden #scene-turn-strip,body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-focus-mode #scene-turn-strip{display:none!important}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-focus-mode #scene-workbench.scene-workbench{--scene-initiative:0px}
+body.scene-mode.scene-interface-next #scene-dock .scene-dock-label{display:none}
+body.scene-mode.scene-interface-next .is-token-overlay [data-token-hud-action="close"]{top:var(--hud-cap)}
+body.scene-mode.scene-interface-next .is-token-overlay [data-token-hud-action="cockpit"],body.scene-mode.scene-interface-next .is-token-overlay [data-token-hud-action="effects"]{top:var(--hud-row)}
+body.scene-mode.scene-interface-next .is-token-overlay [data-token-hud-action="more"]{top:var(--hud-cap)}
+@media(max-width:1100px){body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-panel-open-left #scene-workbench.scene-workbench{--scene-left-used:min(var(--scene-left-panel),23vw)}body.scene-mode.scene-interface-next:not(.scene-next-narrow).scene-panel-open-right #scene-workbench.scene-workbench{--scene-right-used:min(var(--scene-right-panel),23vw)}}
+
+/* Retire the old important three-column rail placement in this version. */
+body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-rail-right.scene-rail{grid-column:4!important}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-turn-strip .scene-turn-chip>span{display:grid;min-width:0;gap:2px;text-align:left}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-turn-strip .scene-turn-chip b{display:block;max-width:none;white-space:normal;overflow-wrap:anywhere;font-size:.7rem}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-turn-strip .scene-turn-chip small{display:block;white-space:normal;font-size:.6rem;color:var(--muted)}
+body.scene-mode.scene-interface-next:not(.scene-next-narrow) #scene-workbench .scene-toolbar.scene-board-tools-ready{transform:none}
+body.scene-mode.scene-interface-next #scene-map-tools .scene-area-controls{position:static;width:100%;max-width:none;max-height:none;box-shadow:none}
+
+body.scene-mode.scene-interface-next:has(.scene-context-menu.is-token-overlay:not([hidden])) #scene-token-popover{display:none!important}
+
+body.scene-mode.scene-interface-next.scene-next-narrow #scene-workbench.scene-workbench{align-items:stretch}
+body.scene-mode.scene-interface-next.scene-next-narrow #scene-mobile-controls{width:100%;min-width:0}
+
+body.scene-mode.scene-interface-next.scene-next-narrow #scene-token-popover{display:none!important}
+body.scene-mode.scene-interface-next.scene-next-narrow .topbar .mode-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;width:100%;padding:0 4px;overflow:hidden}
+body.scene-mode.scene-interface-next.scene-next-narrow .topbar .mode-tabs>button{min-width:0;width:100%;font-size:.68rem;padding:.3rem .1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+body.scene-mode.scene-interface-next.scene-next-narrow main{padding:6px;overflow:hidden}
+body.scene-mode.scene-interface-next.scene-next-narrow #scene-workbench.scene-workbench{height:calc(100dvh - var(--scene-header-height,var(--mobile-header-height,101px)) - 12px)}
+body.scene-mode.scene-interface-next.scene-next-narrow .topbar .mode-tabs>button{font-weight:600;letter-spacing:0;font-size:10px}

@@ -131,7 +131,7 @@ $("scene-director").addEventListener("click",event=>{
   if(event.target.closest("[data-director-round]")){forceNarratorRound();return}
 });
 $("scene-layout-settings").addEventListener("change",event=>{
-  if(event.target.id==="scene-interface-next"){sceneInterfaceVersion=event.target.checked?"next":"classic";persist();location.reload();return}
+  if(event.target.id==="scene-interface-next"){window.DAWN_SCENE_WORKSPACE.setVersion(event.target.checked?"next":"classic");return}
   if(event.target.id==="scene-panel-layout"){scenePanelLayoutMode=["split","right","left","custom"].includes(event.target.value)?event.target.value:"split";persist();renderScene();return}
   const side=event.target.closest("[data-scene-panel-side]");if(side){scenePanelSides[side.dataset.scenePanelSide]=side.value==="left"?"left":"right";persist();renderScene();return}
   const width=event.target.closest("[data-scene-panel-width]");if(width){scenePanelWidths[width.dataset.scenePanelWidth]=SCENE_PANEL_WIDTHS[width.value]?width.value:"normal";persist();syncScenePanels();return}
@@ -140,7 +140,7 @@ $("scene-layout-settings").addEventListener("change",event=>{
 });
 $("scene-zoom").addEventListener("input",event=>applySceneZoom(event.target.value,{manual:true}));
 $("scene-zoom-fit").addEventListener("click",()=>fitSceneZoom(false));
-window.addEventListener("resize",()=>{clearTimeout(sceneResizeTimer);sceneResizeTimer=setTimeout(()=>{if(store.mode!=="play")return;hideSceneTokenTip(0);const nextViewport=sceneViewportProfile(),changed=nextViewport!==sceneViewportMode;sceneViewportMode=nextViewport;if(changed)closeAllScenePanels();scheduleSceneViewportFit()},140)});
+window.addEventListener("resize",()=>{clearTimeout(sceneResizeTimer);sceneResizeTimer=setTimeout(()=>{if(store.mode!=="play")return;hideSceneTokenTip(0);const nextViewport=sceneViewportProfile(),changed=nextViewport!==sceneViewportMode;sceneViewportMode=nextViewport;if(changed){syncScenePanels();window.DAWN_SCENE_WORKSPACE?.refresh()}scheduleSceneViewportFit()},140)});
 if(typeof ResizeObserver!=="undefined")new ResizeObserver(()=>scheduleSceneViewportFit()).observe($("scene-board-wrap"));
 $("scene-board-wrap").addEventListener("wheel",event=>{if(event.ctrlKey||event.metaKey){event.preventDefault();const step=Math.abs(event.deltaY)<80?4:10;applySceneZoom(sceneZoom+(event.deltaY<0?step:-step),{manual:true});return}const tool=activeSceneTool();if(!["area","wall"].includes(tool)||Date.now()-sceneToolWheelAt<160)return;sceneToolWheelAt=Date.now();event.preventDefault();const select=tool==="wall"?$("scene-wall-direction"):$("scene-area-type"),options=[...select.options].filter(option=>!option.disabled),index=options.indexOf(select.selectedOptions[0]),next=options[(index+(event.deltaY>0?1:-1)+options.length)%options.length];if(!next)return;select.value=next.value;select.dispatchEvent(new Event("change",{bubbles:true}));toast((tool==="wall"?"Сторона Стены: ":"Тип области: ")+next.textContent)},{passive:false});
 $("scene-board-wrap").addEventListener("mousedown",event=>{if(event.button!==1&&!(sceneSpaceHeld&&event.button===0))return;const wrap=event.currentTarget;scenePanState={x:event.clientX,y:event.clientY,left:wrap.scrollLeft,top:wrap.scrollTop};wrap.classList.add("is-panning");event.preventDefault()});

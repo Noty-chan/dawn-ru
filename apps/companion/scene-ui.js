@@ -602,6 +602,7 @@ function syncScenePanels(previous=null){
     for(const content of $$('[data-scene-panel-content]')){if(rightRail&&content.parentElement!==rightRail)rightRail.append(content);const active=content.dataset.scenePanelContent===activeScenePanel;content.classList.toggle("rail-active",active);if(content instanceof HTMLDetailsElement)content.open=active;if(active&&content.dataset.scenePanelContent!==previous)content.scrollTop=0}
     document.body.classList.toggle("scene-panel-open",Boolean(activeScenePanel));for(const name of ["scene-panel-left","scene-panel-open-left","scene-panel-open-right","scene-panel-open-both","scene-density-comfortable"])document.body.classList.remove(name);if(workbench){workbench.style.removeProperty("--scene-left-panel");workbench.style.removeProperty("--scene-right-panel")}$$('[data-scene-panel]').forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.scenePanel===activeScenePanel)));return
   }
+  if(sceneViewportProfile()!=="desktop"){const keep=activeScenePanel||activeScenePanels.right||activeScenePanels.left;activeScenePanels.left=null;activeScenePanels.right=null;if(keep){activeScenePanels[scenePanelSide(keep)]=keep;activeScenePanel=keep}}
   if(player)for(const side of ["left","right"]){const panel=activeScenePanels[side],content=panel&&document.querySelector(`[data-scene-panel-content="${panel}"]`);if(content?.classList.contains("gm-only"))activeScenePanels[side]=null}
   if(player&&activeScenePanels.left){activeScenePanels.right=activeScenePanels.right||activeScenePanels.left;activeScenePanels.left=null}
   if(!player)for(const [side,panel] of Object.entries({...activeScenePanels})){
@@ -640,11 +641,11 @@ function setScenePanel(panel,toggle=false){
     activeScenePanel=activeScenePanels.right||activeScenePanels.left||null;
   }else{
     const side=scenePanelSide(panel),other=side==="left"?"right":"left",already=activeScenePanels[side]===panel;
-    if(activeScenePanels[other]===panel)activeScenePanels[other]=null;
+    if(sceneViewportProfile()!=="desktop"||activeScenePanels[other]===panel)activeScenePanels[other]=null;
     if(toggle&&already){activeScenePanels[side]=null;activeScenePanel=activeScenePanels[other]||null}
     else{if(!isScenePanelOpen(panel)&&document.activeElement instanceof HTMLElement)scenePanelTrigger=document.activeElement;activeScenePanels[side]=panel;activeScenePanel=panel}
   }
-  syncScenePanels(previous);
+  syncScenePanels(previous);window.DAWN_SCENE_WORKSPACE?.refresh();
   if(activeScenePanel&&activeScenePanel!==previous)requestAnimationFrame(()=>document.querySelector(`[data-scene-panel-content="${activeScenePanel}"] [data-close-scene-panel]`)?.focus({preventScroll:true}));
   else if(!activeScenePanel&&previous&&scenePanelTrigger?.isConnected){const trigger=scenePanelTrigger;scenePanelTrigger=null;requestAnimationFrame(()=>trigger.focus({preventScroll:true}))}
 }
@@ -893,7 +894,7 @@ function renderSceneLayoutSettings(){
   const root=$("scene-layout-settings");if(!root)return;
   const panels=[['director','Пульт'],['inspector','Инфо'],['sheet','Герой'],['utility','Бросок'],['reference','Правила'],['media','Арт'],['map','Карта'],['add','Добавить'],['table','Стол'],['network','Сеть'],['log','Журнал']];
   const widthOptions=side=>Object.entries({compact:"Узкая · 300",normal:"Обычная · 380",wide:"Широкая · 480"}).map(([value,label])=>`<option value="${value}" ${scenePanelWidths[side]===value?'selected':''}>${label}</option>`).join('');
-  const version=`<section class="scene-interface-version"><span class="kind">ВЕРСИЯ ИНТЕРФЕЙСА</span><h3>${sceneInterfaceVersion==="next"?"Новый стол":"Классический стол"}</h3><p>${sceneInterfaceVersion==="next"?"Встроенные панели, компактные инструменты и отдельные рабочие области слева и справа.":"Стабильная компоновка из основной версии. Боевые данные и механики остаются теми же."}</p><label class="switch"><input id="scene-interface-next" type="checkbox" ${sceneInterfaceVersion==="next"?'checked':''}><span>Включить новый интерфейс стола</span></label><small>Переключение локальное: оно не меняет стол у других участников. Страница перезагрузится один раз.</small></section>`;
+  const version=`<section class="scene-interface-version"><span class="kind">ВЕРСИЯ ИНТЕРФЕЙСА</span><h3>${sceneInterfaceVersion==="next"?"Новый стол":"Классический стол"}</h3><p>${sceneInterfaceVersion==="next"?"Встроенные панели, компактные инструменты и отдельные рабочие области слева и справа.":"Стабильная компоновка из основной версии. Боевые данные и механики остаются теми же."}</p><label class="switch"><input id="scene-interface-next" type="checkbox" ${sceneInterfaceVersion==="next"?'checked':''}><span>Новый интерфейс · тестовая версия</span></label><small>Тестовая версия включена по умолчанию. Переключение локальное, без перезагрузки и потери игровых данных.</small></section>`;
   const nextSettings=`<section><span class="kind">КОМПОНОВКА</span><h3>Рабочие панели</h3><p>Слева и справа можно держать по одной панели одновременно. Колонка кнопок всегда остаётся у правого края.</p><label>Расположение<select id="scene-panel-layout"><option value="split" ${scenePanelLayoutMode==="split"?'selected':''}>Пульт слева, рабочая панель справа</option><option value="right" ${scenePanelLayoutMode==="right"?'selected':''}>Все панели справа</option><option value="left" ${scenePanelLayoutMode==="left"?'selected':''}>Все панели слева</option><option value="custom" ${scenePanelLayoutMode==="custom"?'selected':''}>Настроить каждую</option></select></label><div class="scene-layout-widths"><label>Левая панель<select data-scene-panel-width="left">${widthOptions('left')}</select></label><label>Правая панель<select data-scene-panel-width="right">${widthOptions('right')}</select></label></div><label>Плотность<select id="scene-interface-density"><option value="compact" ${sceneInterfaceDensity==='compact'?'selected':''}>Компактно</option><option value="comfortable" ${sceneInterfaceDensity==='comfortable'?'selected':''}>Просторно</option></select></label><label class="switch"><input id="scene-turn-strip-visible" type="checkbox" ${sceneTurnStripVisible?'checked':''}><span>Показывать компактную очередь участников</span></label></section><div class="scene-layout-custom" ${scenePanelLayoutMode==="custom"?'':'hidden'}>${panels.map(([id,label])=>`<label><span>${label}</span><select data-scene-panel-side="${id}"><option value="left" ${scenePanelSides[id]==="left"?'selected':''}>Слева</option><option value="right" ${scenePanelSides[id]!=="left"?'selected':''}>Справа</option></select></label>`).join('')}</div>`;
   root.innerHTML=version+(sceneInterfaceVersion==="next"?nextSettings:"");
 }
@@ -971,7 +972,7 @@ function applySceneZoom(next=sceneZoom,{manual=false}={}){
 }
 function fitSceneZoom(comfortable=false){
   const wrap=$("scene-board-wrap"),space=activeSceneSpace();if(!wrap||!space||!wrap.clientWidth||!wrap.clientHeight)return;
-  const desktop=usingNextSceneInterface()&&sceneViewportMode==="desktop",width=Math.max(246,wrap.clientWidth-40),height=Math.max(246,wrap.clientHeight-(desktop?110:40)),boardWidth=820,boardHeight=boardWidth*(space.height/space.width),fitted=clamp(Math.floor(Math.min(width/boardWidth,height/boardHeight)*100)-1,30,180);
+  const width=Math.max(246,wrap.clientWidth-40),height=Math.max(246,wrap.clientHeight-40),boardWidth=820,boardHeight=boardWidth*(space.height/space.width),fitted=clamp(Math.floor(Math.min(width/boardWidth,height/boardHeight)*100)-1,30,180);
   sceneNeedsInitialFit=false;sceneZoomMode="fit";applySceneZoom(fitted);
 }
 function scheduleSceneViewportFit(){
@@ -1008,7 +1009,8 @@ function showSceneResults(){renderSceneResults();const checkbox=$("scene-results
 function reconcileSceneResultsDialog(){const id=Scene.results?.id||"";if(!id||id===lastAutoOpenedSceneResultsId)return;lastAutoOpenedSceneResultsId=id;showSceneResults()}
 function renderScene(){
   reconcileLocalSceneFlow();
-  if(usingNextSceneInterface())mountSceneMapTools();
+  if(usingNextSceneInterface()&&!window.DAWN_SCENE_BOARD_TOOLS?.isEnabled())mountSceneMapTools();
+  window.DAWN_SCENE_WORKSPACE?.refresh();
   renderSceneLayoutSettings();
   document.body.classList.toggle("scene-turn-strip-hidden",usingNextSceneInterface()&&!sceneTurnStripVisible);
   document.body.classList.toggle("scene-density-comfortable",usingNextSceneInterface()&&sceneInterfaceDensity==="comfortable");
@@ -1026,6 +1028,7 @@ function renderScene(){
   for(const button of $$("[data-scene-camera]")){const hasActor=button.dataset.sceneCamera==="active"?Boolean(active):Boolean(selected);button.disabled=!hasActor;button.title=hasActor?button.dataset.sceneCamera==="active"?"Показать текущего участника на поле":"Показать выбранного участника на поле":button.dataset.sceneCamera==="active"?"Ход ещё не начат":"Сначала выберите участника на поле"}
   renderSceneTurnStrip();renderSceneFlow();renderSceneDirector();renderSceneUtility();renderSceneReference();renderGmLibraries();renderCompoundBuilder();renderSceneHeroSheet();renderSceneChrome();refreshSceneControlStates();applySceneZoom();setScenePanel(activeScenePanel);setSheetTab(activeSheetTab);if(sceneNeedsInitialFit){sceneNeedsInitialFit=false;scheduleSceneViewportFit()};
   document.body.classList.toggle("scene-player-view",store.mode==="play"&&view==="player");
+  window.DAWN_SCENE_WORKSPACE?.refresh();
   $("scene-log").innerHTML=Scene.log.filter(row=>activeSceneView()==="gm"||row.visibility!=="gm").map(row=>`<li><time>${esc(String(row.at||"").slice(11,19)||row.at)}</time>${esc(clockEventText(row)||wallEventText(row)||eventText(row))}</li>`).join("")||`<li class="autosave">Изменения Сцены появятся здесь.</li>`;
 }
 function activeSceneView(){const sync=Sync?.state();return sync?.sceneId?(sync.canNarrate?"gm":"player"):Scene.view}

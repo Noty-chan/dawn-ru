@@ -15,15 +15,17 @@ class Element{
   removeAttribute(name){delete this.attributes[name];}
   querySelector(selector){return this.controls[selector]||null;}
   contains(node){return Object.values(this.controls).includes(node);}
-  insertAdjacentHTML(position,html){this.html+=html;for(const match of html.matchAll(/data-token-hud-(effect|action)="([^"]+)"/g)){const button=new Element(match[2]);button.dataset[match[1]==="effect"?"tokenHudEffect":"tokenHudAction"]=match[2];this.controls[`[data-token-hud-${match[1]}="${match[2]}"]`]=button;}}
-  focus(){document.activeElement=this;}
+  insertAdjacentHTML(position,html){this.html+=html;if(html.includes('class="token-hud-effect-picker"'))this.controls[".token-hud-effect-picker"]=new Element("picker");for(const match of html.matchAll(/data-token-hud-(effect|action)="([^"]+)"/g)){const button=new Element(match[2]);button.dataset[match[1]==="effect"?"tokenHudEffect":"tokenHudAction"]=match[2];this.controls[`[data-token-hud-${match[1]}="${match[2]}"]`]=button;}}
+  matches(selector){return this.id==="input"&&selector.includes("input");}
+  select(){this.selectionStart=0;this.selectionEnd=this.value.length;}
+  focus(){const old=document.activeElement;document.activeElement=this;if(old&&old!==this)events.get("scene-context-menu:focusout:false")?.({target:old});events.get("scene-context-menu:focusin:false")?.({target:this});}
+  blur(){if(document.activeElement===this)document.activeElement=null;events.get("scene-context-menu:focusout:false")?.({target:this});}
   getBoundingClientRect(){return {left:400,right:440,top:300,bottom:340,width:40,height:40};}
   closest(selector){return selector==="[data-scene-cell]"?{dataset:{sceneCell:"3,2"}}:null;}
   set innerHTML(html){
-    this.html=html;this.controls={};document.activeElement=null;
+    const old=document.activeElement;this.html=html;this.controls={};document.activeElement=null;if(old)events.get("scene-context-menu:focusout:false")?.({target:old});
     const value=html.match(/id="token-hud-health-input"[^>]*value="([^"]*)"/);
-    if(value){const input=new Element("input");input.value=value[1];this.controls.input=input;
-      const form=new Element("form"),submit=new Element("submit");form.controls['button[type="submit"]']=submit;this.controls['button[type="submit"]']=submit;this.controls.form=form;}
+    if(value){const input=new Element("input");input.value=value[1];this.controls.input=input;}
     const status=new Element("status");status.textContent="";this.controls[".token-hud-status"]=status;
     for(const action of ["target","cockpit","inspect","close","more"]){
       if(html.includes(`data-token-hud-action="${action}"`)){const control=new Element(action);control.dataset.tokenHudAction=action;this.controls[`[data-token-hud-action="${action}"]`]=control;}
@@ -58,10 +60,11 @@ const sceneUiSource=read("scene-ui.js");
 vm.runInContext(sceneUiSource.slice(sceneUiSource.indexOf("function sceneNumericCorrectionReason("),sceneUiSource.indexOf("function narratorActorValue(")),context);
 const identitySource=read("lionwing-ui.js");
 vm.runInContext(identitySource.slice(identitySource.indexOf("function lwGeometrySceneIdentity("),identitySource.indexOf("function lwApplyGeometryPreviewCells(")),context);
+vm.runInContext(read("ui-icons.js"),context);
 vm.runInContext(read("scene-token-hud.js"),context,{filename:"actual token HUD"});
 const hud=context.window.DAWN_SCENE_TOKEN_HUD;
 const reset=()=>{
-  hud.close();role="gm";shared=null;queued={pending:0,failed:0};dialog=null;compound=null;openPanel=null;context.innerWidth=1200;commands.length=0;navigation.length=0;frames.length=0;
+  hud.close();document.activeElement=null;role="gm";shared=null;queued={pending:0,failed:0};dialog=null;compound=null;openPanel=null;context.innerWidth=1200;context.innerHeight=900;commands.length=0;navigation.length=0;frames.length=0;
   context.store.mode="play";context.interfaceVersion="next";
   context.Scene={id:"local-a",name:"Test",rulesEdition:"lionwing",activeActorId:"hero",selectedActor:"hero",activeSpace:"main",targetIds:["hero"],targetCells:["1,1"],
     spaces:[{id:"main",width:8,height:6}],lionwing:{sceneSerial:1},actors:[{id:"hero",heroId:"owned",name:"Hero",space:"main",hp:30,maxHp:30},{id:"enemy",name:"Enemy",space:"main",x:3,y:2,hp:30,maxHp:30}]};
@@ -84,26 +87,22 @@ reset();open();input().value="15";document.activeElement=input();enemy().hp=20;h
 assert.equal(input().value,"15","background renders preserve an unfinished edit");assert.equal(hud.applyHealth(),false);
 assert.equal(commands.length,0);assert.equal(input().value,"20");assert.match(status(),/уже изменилось/);
 input().value="-3";enemy().hp=17;assert.equal(hud.applyHealth(),true);assert.equal(enemy().hp,14,"signed edits use the latest confirmed health");
-reset();open();input().value="-5";document.activeElement=menu.querySelector("form").querySelector('button[type="submit"]');hud.refresh();
-assert.equal(input().value,"-5","Tab to Apply and a background refresh do not discard the draft");
-hud.action("target");assert.equal(input().value,"-5","targeting preserves an unfinished health edit");assert.equal(hud.applyHealth(),true);assert.equal(enemy().hp,25);
-assert.equal(document.activeElement,input(),"Enter keeps the health editor ready for another edit");
+reset();open();input().value="-5";document.activeElement=input();hud.refresh();
+assert.equal(input().value,"-5","background refresh does not discard the draft");
+hud.action("target");assert.equal(enemy().hp,25,"explicit focus departure to targeting applies the edit once");assert.equal(commands.length,1);
 reset();enemy().hp=15;enemy().maxHp=16;open();assert.equal(apply("+5"),true);assert.equal(commands[0].payload.amount,16,"relative healing clamps to actual maximum before canonical correction");
 assert.equal(hud.healthChange("20",15,16),20,"exact typed health retains canonical validation instead of silently clamping");
 assert.equal(hud.healthChange("-50",15,16),0);assert.equal(hud.healthChange("+5",15,null),20,"unknown maximum does not invent a health cap");
 reset();compound={active:true,hp:59,maxHp:60};open();assert.equal(apply("+5"),true);assert.equal(commands[0].payload.amount,60,"compound relative healing uses the shared health maximum");
 
-reset();open();document.activeElement=menu.querySelector('button[type="submit"]');hud.refresh();
-assert.equal(document.activeElement,menu.querySelector('button[type="submit"]'),"background draw preserves Tab focus on Apply when HP has not been edited");
-reset();shared="table-a";open();document.activeElement=menu.querySelector('button[type="submit"]');queued.pending=1;hud.refresh();
-assert.equal(document.activeElement,input(),"a now-disabled Apply returns keyboard focus to the health input");
+reset();open();input().focus();hud.refresh();assert.equal(document.activeElement,input(),"refresh preserves health editing focus");
 
 reset();shared="table-a";open();assert.equal(apply("-5"),true);assert.equal(enemy().hp,30,"shared corrections wait for the canonical update");
-assert.equal(menu.querySelector("form").querySelector('button[type="submit"]').disabled,true);assert.match(status(),/Сохранение/);
+assert.equal(input().attributes["aria-busy"],"true");assert.match(status(),/Сохранение/);
 assert.equal(apply("-5"),false);assert.equal(commands.length,1,"a second delta cannot be derived from unconfirmed health");
 enemy().hp=25;queued.pending=0;hud.refresh();assert.equal(apply("-5"),true);assert.equal(commands[1].payload.amount,20);
 queued.pending=0;queued.failed=1;hud.refresh();assert.equal(apply("-5"),false);assert.equal(commands.length,2);assert.match(status(),/несохранённые/);
-queued.failed=0;hud.refresh();assert.equal(menu.querySelector("form").querySelector('button[type="submit"]').disabled,false);
+queued.failed=0;hud.refresh();assert.equal(input().attributes["aria-busy"],"false");
 
 reset();open();role="player";assert.equal(apply("-5"),false);assert.equal(commands.length,0,"a role change cannot retain write access");
 hud.refresh();assert.equal(input(),null);assert.ok(!menu.html.includes('data-token-hud-action="cockpit"'),"other players get Info and Target only");
@@ -134,17 +133,17 @@ hud.refresh();assert.ok(Number.parseFloat(menu.style.top)+menu.offsetHeight<=792
 assert.equal(menu.style.maxHeight,"684px","HUD height is bounded by the visible field");
 token.getBoundingClientRect=originalTokenRect;
 token.getBoundingClientRect=()=>({left:950,right:990,top:300,bottom:340,width:40,height:40});hud.refresh();
-assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-right"])+36<=950,"right-edge controls move to the free side of the token");
+assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-right"])+44<=950,"right-edge controls move to the free side of the token");
 token.getBoundingClientRect=originalTokenRect;
 token.getBoundingClientRect=()=>({left:105,right:145,top:300,bottom:340,width:40,height:40});hud.refresh();
 assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-left"])>=145,"at the left field edge controls move to the free side instead of painting the token centre");
-assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-right"])+36<=992);
+assert.ok(Number.parseFloat(menu.style.left)+Number.parseFloat(menu.style["--hud-right"])+44<=992);
 token.getBoundingClientRect=originalTokenRect;
 for(const top of [100,775]){
   token.getBoundingClientRect=()=>({left:105,right:129,top,bottom:top+24,width:24,height:24});hud.refresh();
   const cap=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-cap"]),row=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-row"]);
-  assert.equal(row-cap,40,"edge clamping keeps cap and first-row hit areas separated by 4px");
-  assert.ok(cap>=108&&row+40+36<=792,"the entire three-button stack stays inside the visible field");
+  assert.equal(row-cap,48,"edge clamping keeps cap and first-row hit areas separated by 4px");
+  assert.ok(cap>=108&&row+48+44<=792,"the entire three-button stack stays inside the visible field");
 }
 token.getBoundingClientRect=originalTokenRect;
 const originalFieldRect=wrap.getBoundingClientRect;
@@ -180,15 +179,12 @@ events.get("scene-board:click:false")({target:{closest:()=>null}});hud.refresh()
 context.Scene.selectedActor=null;hud.refresh();context.Scene.selectedActor="enemy";hud.refresh();assert.equal(menu.hidden,false,"selection from an existing roster route can reveal the anchored overlay");
 context.Scene.tool="measure";hud.refresh();assert.equal(menu.hidden,true,"selection overlay yields to map measurement/tool interaction");
 context.Scene.tool="select";events.get("scene-board:click:false")(selectedTokenEvent);context.store.mode="tools";hud.refresh();assert.equal(menu.hidden,true,"leaving Table closes the overlay");
-reset();context.innerWidth=390;token.getBoundingClientRect=()=>({left:52,right:76,top:464,bottom:488,width:24,height:24});wrap.getBoundingClientRect=()=>({left:0,right:390,top:100,bottom:800});context.Scene.selectedActor="enemy";
-for(const panel of ["inspector","sheet","director","reference"]){
-  openPanel=null;open();assert.equal(menu.hidden,false);openPanel=panel;hud.refresh();assert.equal(menu.hidden,true,"mobile "+panel+" panel dismisses the token behind it");
-  events.get("scene-board:mouseover:false")(selectedTokenEvent);assert.equal(menu.hidden,true,"hover cannot reopen controls behind a mobile panel");
+for(const [width,height,allowed] of [[1200,900,true],[800,900,true],[390,844,false],[844,390,false],[950,500,false],[951,500,true]]){
+  reset();context.innerWidth=width;context.innerHeight=height;wrap.getBoundingClientRect=()=>({left:0,right:width,top:0,bottom:height});open();assert.equal(menu.hidden,!allowed,`HUD eligibility ${width}x${height}`);
 }
-openPanel=null;events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,false,"explicit tap can reopen after the mobile drawer closes");
-const mobileHpTop=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-health-top"]),mobileStackTop=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-cap"]);
-assert.ok(mobileHpTop>=mobileStackTop+116||mobileHpTop+32<=mobileStackTop,"edge-side columns cannot overlap the HP input hit area");
-assert.equal(commands.length,0,"drawer invalidation does not write game state");wrap.getBoundingClientRect=originalFieldRect;token.getBoundingClientRect=originalTokenRect;
+wrap.getBoundingClientRect=originalFieldRect;reset();open();context.innerWidth=390;hud.refresh();assert.equal(menu.hidden,true,"resize to phone closes existing HUD");
+reset();open();context.innerWidth=844;context.innerHeight=390;hud.refresh();assert.equal(menu.hidden,true,"resize to narrow landscape closes existing HUD");
+
 reset();context.interfaceVersion="classic";context.Scene.selectedActor="enemy";events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,true,"classic interface remains unchanged");
 reset();const hoverBefore=resources();
 events.get("scene-board:mouseover:false")(selectedTokenEvent);
@@ -204,6 +200,34 @@ assert.equal(document.activeElement,menu.querySelector('[data-token-hud-effect="
 enemy().effects=["positive.test"];events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands[1].remove,true,"active effect delegates removal to the existing compound-aware Narrator route");
 role="player";events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands.length,2,"players cannot apply or remove effects via the overlay");
 role="gm";effectClick.target.closest=selector=>selector==="[data-token-hud-effect]"?{dataset:{tokenHudEffect:"unknown"}}:null;events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands.length,2,"unknown stable effect IDs never reach the writer");
+reset();open();assert.doesNotMatch(menu.html,/type="submit"/);assert.equal((menu.html.match(/<svg /g)||[]).length,6,"all six perimeter commands use authored SVG icons");input().focus();assert.equal(input().selectionStart,0);assert.equal(input().selectionEnd,2);
+const originalInput=input();events.get("scene-context-menu:beforeinput:false")({target:originalInput,inputType:"insertText",data:"8"});assert.equal(originalInput.value,"","first insertion replaces current HP");originalInput.value="8";events.get("scene-context-menu:input:false")({target:originalInput});
+key("Enter",originalInput);originalInput.blur();input().blur();assert.equal(commands.length,1,"Enter and ensuing detached/live blur apply exactly once");assert.equal(enemy().hp,8);
+reset();open();input().focus();input().value="-5";const deltaInput=input();deltaInput.blur();deltaInput.blur();assert.equal(commands.length,1,"duplicate blur never repeats signed correction");assert.equal(enemy().hp,25);
+reset();open();input().focus();input().value="-5";const stableInput=input(),effectButton=menu.querySelector('[data-token-hud-action="effects"]');
+events.get("scene-context-menu:pointerdown:true")({target:effectButton});effectButton.focus();hud.refresh();
+assert.equal(input(),stableInput,"health blur and queued Scene refresh cannot remove the pressed control before click");
+events.get("document:pointerup:true")({target:effectButton});events.get("scene-context-menu:click:true")({target:{closest:selector=>selector==="[data-token-hud-action]"?effectButton:null},preventDefault(){},stopImmediatePropagation(){}});
+assert.match(menu.html,/aria-expanded="true"/,"one pointer sequence both commits HP and opens Effects");assert.equal(commands.length,1);
+// A bounded field between two task rails must not hide perimeter controls
+// underneath the Effects picker; the list moves above/below and scrolls.
+const fullFieldRect=wrap.getBoundingClientRect;
+for(const [tokenTop,expectedSide] of [[300,"below"],[700,"above"]]){
+  reset();wrap.getBoundingClientRect=()=>({left:300,right:600,top:100,bottom:800});
+  token.getBoundingClientRect=()=>({left:400,right:440,top:tokenTop,bottom:tokenTop+40,width:40,height:40});
+  open();hud.action("effects");
+  const picker=menu.querySelector(".token-hud-effect-picker"),top=Number.parseFloat(picker.style.top),height=Number.parseFloat(picker.style.maxHeight),left=Number.parseFloat(picker.style.left),width=Number.parseFloat(picker.style.width);
+  const menuTop=Number.parseFloat(menu.style.top),cap=menuTop+Number.parseFloat(menu.style["--hud-cap"]),healthTop=menuTop+Number.parseFloat(menu.style["--hud-health-top"]);
+  if(expectedSide==="below")assert.ok(top>=Math.max(cap+140,healthTop+40)+6,"picker leaves all buttons and HP above it");
+  else assert.ok(top+height<=Math.min(cap,healthTop)-6,"picker leaves all buttons and HP below it");
+  assert.ok(left>=308&&left+width<=592&&top>=108&&top+height<=792,"picker stays inside the field");
+}
+wrap.getBoundingClientRect=fullFieldRect;token.getBoundingClientRect=()=>({left:400,right:440,top:300,bottom:340,width:40,height:40});
+
+reset();open();input().focus();input().value="-5";const cancelInput=input();key("Escape",cancelInput);cancelInput.blur();assert.equal(commands.length,0,"Escape followed by blur never writes");
+reset();open();input().focus();input().value="";key("Enter",input());input().blur();assert.equal(commands.length,0,"empty Enter/blur is a no-op");
+reset();shared="table-a";open();input().focus();input().value="-5";const pendingInput=input();key("Enter",pendingInput);hud.refresh();assert.equal(input().value,"25","pending network correction stays visible until canonical acknowledgement");pendingInput.blur();input().blur();assert.equal(commands.length,1,"Enter/blur cannot duplicate a pending network delta");
+for(const invalidate of [()=>role="player",()=>context.Scene.id="other",()=>context.Scene.actors.pop()]){reset();open();input().focus();input().value="-5";const staleInput=input();invalidate();staleInput.blur();assert.equal(commands.length,0,"stale scene/actor/role at blur cannot write");}
 console.log("Token HUD: actor binding, authority, canonical HP edits, target independence, keyboard and lifecycle OK");
 
 // Exercise the real shared numeric correction entry point used by Hero, Info
@@ -215,6 +239,10 @@ context.window.DAWN_LIONWING_ENGINE={isScene:()=>true};
 const heroUiSource=read("hero-ui.js");
 vm.runInContext(heroUiSource.slice(heroUiSource.indexOf("function heroSheetLinkedActor("),heroUiSource.indexOf("function heroSheetTableButton(")),context);
 vm.runInContext(identitySource.slice(identitySource.indexOf("function lwSubmit("),identitySource.indexOf("function lwDiceHtml(")),context);
+const playUi=read("play-ui.js");
+Object.assign(context,{toolsRuntimeActor:()=>context.Scene.actors[0],toolsSyncContext:()=>({shared:Boolean(shared),canEdit:true}),refreshFreeplayResourceUi:()=>{},updateAllInAvailability:()=>{},renderStressTrackers:()=>{}});
+vm.runInContext(playUi.slice(playUi.indexOf("function toolsResourceCorrectionReason("),playUi.indexOf("function toolsResourceValue(")),context);
+vm.runInContext(playUi.slice(playUi.indexOf("function setToolsResource("),playUi.indexOf("function freeplayBondStatus(")),context);
 const playEvents=read("app-play-events.js");
 vm.runInContext(playEvents.slice(playEvents.indexOf("function setPlayCounter("),playEvents.indexOf('$("play-counters").addEventListener')),context);
 for(const payload of [{kind:"correct",resource:"hp",amount:25},{kind:"correct",resource:"wounds",amount:1},{kind:"correct",resource:"stress",amount:1},

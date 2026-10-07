@@ -4,7 +4,7 @@ import vm from "node:vm";
 
 const read=name=>fs.readFileSync(new URL(`../${name}`,import.meta.url),"utf8").replaceAll("\r\n","\n");
 const frames=[],scrollCalls=[],focusCalls=[],historyCalls=[];
-let view="gm";
+let view="gm",viewport="desktop";
 class Element {
   constructor(tagName="div",{id="",className="",dataset={}}={}){
     this.tagName=tagName.toUpperCase();this.id=id;this.className=className;this.dataset=dataset;
@@ -78,7 +78,7 @@ const state={id:"table-a",view:"gm",pendingAction:{id:"attack",actorId:"enemy",r
 const frozen=object=>{for(const value of Object.values(object))if(value&&typeof value==="object")frozen(value);return Object.freeze(object);};
 frozen(state);
 const context={window,document,location,history,HTMLElement:Element,HTMLDetailsElement:Details,
-  requestAnimationFrame:callback=>frames.push(callback),activeSceneView:()=>view,
+  requestAnimationFrame:callback=>frames.push(callback),activeSceneView:()=>view,sceneViewportProfile:()=>viewport,
   $:id=>document.getElementById(id),$$:selector=>document.querySelectorAll(selector),state,
   localStorage:{getItem(){throw Error("Navigation must not read persistence");},setItem(){throw Error("Navigation must not write persistence");}},
 };
@@ -128,6 +128,37 @@ assert.equal(window.scrollY,625,"an obsolete restoration is cancelled on rapid n
 modeChange("play");flush();assert.equal(window.scrollY,360,"a skipped restore cannot overwrite the saved Table position");
 modeChange("tools");flush();window.scrollTo({top:910});modeChange("build");flush();window.scrollTo({top:280});
 modeChange("tools");flush();assert.equal(window.scrollY,910);modeChange("build");flush();assert.equal(window.scrollY,280);
+
+// Exercise the actual panel controller across adjustable viewport profiles.
+modeChange("play");flush();
+viewport="desktop";
+run("closeAllScenePanels();setScenePanel('director');setScenePanel('inspector')");flush();
+assert.deepEqual(plain(run("activeScenePanels")),{left:"director",right:"inspector"},"desktop preserves both configured sides");
+for(const profile of ["phone","phone-landscape"]){
+  viewport=profile;
+  run("closeAllScenePanels();setScenePanel('director')");flush();
+  assert.deepEqual(plain(run("activeScenePanels")),{left:"director",right:null},`${profile} opens the left task alone`);
+  run("setScenePanel('inspector')");flush();
+  assert.deepEqual(plain(run("activeScenePanels")),{left:null,right:"inspector"},`${profile} replaces the left task with the right task`);
+  assert.equal(panels.get("director").classList.contains("rail-active"),false);
+  for(const active of ["director","inspector"]){
+    viewport="desktop";
+    run(`closeAllScenePanels();setScenePanel('director');setScenePanel('inspector');setScenePanel('${active}')`);flush();
+    assert.deepEqual(plain(run("activeScenePanels")),{left:"director",right:"inspector"});
+    viewport=profile;run("syncScenePanels()");flush();
+    assert.deepEqual(plain(run("activeScenePanels")),active==="director"?{left:"director",right:null}:{left:null,right:"inspector"},`${profile} resize retains the active task only`);
+    assert.equal(run("activeScenePanel"),active);
+  }
+}
+run("sceneInterfaceVersion='classic'");
+for(const profile of ["desktop","phone","phone-landscape"]){
+  viewport=profile;
+  run("closeAllScenePanels();setScenePanel('director');setScenePanel('inspector');syncScenePanels()");flush();
+  assert.deepEqual(plain(run("activeScenePanels")),{left:null,right:"inspector"},`classic stays single-sided on ${profile}`);
+  assert.equal(run("activeScenePanel"),"inspector");
+}
+viewport="desktop";
+run("sceneInterfaceVersion='next';closeAllScenePanels();setScenePanel('director');setScenePanel('inspector')");flush();
 
 modeChange("play");flush();modeChange("rules");flush();view="player";
 modeChange("play");flush();

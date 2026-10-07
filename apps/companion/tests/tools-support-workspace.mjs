@@ -49,7 +49,7 @@ assert.equal((roots.clocks.innerHTML.match(/clock-readonly/g)||[]).length,80,'Al
 assert.equal((roots['dice-history'].innerHTML.match(/class="roll-feed-card"/g)||[]).length,35,'Shared-player history retains the real GM visibility filter');
 
 const css=fs.readFileSync(path.join(base,'tools-workspace.css'),'utf8');
-assert.match(css,/body\.tools-mode \.sidebar \{display:none\}/);
-assert.match(css,/tools-support-workspace>\.tools-support-panel[^}]*height:clamp\(/,'Only the active support surface owns the bounded scrolling region');
+assert.match(css,/body\.tools-mode\.tools-interface-next \.sidebar\{display:none\}/);
+assert.match(css,/tools-support-workspace>\.tools-support-panel[^}]*min-height:0;overflow:auto/,'Only the active support surface owns the bounded scrolling region');
 assert.doesNotMatch(css,/#[0-9a-f]{3,8}\b/i);
 console.log('Tools support VM PASS: 100-record page/search cases; real renderers retain 40 clocks/35 bonds/70 rolls, controls, state and shared permissions/visibility. Browser tabs, DOM reparenting, disclosure and layout require root QA.');
