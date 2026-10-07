@@ -494,8 +494,8 @@ assert.match(cockpitCss, /padding:\.65rem 0 \.65rem \.65rem/, "The desktop Scene
 assert.match(cockpitCss, /border-right:0;\s*border-radius:0;\s*background:color-mix/, "The permanent right rail is rendered as a wall rather than a floating card");
 assert.match(cockpitCss, /\.scene-player-view \.scene-turn-strip\{[^}]*flex-direction:column/, "Players receive a compact vertical participant strip instead of the Narrator's duplicate top row");
 assert.match(html, /data-scene-panel="map"[^>]*>Карта</, "Map editing has a dedicated button in the permanent Scene rail");
-assert.match(html, /class="scene-stage-quick-action scene-stage-target-action"[^>]*data-scene-tool="target"[^>]*>Цели</, "Target selection has an explicit quick action in the Scene header");
-assert.match(html, /class="scene-stage-quick-action scene-stage-map-action gm-only"[^>]*data-open-scene-panel="map"[^>]*title="Открыть редактор карты"/, "Narrators can open the map editor directly from the Scene header");
+assert.doesNotMatch(html, /scene-stage-(?:target|map)-action/, "The Scene header does not duplicate targeting or the map editor");
+assert.equal((html.match(/data-scene-tool="target"/g)||[]).length, 1, "Targeting retains one primary tool in the field palette");
 assert.match(app, /function focusSceneActorOnBoard\(actorId,[\s\S]+centerSceneActorOnBoard\(actor\.id\)/, "The Scene can center the board on a selected or active participant without changing combat state");
 assert.match(app, /data-scene-camera="active"[\s\S]+data-scene-camera="selected"/, "The compact Scene menu exposes direct camera controls for the active and selected participants");
 assert.match(cockpitCss, /\.scene-mode \.scene-dock,[\s\S]*?overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain/, "Every permanent Scene rail action remains reachable by scrolling on a short desktop viewport");

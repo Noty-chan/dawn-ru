@@ -1025,8 +1025,6 @@ function renderScene(){
   if(sceneHasLegacyLionwingModifiers(Scene))$("scene-selection-summary").textContent=LEGACY_LIONWING_SCENE_MESSAGE;
   $("scene-wall-controls").hidden=tool!=="wall";appendTerrainRepairControls();appendSceneWallInspector();appendMarkerClockControls();if($("scene-redo"))$("scene-redo").disabled=!Scene.redo?.length;
   document.body.dataset.sceneControlMode=sceneControlMode;document.body.dataset.sceneTurnApprovalMode=sceneTurnApprovalMode();$("scene-control-mode").value=sceneControlMode;$("scene-turn-approval-mode").value=sceneTurnApprovalMode();const ready=Scene.actors.filter(actor=>!actor.knockedOut&&!actor.acted&&actor.kind!=="crowd"&&!SceneEngine.isEnemyModifier?.(actor)).length,down=Scene.actors.filter(actor=>actor.knockedOut).length;$("scene-encounter-status").textContent=!Scene.actors.length?"Подготовка":`${ready} готовы${down?` · ${down} вне боя`:""}`;
-  const targetQuickAction=document.querySelector(".scene-stage-target-action");
-  if(targetQuickAction){const count=targets.length;targetQuickAction.classList.toggle("has-targets",count>0);targetQuickAction.innerHTML=`<span>Цели</span>${count?`<b>${count}</b>`:""}`;targetQuickAction.title=count?`Выбрано целей: ${count}`:"Включить выбор целей на поле";targetQuickAction.setAttribute("aria-label",count?`Выбрать цели. Сейчас выбрано ${count}`:"Выбрать цели")}
   for(const button of $$('[data-scene-area-type^="deploy-"]'))button.hidden=deploymentClosed;
   for(const option of areaSelect?.querySelectorAll('option[value^="deploy-"]')||[]){option.hidden=deploymentClosed;option.disabled=deploymentClosed}
   const cameraActions=document.querySelector(".scene-view-actions");
