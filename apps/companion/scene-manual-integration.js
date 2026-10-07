@@ -198,7 +198,7 @@ eventText=function(event){
   return sceneEventTextWithRules(event);
 };
 const renderSceneWithRules=renderScene;
-renderScene=function(){const result=renderSceneWithRules.apply(this,arguments);renderManualTable();return result};
+renderScene=function(){if(manualTableActive()&&["director","sheet","utility","entities"].includes(activeScenePanel))closeAllScenePanels();const result=renderSceneWithRules.apply(this,arguments);renderManualTable();return result};
 const numericCorrectionWithRules=setNarratorActorValue;
 setNarratorActorValue=function(actor,key,value,label=""){
   if(!manualTableActive())return numericCorrectionWithRules.apply(this,arguments);

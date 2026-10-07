@@ -261,14 +261,15 @@ console.log("Shared numeric corrections: Hero/Info/cockpit guard preserves delta
 // Every perimeter hit area must be outside the token and other controls.
 const overlap=(a,b,gap=0)=>!(a.right+gap<=b.left||b.right+gap<=a.left||a.bottom+gap<=b.top||b.bottom+gap<=a.top);
 let placements=0,fallbacks=0;
-for(const fieldWidth of [250,400,900])for(const size of [40,80,150])for(const factor of [.3,.7,1,1.8])for(const fx of [0,.5,1])for(const fy of [0,.5,1]){
+for(const manual of [false,true])for(const fieldWidth of [250,400,900])for(const size of [40,80,150])for(const factor of [.3,.7,1,1.8])for(const fx of [0,.5,1])for(const fy of [0,.5,1]){
   const field={left:300,right:300+fieldWidth,top:100,bottom:650},width=size*factor;
   const rect={left:field.left+fx*(fieldWidth-width),top:field.top+fy*(550-width)};rect.right=rect.left+width;rect.bottom=rect.top+width;
+  context.window.DAWN_TABLE_POLICY={isManual:()=>manual};
   const result=hud.perimeterLayout(rect,field);if(!result){fallbacks++;continue;}
   placements++;
-  const controls=[0,48,96].flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+44,top:result.controlTop+dy,bottom:result.controlTop+dy+44})));
+  const controls=(manual?[0,48]:[0,48,96]).flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+44,top:result.controlTop+dy,bottom:result.controlTop+dy+44})));
   controls.push({left:result.healthLeft,right:result.healthLeft+80,top:result.healthTop,bottom:result.healthTop+40});
   for(const control of controls){assert.ok(!overlap(control,rect,6),'control is outside token with >=6px gutter');assert.ok(control.left>=field.left&&control.right<=field.right&&control.top>=field.top&&control.bottom<=field.bottom,'control is inside the visible field');}
   for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++)assert.ok(!overlap(controls[i],controls[j]),'controls cannot intersect');
 }
-assert.ok(placements>0&&fallbacks>0);console.log(`HUD geometry: ${placements} safe layouts, ${fallbacks} external fallbacks, 324 edge/size/zoom cases`);
+assert.ok(placements>0&&fallbacks>0);console.log(`HUD geometry: ${placements} safe layouts, ${fallbacks} external fallbacks, 648 manual/rules edge/size/zoom cases`);

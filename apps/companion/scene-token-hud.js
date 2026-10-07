@@ -48,13 +48,13 @@
     if(status)status.textContent=busy||state?.message||"";
   }
   function perimeterLayout(token,field){
-    const size=44,gap=6,rows=140,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
+    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),size=44,gap=6,rows=manual?92:140,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
     const apart=(a,b)=>a.right+gap<=b.left||b.right+gap<=a.left||a.bottom+gap<=b.top||b.bottom+gap<=a.top;
     const box=(left,top,width=size,height=size)=>({left,top,right:left+width,bottom:top+height});
     const controlTop=clamp(token.top-48,field.top,field.bottom-rows);
     const sides=[[token.left-size-gap,token.right+gap],[token.right+gap,token.right+gap+size+gap],[token.left-2*(size+gap),token.left-size-gap]];
     for(const [leftControl,rightControl] of sides){
-      const controls=[0,48,96].flatMap(offset=>[box(leftControl,controlTop+offset),box(rightControl,controlTop+offset)]);
+      const controls=(manual?[0,48]:[0,48,96]).flatMap(offset=>[box(leftControl,controlTop+offset),box(rightControl,controlTop+offset)]);
       if(!controls.every(r=>inside(r)&&apart(r,token)))continue;
       const healthLeft=clamp(token.left+(token.right-token.left)/2-40,field.left,field.right-80);
       for(const healthTop of [token.bottom+8,token.top-48,controlTop+rows+gap,controlTop-46]){
@@ -236,7 +236,9 @@
   },true);
   document.addEventListener("scroll",schedule,true);window.addEventListener("resize",schedule);
   window.addEventListener("dawn-network-v2-settled",schedule);
-  new MutationObserver(schedule).observe(board,{childList:true,subtree:true});
+  new MutationObserver(schedule).observe(board,{childList:true,subtree:true,attributes:true,attributeFilter:["style"]});
+  board.addEventListener("transitionend",schedule);
+  if(typeof ResizeObserver==="function"){const geometry=new ResizeObserver(schedule);geometry.observe(board);geometry.observe(wrap);}
   if($("scene-sync-status"))new MutationObserver(schedule).observe($("scene-sync-status"),{childList:true,attributes:true});
   window.DAWN_SCENE_TOKEN_HUD=Object.freeze({perimeterLayout,healthChange,show,close,refresh,applyHealth,action});
 })();

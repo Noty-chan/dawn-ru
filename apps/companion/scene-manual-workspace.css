@@ -83,3 +83,9 @@ body.scene-mode.scene-interface-next.scene-next-narrow[data-table-policy="manual
 body.scene-mode.scene-interface-next.scene-next-narrow[data-table-policy="manual"] .scene-manual-round>button>span{display:none}
 body.scene-mode.scene-interface-next.scene-next-narrow[data-table-policy="manual"] #scene-manual-reader{inset:84px 4px 60px;width:auto;max-height:none}
 @media(prefers-reduced-motion:reduce){#scene-manual-footer *,#scene-manual-reader *,#scene-manual-initiative *{transition:none}}
+
+/* Four manual shortcuts occupy two deliberate rows, independent of rules HUD slots. */
+body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="inspect"]{left:var(--hud-left);top:var(--hud-cap)}
+body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="effects"]{left:var(--hud-right);top:var(--hud-cap)}
+body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="more"]{left:var(--hud-left);top:var(--hud-row)}
+body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="target"]{left:var(--hud-right);top:var(--hud-row)}

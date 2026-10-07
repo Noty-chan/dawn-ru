@@ -18,4 +18,7 @@ hold();context.document.hidden=false;handlers.get('document:visibilitychange')()
 start();context.document.hidden=true;handlers.get('document:visibilitychange')();assert.equal(context.sceneSpaceHeld,false);assert.equal(context.scenePanState,null);assert.equal(classes.size,0);
 handlers.get('board:mousedown')({button:0,currentTarget:wrap,clientX:0,clientY:0,preventDefault(){throw Error('ordinary click must not be cancelled')}});
 assert.equal(context.scenePanState,null,'ordinary click works after lost keyup reset');
+context.sceneSuppressBoardClickUntil=0;hold();start();handlers.get('window:mousemove')({clientX:180,clientY:300});
+handlers.get('document:keyup')({code:'Space'});handlers.get('window:mouseup')();
+assert.equal(context.sceneSuppressBoardClickUntil,1150,'releasing Space before the mouse still suppresses the drag click');
 console.log('Pan lifecycle: actual keyboard/mouse handlers, displacement, synthetic-click suppression and lost-keyup recovery passed');

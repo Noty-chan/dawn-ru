@@ -20,7 +20,7 @@ vm.runInContext(fs.readFileSync(new URL('../scene-manual-workspace.js',import.me
 const ui = context.window.DAWN_MANUAL_WORKSPACE;
 const scene = {tablePolicy:{mode:'manual',processStatuses:false},manualTable:{actorId:'npc',round:3},activeSpace:'main',selectedActor:'hero',actors:[
   {id:'hero',name:'Игрок <img>',space:'main',hp:7,maxHp:10,ap:99,effects:[{id:'snare',name:'Пойман'}]},
-  {id:'npc',name:'NPC',space:'main',hp:15,maxHp:20},
+  {id:'npc',name:'NPC',kind:'enemy',profileId:'npc-test',space:'main',hp:15,maxHp:20},
   {id:'secret',name:'Hidden NPC',space:'main'},
   {id:'other',name:'Other space',space:'other'},
 ]};
@@ -92,6 +92,11 @@ assert.equal(calls.length,count);
 ui.act('select','npc');
 assert.equal(scene.manualTable.actorId,'npc','local selection never changes the shared pointer');
 assert.equal(scene.selectedActor,'npc');
+assert.ok(reader.innerHTML.includes('data-manual-ability="0" open'),'an individually opened NPC shows all rules immediately');
+ui.render(options);
+assert.ok(!reader.innerHTML.includes('data-manual-ability="0" open'),'user collapse is respected on repaint (DOM fixture has no open details)');
+ui.act('close-reader');ui.open('npc');
+assert.ok(reader.innerHTML.includes('data-manual-ability="0" open'),'reopening NPC description expands its rules again');
 assert.equal(ui.act('select','secret'),false);
 scene.tablePolicy.mode='rules';
 for (const action of ['read','dice','clocks','sheet','show-area','point','round','hp','technique-toggle','select']) assert.equal(ui.act(action,'hero'),false,'stale manual controls stop immediately in rules mode');

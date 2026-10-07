@@ -31,3 +31,21 @@ change({target:{id:'scene-manual-status-processing',checked:true}});assert.equal
 role='gm';change({target:{id:'scene-manual-status-processing',checked:true}});assert.equal(events.at(-1)[0].payload.processStatuses,true);
 assert.equal(JSON.stringify(scene),before,'reading and commands never write resource/policy locally');
 console.log('Manual surfaces: Reader routing, NPC privacy, actor-bound typed resources, hint authority and no legacy runtime writes passed');
+
+// Exercise the real legacy-panel redirects. A render calls setScenePanel again,
+// as the production render does, so a stale panel exposes recursion.
+const uiSource=read('scene-ui.js');
+context.closeAllScenePanels=()=>{context.activeScenePanel=null};
+vm.runInContext(uiSource.slice(uiSource.indexOf('function setScenePanel('),uiSource.indexOf('function closeAllScenePanels(')),context);
+let renders=0;
+context.renderScene=()=>{if(++renders>10)throw Error('recursive manual panel');if(context.activeScenePanel)context.setScenePanel(context.activeScenePanel)};
+for(const panel of ['sheet','director']){context.activeScenePanel=panel;renders=0;context.setScenePanel(panel);assert.equal(context.activeScenePanel,null);assert.equal(renders,1)}
+let inspectedActor=null,environmentReads=0;
+context.renderManualActorInspector=a=>{inspectedActor=a};context.renderManualEnvironmentInspector=()=>{environmentReads++};
+vm.runInContext(uiSource.slice(uiSource.indexOf('function renderSceneInspector('),uiSource.indexOf('function ',uiSource.indexOf('function renderSceneInspector(')+10)),context);
+scene.selectedActor=null;context.renderSceneInspector();assert.equal(environmentReads,1,'manual environment inspector stays reachable');
+scene.selectedActor='hero';context.renderSceneInspector();assert.equal(inspectedActor.id,'hero');
+context.SceneEngine={ruleResourceDefinitions:()=>[],ruleClockDefinitions:()=>[],ruleModeDefinitions:()=>[]};
+vm.runInContext(uiSource.slice(uiSource.indexOf('function sceneResourceChips('),uiSource.indexOf('function clockEventText(')),context);
+assert.ok(context.sceneResourceChips({ap:3,focus:2}).includes('3 ОД'),'rules resource tray remains executable');
+console.log('Manual panel regressions: stale sheet/director render is nonrecursive, environment remains readable, rules resource chips execute');
