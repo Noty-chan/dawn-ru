@@ -2,7 +2,7 @@
 // Local presentation only. All commands stay on existing actor-bound routes.
 window.DAWN_SCENE_WORKSPACE=(()=>{
   let palettePanel,bar,more,toolbarHome,turnHome,ready=false,turnLayout=null,turnActorId=null;
-  const dockHomes=new Map(),dockIcons={director:'actions',inspector:'tokens',sheet:'sheet',utility:'dice',reference:'sheet',media:'view',map:'view',entities:'effects',add:'add',table:'settings',network:'network',log:'log'};
+  const dockHomes=new Map(),dockIcons={director:'actions',inspector:'tokens',sheet:'sheet',utility:'dice',reference:'sheet',media:'art',map:'map',entities:'effects',add:'add',table:'settings',network:'network',log:'log'};
   const copy=(ru,en)=>typeof isEnglishPreview==='function'&&isEnglishPreview()?en:ru;
   const narrow=()=>typeof sceneViewportProfile==='function'&&sceneViewportProfile()!=='desktop';
   function init(){

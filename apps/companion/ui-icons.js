@@ -12,6 +12,8 @@ window.DAWN_UI_ICONS=Object.freeze({html(name){
     markers:'<path d="M19 9c0 6-7 12-7 12S5 15 5 9a7 7 0 1 1 14 0Z"/><circle cx="12" cy="9" r="2"/>',
     edit:'<path d="m15 3 6 6-12 12H3v-6zm-3 3 6 6M3 15l6 6"/>',
     view:'<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>',
+    art:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M6 19v-1a6 6 0 0 1 12 0v1"/>',
+    map:'<path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2zM9 3v16m6-14v16"/>',
     history:'<path d="M3 10a9 9 0 1 1 1 7M3 3v7h7m2-5v7l4 3"/>',
     undo:'<path d="m7 3-5 5 5 5M2 8h12a7 7 0 0 1 0 14"/>',
     redo:'<path d="m17 3 5 5-5 5m5-5H10a7 7 0 0 0 0 14"/>',
