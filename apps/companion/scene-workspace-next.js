@@ -13,7 +13,12 @@ window.DAWN_SCENE_WORKSPACE=(()=>{
     bar.innerHTML=`<div class="scene-mobile-selection" aria-live="polite"></div><div class="scene-mobile-actions"><button type="button" data-mobile-actor-action>${copy('Действие','Action')}</button><button type="button" data-mobile-actor-info>${copy('Подробнее','Details')}</button><button type="button" data-open-scene-panel="fieldtools">${copy('Поле','Field')}</button><details><summary aria-label="${copy('Другие панели Стола','Other Table panels')}">•••</summary><nav></nav></details></div>`;workbench.append(bar);more=bar.querySelector('nav');
     for(const button of $("scene-dock").querySelectorAll('[data-scene-panel]')){dockHomes.set(button,button.innerHTML);const item=document.createElement('button');item.type='button';item.textContent=button.textContent;item.dataset.openScenePanel=button.dataset.scenePanel;if(button.classList.contains('gm-only'))item.classList.add('gm-only');more.append(item)}
     bar.addEventListener('click',event=>{const actor=Scene.actors.find(item=>item.id===Scene.selectedActor&&item.space===Scene.activeSpace);if(event.target.closest('[data-mobile-actor-action]')&&actor){openSceneActorCockpit(actor.id);return}if(event.target.closest('[data-mobile-actor-info]'))setScenePanel(actor?'inspector':'media');if(event.target.closest('[data-open-scene-panel]'))bar.querySelector('details').open=false});
+    if(typeof ResizeObserver==='function')new ResizeObserver(measureMobileControls).observe(bar);
     window.addEventListener('resize',refresh);return true;
+  }
+  function measureMobileControls(){
+    if(!bar)return;const height=narrow()&&usingNextSceneInterface()?Math.ceil(bar.getBoundingClientRect().height):0;
+    $("scene-workbench").style.setProperty("--scene-mobile-controls-height",`${height}px`);
   }
   function refresh(){
     if(!init())return;
@@ -28,6 +33,7 @@ window.DAWN_SCENE_WORKSPACE=(()=>{
     bar.querySelector('.scene-mobile-selection').textContent=actor?`${actor.name} · ${copy('ЗД','HP')} ${hp} / ${maximum||'—'}`:copy('Выберите участника на поле','Select a participant on the field');
     bar.querySelector('[data-mobile-actor-action]').disabled=!actor||(activeSceneView()!=='gm'&&actor.heroId!==S.id);
     for(const button of more.querySelectorAll('[data-open-scene-panel]'))button.setAttribute('aria-pressed',String(isScenePanelOpen(button.dataset.openScenePanel)));
+    measureMobileControls();
   }
   function setVersion(version){
     window.DAWN_SCENE_TOKEN_HUD?.close();if(version==="classic"&&activeScenePanel==="fieldtools")closeAllScenePanels();sceneInterfaceVersion=version==='classic'?'classic':'next';document.body.classList.toggle('scene-interface-next',usingNextSceneInterface());document.documentElement.classList.toggle('scene-interface-next',usingNextSceneInterface());

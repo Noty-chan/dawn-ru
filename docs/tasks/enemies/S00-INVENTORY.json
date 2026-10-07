@@ -275,11 +275,13 @@
             "apps/companion/tests/network-table-switch-history.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-empty-state.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
+            "apps/companion/tests/scene-workspace-next.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/tools-support-workspace.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -8393,6 +8395,7 @@
             "apps/companion/tests/lionwing-unbroken-complex.mjs",
             "apps/companion/tests/network-mvp.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-empty-state.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs"
           ],
