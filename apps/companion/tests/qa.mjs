@@ -503,7 +503,7 @@ assert.match(cockpitCss, /\.scene-dock\{top:54px[\s\S]*?grid-auto-rows:minmax\(3
 assert.match(cockpitCss, /scene-camera-focus/, "Board navigation visibly marks the participant it brings into view");
 assert.match(html, /id="scene-map-tools"/, "Map and space controls have an embedded panel host");
 assert.match(app, /function mountSceneMapTools\(\)[\s\S]+scene-area-controls[\s\S]+scene-management/, "Terrain tools and space management move into the embedded map panel");
-assert.match(app, /\["area","wall","marker","topology"\]\.includes\(requested\)\)setScenePanel\("map"\)/, "Choosing a map editing tool opens its embedded controls");
+assert.match(app, /\["area","wall","marker","topology"\]\.includes\(requested\)&&!usingNextSceneInterface\(\)\)setScenePanel\("map"\)/, "Classic tools retain the Map route; experimental tools use their parameter flyout");
 assert.match(app, /activeSceneView\(\)==="player"[\s\S]{0,180}classList\.contains\("gm-only"\)/, "Switching to player view cannot reserve space for a hidden Narrator panel");
 assert.match(cockpitCss, /\.scene-map-tools \.scene-area-controls\{[^}]*position:static[^}]*grid-template-columns:minmax\(0,1fr\)/, "Map tool controls are contained by the sidebar instead of floating over the board");
 assert.match(html, /id="scene-rail-left"[\s\S]+id="scene-dock"[\s\S]+id="scene-rail-right"/, "The desktop Scene shell provides independent left and right workspaces around the permanent dock");

@@ -87,7 +87,50 @@ function sceneFlowSteps(labels,current){
 }
 function rulePromptChoiceLabel(prompt,choice){const names={"pure-water":"Чистая вода","rage-fumes":"Пары ярости","growth-serum":"Сыворотка роста",adrenaline:"Адреналиновый стимулятор","stone-skin":"Бальзам каменной кожи","thorn-rot":"Яд мерзошипа",attack:"Быстрая Стычка",pass:"Не использовать",accept:"Принять перенаправление",resist:"Сопротивляться (+2 Стресса)",place:"Поставить Слабую точку",study:"Изучить атакующего",stun:"Наложить Ошеломлен",transform:"Трансформироваться",rush:"Переместиться",pull:"Притянуть",stop:"Остановить",continue:"Продолжить",convert:"Преобразовать Сосульку",finale:"Использовать Финал",single:"Оставить один Дух",cancel:"Отменить",fill:"Заполнить",invoke:"Использовать",flow:"Получить ОД и переместиться",provoke:"Наложить Спровоцирован",frighten:"Наложить Испуган","hold-back":"Сдержаться",disappear:"Исчезнуть",reapply:"Применить снова"};const spirits={dreamy:"Мечтательный дух",angry:"Злой дух",insightful:"Проницательный дух",bright:"Пылкий дух",kind:"Добрый дух",fierce:"Яростный дух"};if(prompt.context?.optionLabels?.[choice])return prompt.context.optionLabels[choice];if(names[choice])return names[choice];if(spirits[choice])return spirits[choice];if(choice.startsWith("cell:")){const[x,y]=choice.slice(5).split(",").map(Number);return `Клетка ${String.fromCharCode(65+x)}${y+1}`}if(choice.startsWith("combine:"))return `Объединить: ${spirits[choice.slice(8)]||choice.slice(8)}`;if(choice.startsWith("split:"))return `Два Пламени: ${spirits[choice.slice(6)]||choice.slice(6)}`;const marker=Scene.markers.find(item=>item.id===choice);if(marker)return `${marker.label} · ${String.fromCharCode(65+Number(marker.x))}${Number(marker.y)+1}`;const actor=Scene.actors.find(item=>item.id===choice);if(actor)return actor.name;return D.effects.positive.concat(D.effects.negative).find(effect=>effect.id===choice)?.name||choice}
 function cancelSceneFlow(){if(typeof lwCancelDestination==="function")lwCancelDestination();if(Scene.pendingActionPlan){const prepared=SceneEngine.cancelActionPlan(Scene,{actorId:Scene.pendingActionPlan.actorId,reason:"Отменено до оплаты и применения."});if(!prepared.ok)return toast(prepared.errors.join(" "));if(!commitSceneEvents(`Отмена: ${Scene.pendingActionPlan.actionName}`,prepared.events))return}delete Scene.__masterFinisherRequest;pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;pendingCoreActorId=null;pendingCoreReaction=null;pendingTechniqueRule=null;pendingTechniqueAnchor=null;pendingTechniqueOptions={};pendingTechniqueCells=[];pendingTechniqueLines=[];pendingEnemyRule=null;pendingEnemyStepActorId=null;pendingZealotPlan=null;scenePreviewCells.clear();sceneTopologyCells.clear();sceneMeasureStart=null;sceneMeasureCells.clear();sceneMeasureLabel="";Scene.tool="select";persist();renderScene();toast("Подготовка действия отменена без затрат")}
+function sceneEnvironmentTarget({x,y,markerId=null,wallId=null}){
+  const eligible=item=>item.space===Scene.activeSpace;
+  const wall=wallId&&Scene.walls.find(item=>eligible(item)&&item.id===wallId);
+  if(wall)return {type:"wall",entity:wall};
+  const marker=markerId&&Scene.markers.find(item=>eligible(item)&&item.id===markerId);
+  if(marker)return {type:"marker",entity:marker};
+  const object=[...Scene.objects].reverse().find(item=>eligible(item)&&item.cells.includes(`${x},${y}`));
+  return object?{type:"object",entity:object}:null;
+}
+function eraseSceneEnvironment(point){
+  if(activeSceneView()!=="gm")return false;
+  if(Scene.pendingAction||Scene.pendingPrompt||Scene.pendingActionPlan||sceneHasLocalPendingSelection()){toast(isEnglishPreview()?"Finish the current rule workflow first":"Сначала завершите текущую цепочку правил");return false;}
+  const target=sceneEnvironmentTarget(point);if(!target)return false;
+  const {type,entity}=target,label=(isEnglishPreview()?"Removed: ":"Удалено: ")+entity.label;
+  if(Scene.rulesEdition==="lionwing")return commitLionwingDestroy({kind:"backing",backing:{type,id:entity.id}},{confirm:false,label});
+  return commitScene(label,scene=>{const key={object:"objects",wall:"walls",marker:"markers"}[type];scene[key]=scene[key].filter(item=>item.id!==entity.id)});
+}
+function previewSceneWall(point){
+  const board=$("scene-board");board.querySelectorAll(".scene-wall-preview").forEach(node=>node.remove());
+  const side=$("scene-wall-direction").value,vectors={north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]},[dx,dy]=vectors[side]||vectors.east,space=activeSceneSpace();
+  if(point.x+dx<0||point.y+dy<0||point.x+dx>=space.width||point.y+dy>=space.height)return;
+  board.querySelector(`[data-scene-cell="${point.x},${point.y}"]`)?.insertAdjacentHTML("beforeend",`<span aria-hidden="true" class="scene-wall-preview side-${side}"></span>`);
+}
+function previewSceneEnvironmentErase(point){
+  const board=$("scene-board");board.querySelectorAll(".scene-erase-preview,.scene-erase-label").forEach(node=>{if(node.classList.contains("scene-erase-label"))node.remove();else node.classList.remove("scene-erase-preview")});
+  const target=sceneEnvironmentTarget(point);if(!target)return;
+  const keys=target.type==="object"?target.entity.cells:target.type==="wall"?[target.entity.a,target.entity.b]:[`${target.entity.x},${target.entity.y}`];
+  for(const key of keys)board.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`)?.classList.add("scene-erase-preview");
+  board.querySelector(`[data-scene-cell="${point.x},${point.y}"]`)?.insertAdjacentHTML("beforeend",`<span class="scene-erase-label">${esc((isEnglishPreview()?"Remove: ":"Удалить: ")+target.entity.label)}</span>`);
+}
+function clearSceneMeasurement(){
+  sceneNeutralTool=null;sceneMeasureStart=null;sceneMeasureEnd=null;sceneMeasureCells.clear();sceneMeasureLabel="";
+}
+function updateSceneMeasurement(point,{complete=false}={}){
+  if(!sceneMeasureStart){sceneMeasureStart={...point};sceneMeasureEnd={...point};sceneMeasureCells=new Set([`${point.x},${point.y}`]);sceneMeasureLabel=isEnglishPreview()?"0 spaces":"0 кл.";}
+  else{
+    const distance=Math.abs(point.x-sceneMeasureStart.x)+Math.abs(point.y-sceneMeasureStart.y);
+    sceneMeasureEnd={...point};sceneMeasureCells=new Set(measurementPath(sceneMeasureStart,point));sceneMeasureLabel=isEnglishPreview()?`${distance} spaces`:`${distance} кл.`;
+    if(complete)sceneMeasureStart=null;
+  }
+}
 function changeSceneTool(requested){
+  if(requested==="measure"){clearSceneMeasurement();sceneNeutralTool="measure";renderScene();return;}
+  clearSceneMeasurement();
   const localFlow=Boolean(typeof lwDestination!=="undefined"&&lwDestination||Scene.pendingActionPlan||pendingCoreAction||pendingCoreReaction||pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingZealotPlan);
   if(localFlow)cancelSceneFlow();
   const current=activeSceneTool(),toggleOff=requested===current&&requested==="target";

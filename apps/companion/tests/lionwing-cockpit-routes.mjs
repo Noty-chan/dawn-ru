@@ -259,7 +259,7 @@ assert.equal(directorNodes.outcome.parentElement,panes.manual);
 assert.equal(directorNodes.quickEffect.parentElement,panes.manual,"manual emergency controls remain available");
 assert.equal(run("JSON.stringify(Scene)"),beforeOrganize,"organizing the cockpit cannot change the scene or action source");
 
-Object.assign(context,{scenePanelWidths:{left:"normal",right:"normal"},sceneInterfaceVersion:"next",scenePanelLayoutMode:"custom",scenePanelSides:{},sceneInterfaceDensity:"compact",sceneTurnStripVisible:true});
+Object.assign(context,{scenePanelWidths:{left:"normal",right:"normal"},sceneInterfaceVersion:"next",sceneLeftPanelsEnabled:true,scenePanelLayoutMode:"custom",scenePanelSides:{},sceneInterfaceDensity:"compact",sceneTurnStripVisible:true});
 vm.runInContext(functionBlock(sceneUi,"renderSceneLayoutSettings","sceneBattleComplete"),context);
 run("renderSceneLayoutSettings()");
 assert.match(element("scene-layout-settings").innerHTML,/<span>Инфо<\/span><select data-scene-panel-side="inspector"/,"layout settings use the same Info label as the main navigation");

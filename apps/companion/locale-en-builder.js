@@ -19,7 +19,7 @@ window.DAWN_I18N?.registerLocale("en", {
   "scene.boardTools.categoriesLabel": "Board tool categories",
   "scene.boardTools.category.tokens": "Tokens",
   "scene.boardTools.category.measure": "Measurement",
-  "scene.boardTools.category.areas": "Areas",
+  "scene.boardTools.category.areas": "Environment",
   "scene.boardTools.category.walls": "Walls",
   "scene.boardTools.category.markers": "Markers",
   "scene.boardTools.category.edit": "Editing",

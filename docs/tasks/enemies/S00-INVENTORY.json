@@ -278,6 +278,8 @@
             "apps/companion/tests/scene-board-wheel.mjs",
             "apps/companion/tests/scene-empty-state.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-environment-erase.mjs",
+            "apps/companion/tests/scene-measurement.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",

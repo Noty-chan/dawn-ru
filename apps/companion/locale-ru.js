@@ -21,7 +21,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "scene.boardTools.categoriesLabel": "Категории инструментов поля",
   "scene.boardTools.category.tokens": "Жетоны",
   "scene.boardTools.category.measure": "Измерение",
-  "scene.boardTools.category.areas": "Области",
+  "scene.boardTools.category.areas": "Окружение",
   "scene.boardTools.category.walls": "Стены",
   "scene.boardTools.category.markers": "Маркеры",
   "scene.boardTools.category.edit": "Правка",

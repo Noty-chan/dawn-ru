@@ -342,6 +342,7 @@ function installUndoHarness(context, scene) {
   context.sceneControlMode = "guided";
   context.sceneInterfaceVersion = "next";
   context.SCENE_INTERFACE_ROLLOUT_VERSION = 3;
+  context.sceneLeftPanelsEnabled = true;
   context.scenePanelLayoutMode = "split";
   context.scenePanelSides = {};
   context.scenePanelWidths = { left: "wide", right: "normal" };
@@ -455,6 +456,7 @@ app.sceneZoom = 70;
 app.sceneZoomMode = "fit";
 app.sceneControlMode = "guided";
 app.sceneInterfaceVersion = "next";
+app.sceneLeftPanelsEnabled = true;
 app.scenePanelLayoutMode = "split";
 app.scenePanelSides = {};
 app.scenePanelWidths = { left: "wide", right: "normal" };

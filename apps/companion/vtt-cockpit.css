@@ -1030,3 +1030,14 @@ body[data-scene-control-mode="manual"] .scene-dock [data-scene-panel="director"]
 .scene-context-menu.is-token-overlay :is([data-token-hud-action="inspect"],[data-token-hud-action="target"]){top:calc(var(--hud-row,24px) + 40px)}
 .scene-context-menu.is-token-overlay :is([data-token-hud-action="close"],[data-token-hud-action="more"]){top:var(--hud-cap,0px)}
 .is-token-overlay :is(.token-hud-health,.token-hud-health-read){left:var(--hud-health-left,38px);top:var(--hud-health-top,100px);right:auto;bottom:auto;width:68px}
+
+/* HUD geometry uses matching hit areas: 44px controls, 6px minimum gutter. */
+.scene-context-menu.is-token-overlay [data-token-hud-action]{width:44px;height:44px;min-height:44px;min-width:44px}
+.scene-context-menu.is-token-overlay :is([data-token-hud-action="inspect"],[data-token-hud-action="target"]){top:calc(var(--hud-row,24px) + 48px)}
+.is-token-overlay :is(.token-hud-health,.token-hud-health-read){width:80px;min-height:40px;box-sizing:border-box}
+.is-token-overlay .token-hud-health{grid-template-columns:minmax(0,1fr)}
+.is-token-overlay .token-hud-health input{height:38px}
+.scene-context-menu.is-token-external{display:grid;gap:8px;padding:10px;overflow:auto;background:var(--surface);pointer-events:auto}
+.is-token-external .token-hud-effect-picker{display:grid;gap:3px;overflow:auto}
+.is-token-external .token-hud-effect-picker[hidden]{display:none}
+.is-token-external .token-hud-effect-picker button{min-height:36px;text-align:left}

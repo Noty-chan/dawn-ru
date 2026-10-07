@@ -11,11 +11,8 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   const groups = [
     { id: "tokens", label: "Жетоны", icon: "●", selectors: ['[data-scene-tool="select"]','[data-scene-tool="place"]','[data-scene-tool="target"]','#scene-clear-targets'] },
     { id: "measure", label: "Измерение", icon: "↔", selectors: ['[data-scene-tool="measure"]','#scene-clear-movement-traces'] },
-    { id: "areas", label: "Области", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"]'], controls: "scene-area-controls" },
-    { id: "walls", label: "Стены", icon: "┃", gm: true, selectors: ['[data-scene-tool="wall"]'], controls: "scene-wall-controls" },
-    { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: "scene-marker-controls" },
-    { id: "edit", label: "Правка", icon: "✎", gm: true, selectors: ['[data-scene-tool="topology"]','[data-scene-tool="erase"]'], controls: "scene-topology-controls" },
-    { id: "view", label: "Обзор", icon: "⛶", selectors: ['#scene-zoom-fit'] },
+    { id: "areas", label: "Окружение", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"]','[data-scene-tool="wall"]','[data-scene-tool="erase"]'], controls: ["scene-area-controls","scene-wall-controls"] },
+    { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: ["scene-marker-controls"] },
     { id: "history", label: "История", icon: "↶", gm: true, selectors: ['#scene-undo','#scene-redo'] }
   ];
   let toolbar = null, strip = null, tools = null, oldPrimary = null, primaryHidden = false, enabled = false, selected = "tokens";
@@ -91,14 +88,14 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       strip.append(button); tools.append(panel);
       }
       for (const node of nodes) { decorate(node); if (node.parentNode !== panel) panel.append(node); }
-      if (group.controls) {
-        const controls = document.getElementById(group.controls);
-        // Parameters belong to the existing Map task panel, which is opened
-        // by the tool controller. They cannot fit in the two square columns.
-        const destination = document.getElementById('scene-map-tools') || panel;
-        if (controls) { remember(controls); if (controls.parentNode !== destination) destination.append(controls); }
+      for (const id of group.controls || []) {
+        const controls = document.getElementById(id);
+        if (controls) { remember(controls); if (controls.parentNode !== panel) panel.append(controls); }
       }
+
     }
+    const fit=document.getElementById("scene-zoom-fit"),map=document.getElementById("scene-map-tools");
+    if(fit&&map){remember(fit,true);if(fit.parentNode!==map)map.append(fit);}
     const orderedCategories = groups.map(group => categories.get(group.id)).filter(Boolean);
     const orderedPanels = groups.map(group => panels.get(group.id)).filter(Boolean);
     if (orderedCategories.some((node, index) => strip.children[index] !== node)) strip.append(...orderedCategories);
