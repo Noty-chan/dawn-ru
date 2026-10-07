@@ -50,3 +50,8 @@ Targeted PASS: `table-manual-policy.mjs`, `table-manual-workspace.mjs`, `table-m
 Следующий агент должен отдельно проверить bridge `scene-manual-integration.js`: он подключён, но для utility/abilities/status hints не завершён. Формулировка «рабочий стол готов» пока неверна. Все изменения checkpoint сохраняются как draft; отдельный WIP оплаты уже отправлен на GitHub. Никакой активной публикации сайта из этой ветки не было.
 
 Final targeted: network-v2.mjs PASS; workspace test updated to wait for canonical shared technique confirmation instead of claiming optimistic local success. Direct frozen DAWN_LIONWING_ENTITIES foundation API remains a snapshot-boundary risk.
+
+
+## Дополнительный малый пакет после checkpoint
+
+Пользователь попросил ещё немного работы и разрешил отложить мобильную геометрию. Footer «Кубы» теперь открывает отдельный диалог RU/EN с выбором 1–30 D6 и направляет результат в table.command/roll. Ручной бросок сохраняется в rollFeed и получает читаемую строку журнала (формула, грани, успехи), без автоматического боя. Перепроверяются policy и владение при submit — старый открытый диалог не применяет команду после смены режима. `table-manual-roll-route.mjs` PASS (actual UI function, limits/ownership/policy/no local writes); core/network тесты roll storage ранее PASS. Browser именно нового диалога not-run. Часы пока остаются старым utility и должны быть подключены отдельно. Мобильную геометрию брать позже, desktop manual functionality прежде.
