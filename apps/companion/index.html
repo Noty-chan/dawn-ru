@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="scene-board-tools.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="tools-workspace.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="scene-workspace-next.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="scene-manual-workspace.css?v=__BUILD_VERSION__">
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="app.skip">К содержимому</a>
@@ -217,7 +218,7 @@
             <div class="scene-stage-head">
               <div class="scene-title-block"><div class="scene-status-line" aria-label="Состояние Сцены"><span class="round" title="Текущий Раунд" aria-label="Раунд"><i aria-hidden="true">↻</i><b id="scene-round-value">1</b></span><span class="tension" title="Текущее Напряжение" aria-label="Напряжение"><i aria-hidden="true">◆</i><b id="scene-tension-value">0</b></span></div></div>
               <section id="scene-flow" class="scene-flow" aria-label="Этап текущего действия" aria-live="polite"></section>
-              <div class="scene-stage-actions"><details class="scene-chrome-menu"><summary aria-label="Настройки вида и Сцены" title="Настройки вида и Сцены">•••</summary><div class="scene-chrome-menu-body"><div class="scene-chrome-title"><strong id="scene-name">Структурированный бой</strong><small><span id="scene-active-turn">Ход не начат</span> · <span id="scene-encounter-status">Подготовка</span></small></div><label class="scene-view-label"><span>Роль</span><select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><label class="scene-control-label gm-only"><span>Ведение</span><select id="scene-control-mode" aria-label="Стиль ведения боя"><option value="auto">Авто</option><option value="guided" selected>Гибрид</option><option value="manual">Вручную</option></select></label><label class="scene-turn-approval-label gm-only"><span>Ходы героев</span><select id="scene-turn-approval-mode" aria-label="Кто начинает Ходы героев"><option value="self">Игроки сами</option><option value="narrator">Через Нарратора</option></select></label><label class="scene-zoom-label"><span>Масштаб</span><input id="scene-zoom" type="range" min="30" max="180" step="1" value="100"><output id="scene-zoom-value">100%</output></label><div class="button-row compact scene-view-actions"><button type="button" id="focus-mode">Фокус</button><button type="button" id="sync-leave-table" class="remove scene-network-leave" title="Выйти из общего стола" hidden>Выйти</button></div><div id="scene-space-tabs" class="scene-space-tabs"></div><div class="scene-next-session-actions gm-only"><button type="button" data-scene-session-action="round" data-i18n="scene.session.newRound">Новый Раунд</button><button type="button" data-scene-session-action="scene" data-i18n="scene.session.newScene">Новая Сцена</button></div><nav class="scene-chrome-shortcuts" aria-label="Быстрые разделы стола"><button type="button" data-open-scene-panel="table">Интерфейс</button><button type="button" data-open-scene-panel="network">Сеть</button><button type="button" data-open-scene-panel="log">Журнал</button></nav></div></details></div>
+              <div class="scene-stage-actions"><details class="scene-chrome-menu"><summary aria-label="Настройки вида и Сцены" title="Настройки вида и Сцены">•••</summary><div class="scene-chrome-menu-body"><div class="scene-chrome-title"><strong id="scene-name">Структурированный бой</strong><small><span id="scene-active-turn">Ход не начат</span> · <span id="scene-encounter-status">Подготовка</span></small></div><label class="scene-view-label"><span>Роль</span><select id="scene-view"><option value="player">Игрок</option><option value="gm">Нарратор</option></select></label><label class="scene-control-label gm-only"><span data-i18n="scene.manual.policyName">Ведение</span><select id="scene-control-mode" aria-label="Режим игрового стола" data-i18n-aria-label="scene.manual.policyAria"><option value="manual" data-i18n="scene.manual.manual" selected>Вручную</option><option value="rules" data-i18n="scene.manual.rules">По правилам</option></select></label><label class="scene-turn-approval-label gm-only"><span>Ходы героев</span><select id="scene-turn-approval-mode" aria-label="Кто начинает Ходы героев"><option value="self">Игроки сами</option><option value="narrator">Через Нарратора</option></select></label><label class="scene-zoom-label"><span>Масштаб</span><input id="scene-zoom" type="range" min="30" max="180" step="1" value="100"><output id="scene-zoom-value">100%</output></label><div class="button-row compact scene-view-actions"><button type="button" id="focus-mode">Фокус</button><button type="button" id="sync-leave-table" class="remove scene-network-leave" title="Выйти из общего стола" hidden>Выйти</button></div><div id="scene-space-tabs" class="scene-space-tabs"></div><div class="scene-next-session-actions gm-only"><button type="button" data-scene-session-action="round" data-i18n="scene.session.newRound">Новый Раунд</button><button type="button" data-scene-session-action="scene" data-i18n="scene.session.newScene">Новая Сцена</button></div><nav class="scene-chrome-shortcuts" aria-label="Быстрые разделы стола"><button type="button" data-open-scene-panel="table">Интерфейс</button><button type="button" data-open-scene-panel="network">Сеть</button><button type="button" data-open-scene-panel="log">Журнал</button></nav></div></details></div>
             </div>
             <nav id="scene-turn-strip" class="scene-turn-strip" aria-label="Ходы участников"></nav>
             <div class="scene-toolbar" aria-label="Инструменты поля">
@@ -452,6 +453,7 @@
   <script src="lionwing-adapters.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-combat-meter.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-engine.js?v=__BUILD_VERSION__"></script>
+  <script src="scene-table-policy.js?v=__BUILD_VERSION__"></script>
   <script src="technique-foundation-map.js?v=__BUILD_VERSION__"></script>
   <script src="technique-engine.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-technique-surface.js?v=__BUILD_VERSION__"></script>
@@ -483,6 +485,8 @@
   <script src="scene-workspace-next.js?v=__BUILD_VERSION__"></script>
   <script src="scene-board-tools.js?v=__BUILD_VERSION__"></script>
   <script src="scene-token-hud.js?v=__BUILD_VERSION__"></script>
+  <script src="scene-manual-workspace.js?v=__BUILD_VERSION__"></script>
+  <script src="scene-manual-integration.js?v=__BUILD_VERSION__"></script>
   <script src="diagnostics.js?v=__BUILD_VERSION__"></script>
   <script src="app.js?v=__BUILD_VERSION__"></script>
 </body>

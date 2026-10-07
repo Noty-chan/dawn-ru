@@ -46,7 +46,7 @@ function blankHero(rulesEdition=contentPreferences?.edition||"ru-v0.9"){
 
 function blankScene(){
   const activeEdition=typeof contentPreferences==="object"&&contentPreferences?contentPreferences.edition:"ru-v0.9",requestedEdition=arguments.length?arguments[0]:activeEdition||"ru-v0.9",edition=["lionwing","ru-v0.9"].includes(requestedEdition)?requestedEdition:"ru-v0.9";
-  return {schema:14,rulesEdition:edition,version:0,name:"Структурированный бой",view:"gm",turnApprovalMode:"self",round:1,turnSerial:0,tension:0,tool:"select",activeSpace:"main",activeActorId:null,spaces:[{id:"main",name:"Основное поле",mode:"standard",width:7,height:7}],actors:[],objects:[],walls:[],markers:[],topology:{cuts:[]},artworks:[],backgroundArt:null,backgroundView:{fit:"cover",position:"center",dim:28,gridOpacity:58},featuredArt:null,selectedActor:null,targetIds:[],targetCells:[],pendingActionPlan:null,pendingAction:null,pendingPrompt:null,triggerQueue:[],challengeRequest:null,opposedRoll:null,results:null,sessionClocks:[],reminders:[],ruleHandouts:[],tools:{clocksMigrated:false},rollFeed:[],log:[],undo:[],redo:[],turnUndo:[]};
+  return {schema:14,rulesEdition:edition,tablePolicy:{mode:"manual",processStatuses:false,epoch:0},manualTable:{actorId:null,round:1},version:0,name:"Структурированный бой",view:"gm",turnApprovalMode:"self",round:1,turnSerial:0,tension:0,tool:"select",activeSpace:"main",activeActorId:null,spaces:[{id:"main",name:"Основное поле",mode:"standard",width:7,height:7}],actors:[],objects:[],walls:[],markers:[],topology:{cuts:[]},artworks:[],backgroundArt:null,backgroundView:{fit:"cover",position:"center",dim:28,gridOpacity:58},featuredArt:null,selectedActor:null,targetIds:[],targetCells:[],pendingActionPlan:null,pendingAction:null,pendingPrompt:null,triggerQueue:[],challengeRequest:null,opposedRoll:null,results:null,sessionClocks:[],reminders:[],ruleHandouts:[],tools:{clocksMigrated:false},rollFeed:[],log:[],undo:[],redo:[],turnUndo:[]};
 }
 
 function safeImage(value,maxLength=520000){
@@ -212,8 +212,13 @@ function spellcrafterLearnedLimitFor(level){
   const numeric=Number(level)||0;
   return numeric>=3?3:numeric>=2?2:numeric>=1?1:0;
 }
+function sceneTableIsManual(scene){return scene?.tablePolicy?.mode==="manual";}
+function normalizedTablePolicy(raw){return typeof window!=="undefined"&&window.DAWN_TABLE_POLICY?.normalizePolicy?window.DAWN_TABLE_POLICY.normalizePolicy(raw):{mode:raw?.mode==="manual"?"manual":"rules",processStatuses:Boolean(raw?.processStatuses),epoch:Number.isSafeInteger(raw?.epoch)&&raw.epoch>=0?raw.epoch:0};}
 function sceneCore(raw){
   const base=blankScene(),scene=raw&&typeof raw==="object"?raw:{};
+  // Missing policy is an existing rules save, never an implicit opt-in to manual.
+  base.tablePolicy=normalizedTablePolicy(scene.tablePolicy);
+  base.manualTable={actorId:typeof scene.manualTable?.actorId==="string"?scene.manualTable.actorId:null,round:clamp(scene.manualTable?.round||1,1,999)};
   base.rulesEdition=["lionwing","ru-v0.9"].includes(scene.rulesEdition)?scene.rulesEdition:(scene.actors||[]).some(actor=>actor.rulesEdition==="lionwing"||String(actor.profileId||"").startsWith("lionwing."))?"lionwing":(scene.actors||[]).length?"ru-v0.9":"ru-v0.9";
   if(scene.lionwing&&typeof scene.lionwing==="object")base.lionwing=JSON.parse(JSON.stringify(scene.lionwing));
   base.version=clamp(scene.version,0,999999999);base.name=typeof scene.name==="string"?scene.name.slice(0,120):base.name;base.view=scene.view==="player"?"player":"gm";base.turnApprovalMode=scene.turnApprovalMode==="narrator"?"narrator":"self";base.round=clamp(scene.round||1,1,999);base.turnSerial=clamp(scene.turnSerial,0,999999999);base.tension=clamp(scene.tension,0,999);base.tool=["select","place","measure","target","area","wall","marker","topology","erase"].includes(scene.tool)?scene.tool:"select";
@@ -226,6 +231,9 @@ function sceneCore(raw){
   base.actors.forEach((actor,index)=>{
     const source=scene.actors?.[index]||{};
     actor.nameI18n=sceneI18n(source.nameI18n,120);
+    actor.manualStatuses=[...new Set(cleanArray(source.manualStatuses))].slice(0,80);
+    if(source.manualMovementTrace&&typeof source.manualMovementTrace==="object")actor.manualMovementTrace=JSON.parse(JSON.stringify(source.manualMovementTrace));
+    if(source.manualTechniqueState&&typeof source.manualTechniqueState==="object"&&!Array.isArray(source.manualTechniqueState))actor.manualTechniqueState=JSON.parse(JSON.stringify(source.manualTechniqueState));
     actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:String(source.profileId||"").startsWith("lionwing.")?"lionwing":"ru-v0.9";
     if(actor.rulesEdition==="lionwing"){actor.guts=null;actor.wounds=clamp(source.wounds,0,3);actor.focus=Math.max(0,Number(source.focus)||0)}
     if(source.lionwing&&typeof source.lionwing==="object")actor.lionwing=JSON.parse(JSON.stringify(source.lionwing));
@@ -275,15 +283,22 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
     actor.meals=clamp(source.meals,0,99);
     actor.maxMeals=clamp(source.maxMeals,0,99);
     actor.effectStates=normalizedEffectStates(source,actor,persistedActorIds);
+    if(sceneTableIsManual(base)){
+      actor.ruleState=source.ruleState&&typeof source.ruleState==="object"?JSON.parse(JSON.stringify(source.ruleState)):{};
+      actor.ruleModes=source.ruleModes&&typeof source.ruleModes==="object"?JSON.parse(JSON.stringify(source.ruleModes)):{};
+      // Special-profile AP and visibility are rule defaults, not manual edits.
+      for(const field of ["ap","baseAp","speed"])if(Number.isFinite(Number(source[field])))actor[field]=clamp(source[field],0,9999);
+      actor.acted=Boolean(source.acted);actor.hidden=Boolean(source.hidden);
+    }
   });
-  if(base.rulesEdition==="lionwing")for(const modifier of base.actors.filter(actor=>String(actor.profileId||"").startsWith("lionwing.modifier."))){
+  if(!sceneTableIsManual(base)&&base.rulesEdition==="lionwing")for(const modifier of base.actors.filter(actor=>String(actor.profileId||"").startsWith("lionwing.modifier."))){
     const oldCompoundId=modifier.compoundId;
     modifier.compoundId=null;
     const carrier=base.actors.find(actor=>actor.id===modifier.modifierState?.carrierId);
     if(carrier&&oldCompoundId===`modifier-carrier-${carrier.id}`&&carrier.compoundId===oldCompoundId)carrier.compoundId=null;
   }
   for(const actor of base.actors){const field=base.spaces.find(space=>space.id===actor.space)||base.spaces[0];actor.x=clamp(actor.x,0,field.width-1);actor.y=clamp(actor.y,0,field.height-1)}
-  const compoundGroups=new Map();for(const actor of base.actors.filter(item=>item.compoundId)){if(!compoundGroups.has(actor.compoundId))compoundGroups.set(actor.compoundId,[]);compoundGroups.get(actor.compoundId).push(actor)}for(const parts of compoundGroups.values()){if(parts.length<2){parts.forEach(part=>{part.compoundId=null;part.compoundDefense=null;part.speed=part.compoundBaseSpeed??part.speed;part.compoundBaseSpeed=null});continue}const anchor=parts[0],effects=[...new Set(parts.flatMap(part=>part.effects||[]))],effectStates=Object.assign({},...parts.map(part=>part.effectStates||{})),alive=parts.some(part=>Number(part.hp||0)>0),compoundDefense=parts.map(part=>part.compoundDefense).find(value=>value==="armor"||value==="evasion")||null;parts.forEach(part=>{part.space=anchor.space;part.x=anchor.x;part.y=anchor.y;part.compoundBaseSpeed=part.compoundBaseSpeed??part.speed;part.compoundDefense=compoundDefense;part.effects=[...effects];part.effectStates=Object.fromEntries(effects.filter(effect=>effectStates[effect]).map(effect=>[effect,effectStates[effect]]));part.knockedOut=!alive})}
+  if(!sceneTableIsManual(base)){const compoundGroups=new Map();for(const actor of base.actors.filter(item=>item.compoundId)){if(!compoundGroups.has(actor.compoundId))compoundGroups.set(actor.compoundId,[]);compoundGroups.get(actor.compoundId).push(actor)}for(const parts of compoundGroups.values()){if(parts.length<2){parts.forEach(part=>{part.compoundId=null;part.compoundDefense=null;part.speed=part.compoundBaseSpeed??part.speed;part.compoundBaseSpeed=null});continue}const anchor=parts[0],effects=[...new Set(parts.flatMap(part=>part.effects||[]))],effectStates=Object.assign({},...parts.map(part=>part.effectStates||{})),alive=parts.some(part=>Number(part.hp||0)>0),compoundDefense=parts.map(part=>part.compoundDefense).find(value=>value==="armor"||value==="evasion")||null;parts.forEach(part=>{part.space=anchor.space;part.x=anchor.x;part.y=anchor.y;part.compoundBaseSpeed=part.compoundBaseSpeed??part.speed;part.compoundDefense=compoundDefense;part.effects=[...effects];part.effectStates=Object.fromEntries(effects.filter(effect=>effectStates[effect]).map(effect=>[effect,effectStates[effect]]));part.knockedOut=!alive})}}
    const actorIds=new Set(base.actors.map(actor=>actor.id));
    for(const owner of base.actors){const targetId=owner.ruleState?.rangerHeadshotTargetId;if(targetId&&!actorIds.has(targetId))owner.ruleState.rangerHeadshotTargetId=null}
    base.objects=Array.isArray(scene.objects)?scene.objects.slice(0,240).map(object=>({id:typeof object.id==="string"?object.id:uid(),space:spaceIds.has(object.space)?object.space:base.activeSpace,type:normalizedSceneObjectType(object,scene.schema,base.rulesEdition),label:typeof object.label==="string"?object.label.slice(0,80):"Область",source:typeof object.source==="string"?object.source.slice(0,160):"Ручное правило",ruleId:typeof object.ruleId==="string"?object.ruleId.slice(0,180):"",duration:object.duration==="turn"?"endTurn":["instant","endTurn","nextTurn","round","scene","persistent"].includes(object.duration)?object.duration:"scene",ownerActorId:actorIds.has(object.ownerActorId)?object.ownerActorId:null,cells:cleanArray(object.cells).slice(0,144),createdRound:clamp(object.createdRound||1,1,999),hp:object.hp==null?null:clamp(object.hp,0,9999),maxHp:object.maxHp==null?null:clamp(object.maxHp,0,9999),metadata:object.metadata&&typeof object.metadata==="object"?object.metadata:{}})):[];
@@ -328,14 +343,14 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
   if(base.challengeRequest&&!base.challengeRequest.result){const legacyResult=base.rollFeed.find(roll=>roll?.challengeRequestId===base.challengeRequest.id);if(legacyResult)base.challengeRequest.result=normalizedChallengeResult(legacyResult)}
   base.eventReceipts=Array.isArray(scene.eventReceipts)?scene.eventReceipts.filter(receipt=>receipt&&typeof receipt.id==="string"&&typeof receipt.fingerprint==="string").slice(-256).map(receipt=>({id:receipt.id,fingerprint:receipt.fingerprint,...(typeof receipt.requestMetadata==="string"?{requestMetadata:receipt.requestMetadata}:{})})):[];
   base.log=Array.isArray(scene.log)?scene.log.slice(0,200).map(row=>({id:typeof row.id==="string"?row.id:uid(),at:typeof row.at==="string"?row.at.slice(0,32):"",text:typeof row.text==="string"?row.text.slice(0,240):"",type:typeof row.type==="string"?row.type.slice(0,80):"legacy.note",actorId:typeof row.actorId==="string"?row.actorId:null,payload:row.payload&&typeof row.payload==="object"?row.payload:{},visibility:["gm","owner"].includes(row.visibility)?row.visibility:"public"})):[];
-  normalizeLionwingEntities(base);
+  if(!sceneTableIsManual(base))normalizeLionwingEntities(base);
   return typeof structuredClone==="function"?structuredClone(base):JSON.parse(JSON.stringify(base));
 }
 
 function normalizeScene(raw){
   const history=(rows,limit=20)=>Array.isArray(rows)?rows.slice(0,limit).filter(row=>row&&typeof row==="object"&&row.state).map(row=>({id:typeof row.id==="string"?row.id:uid(),label:typeof row.label==="string"?row.label.slice(0,160):"Изменение",state:sceneCore(row.state),...(row.checkpoint==="turn-start"?{checkpoint:"turn-start"}:{})})):[];
   const base=sceneCore(raw);base.undo=history(raw?.undo);base.redo=history(raw?.redo);base.turnUndo=history(raw?.turnUndo,30);
-  if(typeof SceneEngine!=="undefined"&&SceneEngine.bodyguardsBraceIntact)for(const actor of base.actors||[])if(actor.profileId==="lionwing.npc.bodyguards"&&actor.ruleState?.bodyguardsBrace&&!SceneEngine.bodyguardsBraceIntact(base,actor))actor.ruleState.bodyguardsBrace=null;
+  if(!sceneTableIsManual(base)&&typeof SceneEngine!=="undefined"&&SceneEngine.bodyguardsBraceIntact)for(const actor of base.actors||[])if(actor.profileId==="lionwing.npc.bodyguards"&&actor.ruleState?.bodyguardsBrace&&!SceneEngine.bodyguardsBraceIntact(base,actor))actor.ruleState.bodyguardsBrace=null;
   return base;
 }
 

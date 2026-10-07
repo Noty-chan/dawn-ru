@@ -26,6 +26,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(logic.reconcileSceneActorHealth({ cur
 const appFiles = ["localization.js", "locale-ru.js", "locale-en-builder.js", "edition-lionwing.js", "edition-lionwing-ru.js", "lionwing-display-mapping.js", "lionwing-table-data.js", "lionwing-automation-status.js", "app-bootstrap.js", "app-reference-data.js", "app-core.js", "mobile-header.js", "ui-icons.js", "scene-workspace-next.js", "scene-token-hud.js", "scene-board-tools.js", "hero-gadgets.js", "hero-ui.js", "scene-ui.js", "gm-library.js", "scene-effects.js", "scene-actions-ui.js", "scene-sync-ui.js", "tools-workspace.js", "play-ui.js", "app-builder-events.js", "app-sync-events.js", "app-scene-events.js", "app-play-events.js", "app.js"];
 appFiles.splice(appFiles.indexOf("app.js"),0,"lionwing-ui.js");
 appFiles.push("lionwing-engine.js");
+appFiles.push("scene-table-policy.js");
+appFiles.splice(appFiles.indexOf("app.js"),0,"scene-manual-workspace.js");
+appFiles.splice(appFiles.indexOf("app.js"),0,"scene-manual-integration.js");
 appFiles.push("lionwing-restored-techniques.js");
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const companionMarkup = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -126,7 +129,7 @@ assert.match(appSource, /function renderSceneManager[\s\S]+ownerActorId[\s\S]+С
 assert.match(appSource, /function removeManagedSceneSpace[\s\S]+id==="main"[\s\S]+Основное поле удалить нельзя/, "The canonical main space cannot be removed even when the spaces array is reordered");
 assert.match(appSource, /function removeManagedSceneSpace[\s\S]+placeActorsSafely\(scene,moving,fallback[\s\S]+scene\.objects=scene\.objects\.filter[\s\S]+scene\.spaces=scene\.spaces\.filter/, "Space removal evacuates its actors to the main field before deleting field entities and the space itself");
 assert.match(appSource, /const canonicalCell=[\s\S]+normalizedCells=[\s\S]+base\.objects=base\.objects\.map[\s\S]+base\.topology\.cuts=/, "Imported actors and field entities are repaired to canonical cells within their actual space bounds");
-assert.match(appSource, /mutator\(Scene\);\s*validateTableEdit\(before,Scene,[^\n]+\);\s*Scene=normalizeScene\(Scene\)/, "Every direct Narrator transaction repairs stale references before persistence or networking");
+assert.match(appSource, /mutator\(Scene\);[\s\S]*?validateTableEdit\(before,Scene,[^\n]+\);\s*Scene=normalizeScene\(Scene\)/, "Every direct Narrator transaction repairs stale references before persistence or networking");
 assert.match(appSource, /restoreSceneHistory[\s\S]+restored\.version=Number\(current\.version[\s\S]+syncHeroFromScene\(\)/, "Undo and redo are monotonic Scene revisions and refresh the linked hero runtime");
 assert.match(appSource, /function sceneCore[\s\S]+structuredClone\(base\)[\s\S]+JSON\.parse\(JSON\.stringify\(base\)\)/, "Scene snapshots must not share nested mutable action or resource state with the live table");
 assert.match(appSource, /pendingActionPlan=null;scene\.pendingPrompt=null;scene\.triggerQueue=\[\];scene\.challengeRequest=null;scene\.opposedRoll=null/, "Starting a new Scene must close every Action, prompt, trigger, and roll-request lifecycle");

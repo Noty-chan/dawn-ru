@@ -39,6 +39,13 @@ function sceneHasLocalPendingSelection(){return Boolean(typeof lwDestination!=="
 function canDragSceneActor(actor){const tool=activeSceneTool();if(!["select","place"].includes(tool)||Scene.pendingPrompt||Scene.pendingAction||Scene.pendingActionPlan||sceneHasLocalPendingSelection())return false;return activeSceneView()==="gm"||Boolean(actor?.team==="hero"&&actor?.heroId&&actor.heroId===S.id)}
 function moveSceneActorFromBoard(actor,x,y,{manual=false}={}){
   if(!actor)return;
+  if(window.DAWN_TABLE_POLICY?.isManual(Scene)){
+    if(!canControlSceneActor(actor))return toast("Можно перемещать только своего героя");
+    const warning=(Scene.walls||[]).some(w=>w.space===Scene.activeSpace&&(w.a===`${actor.x},${actor.y}`||w.b===`${x},${y}`))||(Scene.objects||[]).some(o=>o.space===Scene.activeSpace&&(o.cells||[]).includes(`${x},${y}`));
+    const result=commitSceneEvents(`Перемещение: ${actor.name}`,[{type:"table.command",actorId:actor.id,payload:{kind:"move",space:Scene.activeSpace,x,y}}]);
+    if(warning)toast("На пути есть стена или местность. Проверьте её правило вручную.");
+    return result;
+  }
   const view=activeSceneView(),deploying=!sceneCombatStarted(Scene),space=activeSceneSpace();
   if(view==="player"&&(actor.team!=="hero"||!actor.heroId||actor.heroId!==S.id))return toast("Можно перемещать только своего героя");
   if(Scene.pendingPrompt||Scene.pendingAction||Scene.pendingActionPlan||sceneHasLocalPendingSelection())return toast("Сначала завершите текущую цепочку правил");
@@ -212,6 +219,7 @@ function commitScene(label,mutator,options={}){
   if(sync.sceneId&&!sync.canNarrate)return toast("Каноническую Сцену изменяет Нарратор");
   try{
     mutator(Scene);
+    if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(before)&&JSON.stringify(Scene.tablePolicy)!==JSON.stringify(before.tablePolicy))throw new Error("Режим стола меняется только через меню Ведение.");
     validateTableEdit(before,Scene,{plannedDestroy:options.plannedDestroy,tableRestore:options.tableRestore===true});
     Scene=normalizeScene(Scene);
     Scene.redo=[];

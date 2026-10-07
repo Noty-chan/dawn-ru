@@ -7,6 +7,8 @@ function heroTechniqueBonuses(hero,base={}){
   return {armor:manualArmor+iron,techniqueArmor:iron,clashAdvantage:challenger,techniqueFocusBonus,maxMeals,meals:maxMeals?Math.min(maxMeals,base.maxMeals===maxMeals?Number(base.meals??maxMeals):maxMeals):0};
 }
 function heroActorState(hero,base={}){
+  // Sheet refreshes are read operations on an existing manual-table actor.
+  if(typeof Scene!=="undefined"&&sceneTableIsManual(Scene)&&base.id&&(Object.prototype.hasOwnProperty.call(base,"hp")||Object.prototype.hasOwnProperty.call(base,"maxHp")))return {...base};
   const techniqueAutomation=sceneControlMode!=="manual"&&hero.rulesEdition==="ru-v0.9",knownTechniques={...(hero.techniques||{})},automatedHero=techniqueAutomation?hero:{...hero,techniques:{}};
   const derived=derivedFor(hero),runtime=hero.runtime||{},hasSceneHealth=Object.prototype.hasOwnProperty.call(base,"hp")||Object.prototype.hasOwnProperty.call(base,"maxHp"),health=Logic.reconcileSceneActorHealth({current:base.hp,previousMax:base.maxHp,nextMax:derived.hp,existing:hasSceneHealth}),performanceGift=allGifts().some(gift=>hero.gifts.includes(gift.id)&&gift.en==="Performance Artist"),bonuses=heroTechniqueBonuses(automatedHero,base);
   const rawFocus=Number.isFinite(Number(base.focus))?Number(base.focus)-Number(base.techniqueFocusBonus||0):derived.focus;
@@ -17,7 +19,7 @@ function heroActorState(hero,base={}){
 function currentHeroActor(){
   const delegated=Scene.actors.find(item=>item.id===pendingCoreActorId);if(delegated&&(delegated.kind==="hero"||delegated.heroId))return delegated;
   const actor=Scene.actors.find(item=>item.heroId===S.id);if(!actor)return null;
-  if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))return actor;
+  if(sceneTableIsManual(Scene)||window.DAWN_LIONWING_ENGINE?.isScene(Scene))return actor;
   const synced=heroActorState(S,actor),legacy=actor.sheetVersion<7,changed=legacy||actor.name!==synced.name||actor.tier!==synced.tier||actor.maxHp!==synced.maxHp||actor.speed!==synced.speed||actor.primaryOutlook!==synced.primaryOutlook||JSON.stringify(actor.outlooks)!==JSON.stringify(synced.outlooks)||JSON.stringify(actor.gifts)!==JSON.stringify(synced.gifts)||JSON.stringify(actor.bonds||[])!==JSON.stringify(synced.bonds||[])||JSON.stringify(actor.sacrifices||[])!==JSON.stringify(synced.sacrifices||[])||JSON.stringify(actor.attrs)!==JSON.stringify(synced.attrs)||JSON.stringify(actor.skills)!==JSON.stringify(synced.skills)||JSON.stringify(actor.techniques)!==JSON.stringify(synced.techniques)||JSON.stringify(actor.knownTechniques)!==JSON.stringify(synced.knownTechniques)||actor.tokenImage!==synced.tokenImage||actor.portraitImage!==synced.portraitImage;
   if(changed){Object.assign(actor,synced);if(legacy)Scene.tension=S.runtime.tension;persist()}
   return actor;

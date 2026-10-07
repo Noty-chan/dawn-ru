@@ -14,7 +14,7 @@
   const identity=()=>JSON.stringify([Sync?.state?.()?.sceneId||null,lwGeometrySceneIdentity(),Scene.lionwing?.sceneSerial??1]);
   const liveActor=()=>state&&supportedViewport()&&store.mode==="play"&&state.identity===identity()&&Scene.actors.find(actor=>actor.id===state.actorId&&actor.space===Scene.activeSpace);
   const health=actor=>{
-    const compound=SceneEngine.compoundEnemyStatus(Scene,actor.id);
+    const compound=window.DAWN_TABLE_POLICY?.isManual(Scene)?{active:false}:SceneEngine.compoundEnemyStatus(Scene,actor.id);
     return {value:compound.active?compound.hp:Number(actor.hp||0),maximum:compound.active?compound.maxHp:Number(actor.maxHp||0)};
   };
   function healthChange(value,current,maximum=null){
@@ -120,7 +120,7 @@
     const input=menu.querySelector("input"),draft=gm&&!resetHealth&&input&&input.value!==String(state.health)?input.value:null;
     if(draft===null)state.health=hp.value;
     menu.classList.add("is-token-hud");menu.classList.add("is-token-overlay");menu.dataset.tokenHudActor=actor.id;menu.setAttribute("role","dialog");menu.setAttribute("aria-label",copy(`Управление токеном: ${actor.name}`,`Token controls: ${actor.name}`));
-    const effectIds=typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],effectCatalog=typeof sceneEffectList==="function"?sceneEffectList():[];
+    const effectIds=window.DAWN_TABLE_POLICY?.isManual(Scene)?actor.manualStatuses||[]:typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],effectCatalog=typeof sceneEffectList==="function"?sceneEffectList():[];
     const effects=effectIds.map(id=>effectCatalog.find(effect=>effect.id===id)?.name||id);
     drawing=true;menu.innerHTML=`<header class="token-hud-head"><strong>${esc(actor.name)}</strong></header>
       ${gm?`<div class="token-hud-health"><label for="token-hud-health-input">${copy("ЗД","HP")}</label><input id="token-hud-health-input" type="text" inputmode="text" maxlength="6" value="${esc(draft??hp.value)}" aria-label="${copy("Здоровье токена","Token health")}" aria-describedby="token-hud-health-help" title="${copy("Число — точное значение; +5 или -5 — изменение. Enter или выход из поля применяет.","A number sets health; +5 or -5 changes it. Enter or leaving the field applies.")}"><span>/ ${hp.maximum||"—"}</span></div><p id="token-hud-health-help" class="token-hud-help">${copy("Число — задать ЗД; -5 / +5 — изменить. Escape отменяет.","A number sets HP; -5 / +5 changes it. Escape cancels.")}</p>`:`<div class="token-hud-health-read">${copy("ЗД","HP")} <b>${hp.value} / ${hp.maximum||"—"}</b></div>`}
@@ -178,7 +178,7 @@
     if(!/^[+-]/.test(input.value.trim())&&current!==state.health){state.health=current;input.value=String(current);state.message=copy("Здоровье уже изменилось. Проверьте новое значение.","Health has changed. Check the new value.");updateHealthControls();return false;}
     if(value===current){state.message="";state.health=current;input.value=String(current);input.dataset.hudReplace="true";updateHealthControls();return true;}
     const label=copy(`${actor.name}: Здоровье → ${value}`,`${actor.name}: Health → ${value}`);
-    const result=Scene.rulesEdition==="lionwing"?lwSubmit(actor.id,{kind:"correct",resource:"hp",amount:value},label):setNarratorActorValue(actor,"hp",value,label);
+    const result=window.DAWN_TABLE_POLICY?.isManual(Scene)?setNarratorActorValue(actor,"hp",value,label):Scene.rulesEdition==="lionwing"?lwSubmit(actor.id,{kind:"correct",resource:"hp",amount:value},label):setNarratorActorValue(actor,"hp",value,label);
     if(result){state.message="";state.health=value;state.pendingHealth=health(actor).value===value?null:value;input.value=String(value);input.dataset.hudReplace="true";if(document.activeElement===input)input.select?.();updateHealthControls();}
     return Boolean(result);
   }
@@ -209,7 +209,7 @@
     const actor=Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
     if(actor&&(!hudTool()||hudTool()==="select"))show(actor,{focus:false,selection:true});
   });
-  menu.addEventListener("click",event=>{const effect=event.target.closest("[data-token-hud-effect]");if(effect&&state){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor(),effectId=effect.dataset.tokenHudEffect,catalog=typeof sceneEffectList==="function"?sceneEffectList():[];if(!actor||activeSceneView()!=="gm"||!catalog.some(item=>item.id===effectId))return;const effects=typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],remove=effects.includes(effectId);setNarratorEffect(actor,effectId,remove);draw();return;}const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
+  menu.addEventListener("click",event=>{const effect=event.target.closest("[data-token-hud-effect]");if(effect&&state){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor(),effectId=effect.dataset.tokenHudEffect,catalog=typeof sceneEffectList==="function"?sceneEffectList():[];if(!actor||activeSceneView()!=="gm"||!catalog.some(item=>item.id===effectId))return;const effects=window.DAWN_TABLE_POLICY?.isManual(Scene)?actor.manualStatuses||[]:typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],remove=effects.includes(effectId);setNarratorEffect(actor,effectId,remove);draw();return;}const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
   function cancelLeave(){if(leaveTimer!==null){clearTimeout(leaveTimer);leaveTimer=null;}}
   function delayLeave(){cancelLeave();leaveTimer=setTimeout(()=>{leaveTimer=null;if(menu.contains?.(document.activeElement)||state?.effectsOpen)return;close();},260);}
   board.addEventListener("mouseover",event=>{

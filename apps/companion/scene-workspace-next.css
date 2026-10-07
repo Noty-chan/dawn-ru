@@ -143,3 +143,13 @@ body.scene-mode.scene-interface-next:not(.scene-next-narrow) .scene-tray-resourc
 body.scene-mode.scene-interface-next:not(.scene-next-narrow) .scene-tray-resource-values{display:flex;gap:5px;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
 body.scene-mode.scene-interface-next:not(.scene-next-narrow) .scene-tray-resource-values>i{flex:none;font-size:10px}
 body.scene-mode.scene-interface-next:not(.scene-next-narrow) .scene-tray-actions{padding-right:4px;box-sizing:border-box}
+
+/* The Table menu owns a real label/control grid; selects never grow under labels. */
+body.scene-mode.scene-interface-next .scene-chrome-menu-body{box-sizing:border-box;max-width:calc(100vw - 16px);max-height:calc(100dvh - 120px);overflow:auto;overscroll-behavior:contain;z-index:90}
+body.scene-mode.scene-interface-next .scene-chrome-menu-body :is(.scene-view-label,.scene-control-label,.scene-turn-approval-label,.scene-table-policy-label,.scene-status-processing-label){display:grid;grid-template-columns:100px minmax(0,1fr);align-items:center;gap:8px;padding:0;margin:0;min-width:0}
+body.scene-mode.scene-interface-next .scene-chrome-menu-body label>span{min-width:0;font-size:12px;line-height:1.3}
+body.scene-mode.scene-interface-next .scene-chrome-menu-body label>select{box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:36px;padding:5px 8px;margin:0;font-size:12px}
+body.scene-mode.scene-interface-next .scene-chrome-menu-body :is(select,input):focus-visible{outline:2px solid var(--cyan);outline-offset:-2px;box-shadow:none}
+body.scene-mode.scene-interface-next #scene-workbench .scene-stage-head:has(.scene-chrome-menu[open]){position:relative;z-index:95;isolation:isolate}
+body.scene-mode.scene-interface-next .scene-chrome-menu[open]{z-index:95}
+body.scene-mode.scene-interface-next.scene-next-narrow .scene-chrome-menu-body{position:fixed;top:calc(var(--mobile-header-height,101px) + 42px);right:8px;left:auto;width:min(360px,calc(100vw - 16px));max-height:calc(100dvh - var(--mobile-header-height,101px) - 58px)}
