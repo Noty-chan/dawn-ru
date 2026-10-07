@@ -1,3 +1,4 @@
+import './hero-dice-history.mjs';
 import './freeplay-localization.mjs';
 import './challenge-targets.mjs';
 import './freeplay-resources-gadgets.mjs';

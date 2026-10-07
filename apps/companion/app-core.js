@@ -396,6 +396,21 @@ function normalizeHeroLionwingBridge(raw){
   if(!Array.isArray(raw.consequences)&&!Array.isArray(raw.legacyNotes))return null;
   return{schema:1,consequences:records(raw.consequences),legacyNotes:records(raw.legacyNotes,true)};
 }
+function normalizeHeroDiceHistory(raw,tier){
+  if(!Array.isArray(raw))return [];
+  return raw.filter(row=>row&&typeof row==="object"&&!Array.isArray(row)).slice(0,20).map(row=>({
+    at:typeof row.at==="string"?row.at.slice(0,20):"",
+    actor:typeof row.actor==="string"?row.actor.slice(0,500):"",
+    formula:typeof row.formula==="string"?row.formula.slice(0,500):"",
+    rolls:Array.isArray(row.rolls)?row.rolls.slice(0,300).filter(value=>Number.isInteger(value)&&value>=1&&value<=6):[],
+    dice:{threshold:clamp(row.dice?.threshold??4,1,6),criticalAt:clamp(row.dice?.criticalAt??6,1,6)},
+    opposedRequestId:typeof row.opposedRequestId==="string"?row.opposedRequestId.slice(0,120):null,
+    count:clamp(row.count,1,300),successes:clamp(row.successes,0,300),crits:clamp(row.crits,0,300),
+    outcome:typeof row.outcome==="string"?row.outcome.slice(0,80):"",
+    target:row.target===null?null:clamp(row.target||tier+1,1,99),
+    allIn:Boolean(row.allIn),payment:typeof row.payment==="string"?row.payment.slice(0,80):""
+  }));
+}
 function normalizeHero(raw){
   const base=blankHero(), h=raw && typeof raw==="object" ? raw : {};
   base.id=typeof h.id==="string"?h.id:base.id;
@@ -418,7 +433,7 @@ function normalizeHero(raw){
   const spellcrafterLevel=Number(base.techniques["ruiner.spellcrafter"]||0),spellcrafterLearnedLimit=spellcrafterLearnedLimitFor(spellcrafterLevel),spellcrafterIds=new Set(["fierce","focused","wild","outstanding"]);
   const wispLevel=Number(base.techniques["altruist.will-o-wisp"]||0),wispIds=new Set(["dreamy","angry","insightful","bright","kind","fierce"]);
   base.mods={taintedBody:Boolean(h.mods?.taintedBody),gadgetSpent:clamp(h.mods?.gadgetSpent,0,99),performanceSkill:typeof h.mods?.performanceSkill==="string"?h.mods.performanceSkill:null,spellcrafterAugments:[...new Set(cleanArray(h.mods?.spellcrafterAugments).filter(id=>spellcrafterIds.has(id)))].slice(0,spellcrafterLearnedLimit),wispSpiritTypes:[...new Set(cleanArray(h.mods?.wispSpiritTypes).filter(id=>wispIds.has(id)))].slice(0,wispLevel>=3?2:wispLevel>=1?1:0)};
-  const rt=h.runtime||{},freeplay=rt.freeplay&&typeof rt.freeplay==="object"?rt.freeplay:{}; base.runtime={hp:rt.hp!==""&&rt.hp!=null&&Number.isFinite(+rt.hp)?+rt.hp:null,maxHp:rt.maxHp!==""&&rt.maxHp!=null&&Number.isFinite(+rt.maxHp)?Math.max(0,+rt.maxHp):null,wounds:clamp(rt.wounds,0,99),focus:Number.isFinite(+rt.focus)?+rt.focus:null,influence:clamp(rt.influence,0,999),stress:clamp(rt.stress,0,stressMaximumFor(base)),ap:clamp(rt.ap??3,0,99),tension:clamp(rt.tension,0,99),funding:Number.isFinite(+rt.funding)?clamp(rt.funding,0,999):null,fundingTier:clamp(rt.fundingTier,0,6),sacrifices:cleanArray(rt.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item)),notes:typeof rt.notes==="string"?rt.notes.slice(0,10000):"",effects:cleanArray(rt.effects),clocks:Array.isArray(rt.clocks)?rt.clocks.slice(0,30).map(c=>({id:typeof c.id==="string"?c.id:uid(),name:typeof c.name==="string"?c.name.slice(0,120):"Часы",size:[4,6,8].includes(+c.size)?+c.size:6,value:clamp(c.value,0,[4,6,8].includes(+c.size)?+c.size:6)})):[],diceHistory:Array.isArray(rt.diceHistory)?rt.diceHistory.slice(0,20).map(row=>({at:typeof row.at==="string"?row.at.slice(0,20):"",count:clamp(row.count,1,300),successes:clamp(row.successes,0,300),crits:clamp(row.crits,0,300),outcome:typeof row.outcome==="string"?row.outcome.slice(0,80):"",target:clamp(row.target||base.tier+1,1,99),allIn:Boolean(row.allIn),payment:typeof row.payment==="string"?row.payment.slice(0,20):""})):[],freeplay:{target:freeplay.target!=null?clamp(freeplay.target,1,99):null}};
+  const rt=h.runtime||{},freeplay=rt.freeplay&&typeof rt.freeplay==="object"?rt.freeplay:{}; base.runtime={hp:rt.hp!==""&&rt.hp!=null&&Number.isFinite(+rt.hp)?+rt.hp:null,maxHp:rt.maxHp!==""&&rt.maxHp!=null&&Number.isFinite(+rt.maxHp)?Math.max(0,+rt.maxHp):null,wounds:clamp(rt.wounds,0,99),focus:Number.isFinite(+rt.focus)?+rt.focus:null,influence:clamp(rt.influence,0,999),stress:clamp(rt.stress,0,stressMaximumFor(base)),ap:clamp(rt.ap??3,0,99),tension:clamp(rt.tension,0,99),funding:Number.isFinite(+rt.funding)?clamp(rt.funding,0,999):null,fundingTier:clamp(rt.fundingTier,0,6),sacrifices:cleanArray(rt.sacrifices).filter(item=>["eye","arm","leg","tongue","life"].includes(item)),notes:typeof rt.notes==="string"?rt.notes.slice(0,10000):"",effects:cleanArray(rt.effects),clocks:Array.isArray(rt.clocks)?rt.clocks.slice(0,30).map(c=>({id:typeof c.id==="string"?c.id:uid(),name:typeof c.name==="string"?c.name.slice(0,120):"Часы",size:[4,6,8].includes(+c.size)?+c.size:6,value:clamp(c.value,0,[4,6,8].includes(+c.size)?+c.size:6)})):[],diceHistory:normalizeHeroDiceHistory(rt.diceHistory,base.tier),freeplay:{target:freeplay.target!=null?clamp(freeplay.target,1,99):null}};
   if(base.rulesEdition==="lionwing"){const bridge=normalizeHeroLionwingBridge(h.lionwing);if(bridge)base.lionwing=bridge;}
   return base;
 }

@@ -8887,6 +8887,7 @@
             "apps/companion/tests/freeplay-localization.mjs",
             "apps/companion/tests/freeplay-resources-gadgets.mjs",
             "apps/companion/tests/hero-builds.mjs",
+            "apps/companion/tests/hero-dice-history.mjs",
             "apps/companion/tests/hero-gadgets.mjs",
             "apps/companion/tests/intent-batch-rpc-postgres.mjs",
             "apps/companion/tests/lionwing-action-identity.mjs",
