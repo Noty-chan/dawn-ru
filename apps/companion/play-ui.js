@@ -165,7 +165,7 @@ function challengeActors(){
 function opposedActorChoices(role=toolsRole()){
   if(role!=="local-table")return Scene.actors.filter(actor=>actor.kind!=="token"&&!actor.knockedOut).map(actor=>({value:`actor:${actor.id}`,name:actor.name,actor,pool:actor.team==="enemy"?actor.tier+5:Math.max(1,actor.tier+3)}));
   const heroIds=new Set(store.heroes.map(hero=>hero.id)),heroes=store.heroes.map(hero=>({value:`hero:${hero.id}`,name:hero.name||"Безымянный герой",hero,pool:Math.max(1,hero.tier+3)})),actors=Scene.actors.filter(actor=>actor.kind!=="token"&&!actor.knockedOut&&(!actor.heroId||!heroIds.has(actor.heroId))).map(actor=>({value:`actor:${actor.id}`,name:actor.name,actor,pool:actor.team==="enemy"?actor.tier+5:Math.max(1,actor.tier+3)}));
-  return[...heroes,...actors,{value:"custom",name:"Другой NPC…",pool:6}];
+  return[...heroes,...actors,{value:"custom",name:isEnglishPreview()?"Other NPC…":"Другой НПС…",pool:6}];
 }
 function opposedResultSummary(request){
   if(!request)return"";
@@ -211,12 +211,12 @@ function renderFreeplayDirector(){
   if(role!=="network-player")$("roll-dice").disabled=false;
   if(role!=="network-player")localSelect.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||"Безымянный герой")} · Ст.${hero.tier}</option>`).join("");
   if(role==="local-table"){
-    $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent=kind==="opposed"?"Встречный бросок за одним устройством":"Испытание за одним устройством";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Герои используют свои листы, за NPC Нарратор может бросить вручную.":"Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
+    $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent=kind==="opposed"?"Встречный бросок за одним устройством":"Испытание за одним устройством";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Герои используют свои листы, за НПС Нарратор может бросить вручную.":"Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
     if(kind==="opposed"){const selected=opponent.value,choices=opposedActorChoices(role).filter(choice=>choice.value!==`hero:${S.id}`);opponent.innerHTML=choices.map(choice=>`<option value="${esc(choice.value)}">${esc(choice.name)}</option>`).join("");if(choices.some(choice=>choice.value===selected))opponent.value=selected;opponentNameWrap.hidden=opponent.value!=="custom";}
     if(document.activeElement!==target)target.value=freeplayState().target??defaultChallengeTarget()??"";
     state.innerHTML=kind==="opposed"?opposed?`<strong>${esc(opposed.participants.map(item=>item.name).join(" против "))}</strong><span>Результаты сохраняются по сторонам; при ничьей нужен новый совместный переброс.</span>`:"<strong>Подготовьте две стороны</strong><span>У встречного броска нет Цели Успехов: побеждает сторона с большим числом Успехов.</span>":"<strong>Локальная игра</strong><span>Все герои и броски остаются на этом устройстве; переключение героя использует его настоящий лист.</span>";
   }else if(role==="network-narrator"){
-    $("freeplay-director-kind").textContent="СЕТЕВОЙ СТОЛ";$("freeplay-director-title").textContent="Пульт Нарратора";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Владельцы героев получат запросы, за NPC можно бросить с пульта.":"Выберите героя и назначьте Цель Успехов. Игрок получит запрос на своём устройстве.";
+    $("freeplay-director-kind").textContent="СЕТЕВОЙ СТОЛ";$("freeplay-director-title").textContent="Пульт Нарратора";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Владельцы героев получат запросы, за НПС можно бросить с пульта.":"Выберите героя и назначьте Цель Успехов. Игрок получит запрос на своём устройстве.";
     const actors=kind==="opposed"?opposedActorChoices(role).map(choice=>choice.actor):challengeActors(),selected=actorSelect.value||request?.actorId||opposed?.participants?.[0]?.actorId;actorSelect.innerHTML=actors.map(actor=>`<option value="${actor.id}">${esc(actor.name)}</option>`).join("")||`<option value="">Нет доступных участников</option>`;if(actors.some(actor=>actor.id===selected))actorSelect.value=selected;
     if(kind==="opposed"){const opponentSelected=opponent.value||opposed?.participants?.[1]?.actorId,available=actors.filter(actor=>actor.id!==actorSelect.value);opponent.innerHTML=available.map(actor=>`<option value="actor:${actor.id}">${esc(actor.name)}</option>`).join("")||`<option value="">Нужен второй участник</option>`;if(available.some(actor=>`actor:${actor.id}`===opponentSelected||actor.id===opponentSelected))opponent.value=opponentSelected?.startsWith("actor:")?opponentSelected:`actor:${opponentSelected}`;}
     if(document.activeElement!==target)target.value=request?.target??freeplayState().target??defaultChallengeTarget(actors.find(actor=>actor.id===actorSelect.value)||S)??"";
@@ -338,7 +338,7 @@ function rollDice(){
 }
 function allIn(payment){
   if(!pendingAllIn)return;
-  if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast("Недостаточно Влияния");if(!setToolsResource("influence",influence-1,"Влияние"))return}else{const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast("Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return}
+  if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast(isEnglishPreview()?"Not enough Influence":"Недостаточно Влияния");if(!setToolsResource("influence",influence-1,"Влияние"))return}else{const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast(isEnglishPreview()?"Stress is already at maximum":"Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return}
   const flashback=hasGift("Plenty To Learn")&&$("all-in-flashback").checked,{count,diceRequest,scenario}=pendingAllIn,request=diceRequest?{...diceRequest,hooks:[...(diceRequest.hooks||[]),...(flashback?[{type:"advantage",ruleId:"student.plenty-to-learn",label:"Ещё многому учиться",amount:4}]:[])]}:null,result=resolveDice(count+(request?0:flashback?4:0),3,flashback?`${payment}, флэшбек +4` : payment,request,scenario);if(result)pendingAllIn=null;renderAllInControls();if(store.mode==="play")renderPlay();
 }
 function renderDiceHistory(){
@@ -357,7 +357,7 @@ function toolsStressOwners(){
   const context=toolsSyncContext();
   if(context.shared)return Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token").map(actor=>({id:actor.id,name:actor.name,actor,stress:Number(actor.stress||0),maxStress:stressMaximumFor(actor)}));
   return store.heroes.map(hero=>{const actor=Scene.rulesEdition==="lionwing"?Scene.actors.find(item=>(item.heroId===hero.id||item.characterId===hero.id)&&(item.team==="hero"||item.kind==="hero")):null;
-    return{id:hero.id,name:hero.name||"Безымянный герой",hero,actor,stress:Number(actor?.stress??hero.runtime?.stress??0),maxStress:stressMaximumFor(actor||hero)};});
+    return{id:hero.id,name:hero.name||(isEnglishPreview()?"Unnamed hero":"Безымянный герой"),hero,actor,stress:Number(actor?.stress??hero.runtime?.stress??0),maxStress:stressMaximumFor(actor||hero)};});
 }
 function toolsStressCorrectionReason(owner){
   if(!toolsSyncContext().canEdit)return isEnglishPreview()?"Edited by the Narrator":"Изменяет Нарратор";
@@ -370,7 +370,7 @@ function toolsStressCorrectionReason(owner){
 function setToolsStressTracker(id,value){
   const owner=toolsStressOwners().find(item=>item.id===id);if(!owner)return false;
   const reason=toolsStressCorrectionReason(owner);if(reason){toast(reason);return false;}
-  const chosen=clamp(value,0,owner.maxStress),next=owner.stress===chosen?Math.max(0,chosen-1):chosen,label=`${owner.name}: Стресс → ${next}`;
+  const chosen=clamp(value,0,owner.maxStress),next=owner.stress===chosen?Math.max(0,chosen-1):chosen,label=`${owner.name}: ${isEnglishPreview()?"Stress":"Стресс"} → ${next}`;
   if(owner.actor){
     if(Scene.rulesEdition==="lionwing"){if(!lwSubmit(owner.actor.id,{kind:"correct",resource:"stress",amount:next},label))return false;}
     else {const sceneEvent={type:"actor.runtime.set",actorId:owner.actor.id,payload:{key:"stress",value:next}},result=commitSceneEvents(label,[sceneEvent]);if(!result)return false;if(result?.pending)applyOptimisticToolsEvents([sceneEvent]);}
@@ -380,9 +380,9 @@ function setToolsStressTracker(id,value){
 function renderStressTrackers(){
   const root=$("stress-trackers"),heroes=toolsStressOwners();
   const segment=(hero,index)=>!toolsStressCorrectionReason(hero)
-    ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: Стресс ${index}`)}"></button>`
+    ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: ${isEnglishPreview()?"Stress":"Стресс"} ${index}`)}"></button>`
     :`<span class="${index<=hero.stress?"on":""}"></span>`;
-  root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress,reason=toolsStressCorrectionReason(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${Number(hero.stress)>=maxStress?"Максимум · герой вне строя":`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${reason?`role="img" aria-label="${esc(`${hero.name}: Стресс ${clamp(hero.stress,0,maxStress)} из ${maxStress}`)}"`:""}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${toolsSyncContext().shared?"Добавьте героев за общий стол.":"Нет текущего героя."}</p>`;
+  root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress,reason=toolsStressCorrectionReason(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${Number(hero.stress)>=maxStress?(isEnglishPreview()?"Maximum · hero out of action":"Максимум · герой вне строя"):`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${reason?`role="img" aria-label="${esc(`${hero.name}: ${isEnglishPreview()?"Stress":"Стресс"} ${clamp(hero.stress,0,maxStress)} ${isEnglishPreview()?"of":"из"} ${maxStress}`)}"`:""}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${isEnglishPreview()?(toolsSyncContext().shared?"Add heroes to the shared table.":"No current hero."):(toolsSyncContext().shared?"Добавьте героев за общий стол.":"Нет текущего героя.")}</p>`;
   if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 
@@ -512,7 +512,7 @@ function referenceItems(){
 function renderReference(){
   const lionwing=isLionwingEdition(),en=isEnglishPreview()&&lionwing,q=$("ref-search").value.trim().toLowerCase(),filters=lionwing?(en?["all","Builder Reference","Skill","Rule","Action","Effect","NPC","Technique","Boon"]:["all","Справка","Навык","Правило","Действие","Эффект","NPC","Техника","Дар"]):["all","Термин","Памятка","Связь","Действие","Эффект","Техника","Дар","Враг"],tagList=item=>String(item.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean);
   if(!filters.includes(refKind))refKind="all";
-  $("ref-filters").innerHTML=filters.map(f=>`<button type="button" class="${refKind===f?"on":""}" data-ref-kind="${f}">${f==="all"?(en?"All":"Всё"):f}</button>`).join("");
+  $("ref-filters").innerHTML=filters.map(f=>`<button type="button" class="${refKind===f?"on":""}" data-ref-kind="${f}">${f==="all"?(en?"All":"Всё"):!en&&f==="NPC"?"НПС":f}</button>`).join("");
   const matchKind=item=>refKind==="all"||item.kind.toLowerCase().startsWith(refKind.toLowerCase())||(!lionwing&&refKind==="Эффект"&&["Положительный эффект","Отрицательный эффект"].includes(item.kind)),kindItems=referenceItems().filter(matchKind),tags=[...new Set(kindItems.flatMap(tagList))].sort((a,b)=>a.localeCompare(b,en?"en":"ru"));
   if(refTag!=="all"&&!tags.includes(refTag))refTag="all";
   $("ref-tag-filters").innerHTML=`<label class="tag-picker"><span>${en?"Tag":"Тег"}</span><select data-ref-tag-select>${["all",...tags].map(tag=>`<option value="${esc(tag)}" ${refTag===tag?"selected":""}>${tag==="all"?(en?"All tags":"Все теги"):esc(tag)}</option>`).join("")}</select></label>`;
@@ -523,7 +523,7 @@ function renderReference(){
   const revealIndex=location.hash&&typeof workspaceReferenceAnchor==="function"?list.findIndex(item=>workspaceReferenceAnchor(item)===location.hash.slice(1)):-1;
   const page=typeof workspaceResultPage==="function"?workspaceResultPage("reference",pageKey,list,40,revealIndex):{items:list,shown:list.length,total:list.length,hasMore:false};
   const count=$("reference-count"),more=$("reference-more"),moreFocused=more&&document.activeElement===more;if(count)count.textContent=en?`Showing ${page.shown} of ${page.total}`:`Показано ${page.shown} из ${page.total}`;if(more){more.hidden=!page.hasMore;more.textContent=en?"Show more":"Показать ещё";if(moreFocused&&!page.hasMore)count?.focus({preventScroll:true})}
-  $("reference-list").innerHTML=page.items.map(item=>{const key=item.id||ruleKey(`${item.name}:${item.text||""}`),anchor=`reference-${String(key).replace(/[^a-z0-9_-]+/gi,"-")}`,pin=makeRulePinRecord(item,"reference","reference",anchor);return`<article id="${anchor}" class="catalog-card"><header><span class="kind">${esc(item.kind)}</span>${rulePinButton(pin)}</header><h3>${en?"":automationBadge(item.automationStatus)}${esc(item.name)}${item.cost?` · ${esc(item.cost)}`:""}</h3>${item.aliases?.length?`<div class="meta">${en?"Also":"Также"}: ${item.aliases.map(esc).join(" · ")}</div>`:item.tags?`<div class="meta">${esc(item.tags)}</div>`:""}<p>${md(item.text||"")}</p></article>`}).join("")||`<p>${en?"Nothing found.":"Ничего не найдено."}</p>`;
+  $("reference-list").innerHTML=page.items.map(item=>{const key=item.id||ruleKey(`${item.name}:${item.text||""}`),anchor=`reference-${String(key).replace(/[^a-z0-9_-]+/gi,"-")}`,pin=makeRulePinRecord(item,"reference","reference",anchor);return`<article id="${anchor}" class="catalog-card"><header><span class="kind">${esc(!en?item.kind.replace(/^NPC(?= ·|$)/,"НПС"):item.kind)}</span>${rulePinButton(pin)}</header><h3>${en?"":automationBadge(item.automationStatus)}${esc(item.name)}${item.cost?` · ${esc(item.cost)}`:""}</h3>${item.aliases?.length?`<div class="meta">${en?"Also":"Также"}: ${item.aliases.map(esc).join(" · ")}</div>`:item.tags?`<div class="meta">${esc(item.tags)}</div>`:""}<p>${md(item.text||"")}</p></article>`}).join("")||`<p>${en?"Nothing found.":"Ничего не найдено."}</p>`;
 }
 
 function renderAll(){renderHeroSelect();renderSupplementPicker();renderProfile();renderAttrs();renderOutlooks();renderBondTraining();renderSkillsAbility();renderTechniques();renderSheet();renderSidebar();if(store.mode==="play")renderPlay();if(store.mode==="tools")renderToolsWorkspace();if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();renderChallengeRequestDock();persist();}

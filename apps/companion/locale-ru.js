@@ -263,7 +263,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "tools.requestRecipient": "Адресат запроса",
   "tools.opponent": "Противник",
   "tools.opponentName": "Имя противника",
-  "tools.unnamedNpc": "Безымянный NPC",
+  "tools.unnamedNpc": "Безымянный НПС",
   "tools.successTarget": "Цель Успехов",
   "tools.byTier": "По Ступени",
   "tools.baseAttribute": "Базовый Атрибут",
