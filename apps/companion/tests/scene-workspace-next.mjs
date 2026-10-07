@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../scene-workspace-next.js',import.meta.url),'utf8');
+const start=source.indexOf('  function measureMobileControls(){'),end=source.indexOf('  function refresh(){',start);
+const values=new Map();let mobile=true,next=true,height=80.48;
+const context=vm.createContext({bar:{getBoundingClientRect:()=>({height})},narrow:()=>mobile,usingNextSceneInterface:()=>next,$:()=>({style:{setProperty:(key,value)=>values.set(key,value)}})});
+vm.runInContext(source.slice(start,end),context);
+context.measureMobileControls();assert.equal(values.get('--scene-mobile-controls-height'),'81px','fractional rendered dock is fully reserved');
+height=102.2;context.measureMobileControls();assert.equal(values.get('--scene-mobile-controls-height'),'103px','changed font/content height updates the panel boundary');
+mobile=false;context.measureMobileControls();assert.equal(values.get('--scene-mobile-controls-height'),'0px','desktop clears the reserved mobile boundary');
+mobile=true;next=false;context.measureMobileControls();assert.equal(values.get('--scene-mobile-controls-height'),'0px','classic is not changed');
+console.log('Next scene measured dock boundary: fractional height, resize/content and desktop/classic reset passed');

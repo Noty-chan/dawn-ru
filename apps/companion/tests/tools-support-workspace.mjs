@@ -53,3 +53,26 @@ assert.match(css,/body\.tools-mode\.tools-interface-next \.sidebar\{display:none
 assert.match(css,/tools-support-workspace>\.tools-support-panel[^}]*min-height:0;overflow:auto/,'Only the active support surface owns the bounded scrolling region');
 assert.doesNotMatch(css,/#[0-9a-f]{3,8}\b/i);
 console.log('Tools support VM PASS: 100-record page/search cases; real renderers retain 40 clocks/35 bonds/70 rolls, controls, state and shared permissions/visibility. Browser tabs, DOM reparenting, disclosure and layout require root QA.');
+
+// Exercise the actual overview renderer with a title that previously swallowed progress.
+const workspaceSource=fs.readFileSync(path.join(base,'tools-workspace.js'),'utf8');
+const overview={innerHTML:''};
+const longTitle='Очень длинное имя часов '.repeat(20)+'<ритуал>';
+const clockRecord={querySelector:()=>({querySelector:selector=>({textContent:selector==='strong'?longTitle:'11 / 12'})})};
+const overviewContext={definitions:[['clocks','tools-clocks','clocks','tools.clocks.title','Часы сцены']],overview,text:(_,fallback)=>fallback};
+vm.createContext(overviewContext);
+vm.runInContext(workspaceSource.slice(workspaceSource.indexOf('  function renderOverview('),workspaceSource.indexOf('  global.DAWN_TOOLS_WORKSPACE=')),overviewContext);
+overviewContext.renderOverview(new Map([['clocks',[clockRecord]]]));
+assert.match(overview.innerHTML,/<span class="tools-overview-name">[^]*&lt;ритуал&gt;<\/span><span class="tools-overview-progress">11 \/ 12<\/span>/,'Progress is a separate sibling of the long escaped clock title');
+assert.match(css,/tools-overview-progress\{[^}]*flex:none;white-space:nowrap/,'The progress cannot shrink or wrap with the title');
+
+const opened=new Set(['clocks:first']);
+const creationContext={state:{opened}};
+vm.createContext(creationContext);
+vm.runInContext(workspaceSource.slice(workspaceSource.indexOf('  function openCreatedRecord('),workspaceSource.indexOf('  function refresh(')),creationContext);
+const disclosures=[{open:true},{open:false}];
+const creationRecords=disclosures.map((details,index)=>({dataset:{toolsRecord:index?'clocks:new':'clocks:first'},querySelector:()=>details}));
+creationContext.openCreatedRecord(creationRecords,creationRecords[1]);
+assert.equal(disclosures[0].open,false,'Creating a clock closes the previous editor');
+assert.equal(disclosures[1].open,true,'Only the new clock editor opens');
+assert.deepEqual([...opened],['clocks:new'],'Redraw state remembers only the newly opened clock');

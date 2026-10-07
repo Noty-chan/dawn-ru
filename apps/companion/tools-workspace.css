@@ -111,3 +111,20 @@ body.tools-mode.tools-interface-next .tools-support-panel .clock-list{display:bl
 
 body.tools-mode.tools-interface-next .tools-heading>.tools-view-switch{float:none;justify-content:flex-start;margin:0}
 body.tools-mode.tools-interface-next:has(#tools-view-switch [data-tools-view="player"][aria-pressed="true"]) .freeplay-grid[data-tools-role="local-table"][data-tools-request-active="false"] #tools-context{display:none}
+
+/* Keep the scene state readable even when a clock title needs truncation. */
+body.tools-mode.tools-interface-next .tools-overview-clock{display:flex;align-items:center;gap:.5rem;max-height:none}
+.tools-overview-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-width:0;flex:1}
+.tools-overview-progress{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+@media(max-width:720px){
+  body.tools-mode.tools-interface-next .tools-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.35rem;text-align:left}
+  body.tools-mode.tools-interface-next .tools-heading>div:first-child,body.tools-mode.tools-interface-next .tools-heading>.tools-view-switch{grid-column:1/-1}
+  body.tools-mode.tools-interface-next .tools-heading>.tools-sync-state{font-size:.55rem;white-space:normal;padding:.3rem}
+  body.tools-mode.tools-interface-next .tools-heading .eyebrow,body.tools-mode.tools-interface-next .dice-tool-head h2{display:none}
+  body.tools-mode.tools-interface-next .dice-composer>label{grid-column:auto}
+  body.tools-mode.tools-interface-next .tools-next-action{grid-row:1}
+  body.tools-mode.tools-interface-next .tools-next-sheet{grid-row:2}
+  body.tools-mode.tools-interface-next .tools-next-overview{grid-row:3}
+  body.tools-mode.tools-interface-next .tools-next-pool{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
