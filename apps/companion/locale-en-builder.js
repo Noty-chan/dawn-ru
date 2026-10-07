@@ -299,7 +299,7 @@ window.DAWN_I18N?.registerLocale("en", {
   "builder.outlooks.choose": "Choose an Outlook first.",
   "builder.bonds.favored": "Favored Actions",
   "builder.bonds.choose": "Choose an Outlook first",
-  "builder.bonds.lionwingHelp": "Taken from the selected Outlooks. Bond resolution will be added with the separate LionWing table.",
+  "builder.bonds.lionwingHelp": "Actions come from the selected Outlooks. Create Bonds and add them to a dice pool in Tools.",
   "builder.bonds.legacyHelp": "You may take 1 Stress instead of paying 1 Influence.",
   "builder.bonds.rulesLink": "How Bonds work",
   "builder.ability.chooseWord": "Choose a word…",

@@ -477,7 +477,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "builder.outlooks.choose": "Сначала выберите Мировоззрение.",
   "builder.bonds.favored": "Избранные действия",
   "builder.bonds.choose": "Сначала выберите Мировоззрение",
-  "builder.bonds.lionwingHelp": "Берутся из выбранных Мировоззрений. Разыгрывание Связей появится вместе с отдельным столом LionWing.",
+  "builder.bonds.lionwingHelp": "Действия берутся из выбранных Мировоззрений. Создавать Связи и добавлять их в пул можно в Инструментах.",
   "builder.bonds.legacyHelp": "Стоимость в 1 Влияние можно заменить 1 Стрессом.",
   "builder.bonds.rulesLink": "Как работают Связи",
   "builder.ability.chooseWord": "Выберите слово…",
