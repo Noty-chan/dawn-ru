@@ -1,3 +1,4 @@
+import './freeplay-localization.mjs';
 import './challenge-targets.mjs';
 import './freeplay-resources-gadgets.mjs';
 import assert from "node:assert/strict";

@@ -317,7 +317,7 @@ assert.equal(remoteCrushingImpact.ok, false, "an eligible adjacent Fodder does n
 assert.match(remoteCrushingImpact.errors.join(" "), /области/);
 assert.equal(fodder(javelinRange).some(item => item.id === "range-fodder"), true, "the unautomated optional range passive does not consume Fodder as a side effect");
 const javelinUi = fs.readFileSync(new URL("../scene-ui.js", import.meta.url), "utf8");
-assert.match(javelinUi, /пассив дальности не автоматизирован; зона 2×2 остаётся размещённой на самом NPC/, "the UI discloses Javelin's unautomated passive and canonical area boundary");
+assert.match(javelinUi, /пассив дальности не автоматизирован; зона 2×2 остаётся размещённой на самом НПС/, "the UI discloses Javelin's unautomated passive and canonical area boundary");
 
 // Writer authority covers the complete consequences, not merely each supplied
 // spawn. Run the same forged requests against both public edition adapters.

@@ -405,6 +405,8 @@ window.DAWN_I18N?.registerLocale("ru", {
   "tools.outcomeHelp": "Как определяется результат",
   "reference.ruleLinkHelp": "Полные объяснения механик — в Правилах",
   "reference.openRules": "Открыть Правила",
+  "settings.rulesEditionAria": "Редакция правил",
+  "settings.openAria": "Открыть настройки",
   "settings.language": "Язык",
   "settings.edition": "Редакция",
   "settings.content": "Язык и редакция правил",

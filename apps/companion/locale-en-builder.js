@@ -227,6 +227,8 @@ window.DAWN_I18N?.registerLocale("en", {
   "tools.outcomeHelp": "How the result is determined",
   "reference.ruleLinkHelp": "Full explanations are in Rules",
   "reference.openRules": "Open Rules",
+  "settings.rulesEditionAria": "Rules edition",
+  "settings.openAria": "Open settings",
   "settings.language": "Language",
   "settings.edition": "Edition",
   "settings.content": "Language and rules edition",
