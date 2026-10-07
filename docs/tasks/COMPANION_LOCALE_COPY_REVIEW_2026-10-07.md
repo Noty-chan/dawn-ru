@@ -198,3 +198,5 @@
 справка о Связях и названия Даров этим малым пакетом не изменялись.
 D6 и формулы сохранены. Проверены syntax, localization architecture,
 freeplay-tools, freeplay-resources-gadgets; браузер отдельно не запускался.
+
+Вторая малая порция: переведены EN подписи редактора часов Name/Save/Reset/Remove/Type/Good/Bad/Current/Maximum и доступные имена сегментов/заполнения. Имена часов и формулы не изменены. Syntax/localization/freeplay-tools PASS; реальные функции renderClocks выполнены в VM для editable/read-only RU/EN. Браузер не запускался.
