@@ -367,6 +367,7 @@ function addEnemyDeploymentPassives(scene, actor){
 }
 
 function validateTableEdit(before,after,options={}){
+  globalThis.window?.DAWN_TABLE_POLICY?.validateSnapshot(before,after,{restore:options.tableRestore===true});
   const edition=before.rulesEdition||"ru-v0.9";
   if(edition==="lionwing"&&[...(before.actors||[]),...(after.actors||[])].some(actor=>String(actor.profileId||"").startsWith("enemy.modifier.")))throw new Error("В этой Сцене LionWing есть модификаторы старой редакции. Продолжение боя заблокировано; создайте новую Сцену с модификаторами LionWing.");
   if(before.actors.length&&after.rulesEdition&&after.rulesEdition!==edition)throw new Error("Существующая Сцена сохраняет свою редакцию");

@@ -101,6 +101,10 @@
       const target = requiredActor(scene, event.actorId), to = cell(scene, p.space, p.x, p.y);
       target.manualMovementTrace = { eventId: event.id, from: { space: target.space, x: target.x, y: target.y }, to: copy(to) };
       Object.assign(target, to);
+    } else if (p.kind === "movement/clear") {
+      exactKeys(p,["kind","space"]);safeId(p.space);
+      if(!(scene.spaces||[]).some(row=>row.id===p.space))fail("Пространство отсутствует.");
+      for(const target of scene.actors||[])if(target.manualMovementTrace?.from?.space===p.space||target.manualMovementTrace?.to?.space===p.space)delete target.manualMovementTrace;
     } else if (p.kind === "resource") {
       exactKeys(p, ["kind", "values"]); exactKeys(p.values, RESOURCE_FIELDS);
       if (!Object.keys(p.values).length) fail("Не указаны ресурсы.");
@@ -238,6 +242,21 @@
       duplicates: copy(events.filter(row => replay.matchedIds.includes(row.id))) };
   }
   function blocked() { fail("Автоматические действия выключены в ручном столе.", "TABLE_AUTOMATION_BLOCKED"); }
+  function validateSnapshot(before,after,options={}){
+    if(!isManual(before)&&!isManual(after))return true;
+    if(!isManual(before)||!isManual(after)||JSON.stringify(normalizePolicy(before.tablePolicy))!==JSON.stringify(normalizePolicy(after.tablePolicy)))fail("Снимок и отмена не могут менять Ведение стола.","TABLE_SNAPSHOT_POLICY");
+    if(options.restore===true){if(pendingWork(before)||pendingWork(after))fail("Сначала завершите ожидающее действие.","TABLE_PENDING_WORK");return true;}
+    const history=options.history===true,same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    const runtime=scene=>{const value=copy(scene.lionwing||{});delete value.receipts;return value;};
+    if(!same(runtime(before),runtime(after)))fail("Снимок не может менять замороженную механику LionWing.","TABLE_SNAPSHOT_RUNTIME");
+    for(const key of ["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","reminders","topology","movementTraces"]){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
+    if(!history)for(const key of ["manualTable","sessionClocks","objects","walls","markers","rollFeed"]){if(!same(before[key],after[key]))fail("Используйте явные команды ручного стола.","TABLE_SNAPSHOT_RUNTIME");}
+    const editable=new Set(["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","ownerId"]);
+    if(history)for(const key of [...RESOURCE_FIELDS,"space","x","y","manualMovementTrace","manualStatuses","manualTechniqueState"])editable.add(key);
+    const stored=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!editable.has(key)));
+    for(const old of before.actors||[]){const next=(after.actors||[]).find(row=>row.id===old.id);if(!next){if(!history)fail("Удаление участника требует ручной команды.","TABLE_SNAPSHOT_RUNTIME");continue;}if(!same(stored(old),stored(next)))fail("Снимок не может менять боевое состояние участника.","TABLE_SNAPSHOT_RUNTIME");}
+    return true;
+  }
   function install(sceneEngine = global.DAWN_SCENE_ENGINE, lionwingEngine = global.DAWN_LIONWING_ENGINE) {
     for (const engine of [sceneEngine, lionwingEngine]) {
       if (!engine || installed.has(engine)) continue;
@@ -279,5 +298,5 @@
     }
     return global.DAWN_TABLE_POLICY;
   }
-  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, resourceFields: RESOURCE_FIELDS };
+  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceFields: RESOURCE_FIELDS };
 })(typeof window === "object" ? window : globalThis);

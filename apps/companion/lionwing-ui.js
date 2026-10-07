@@ -1175,6 +1175,7 @@ const lwOldTakeWound = takeWound;
 takeWound = function(external) { const a=currentHeroActor();return lwActive()&&a?lwSubmit(a.id,{kind:"wound",targetId:a.id,sourceActorId:external?null:a.id},"Рана"):lwOldTakeWound(external); };
 const lwOldBoardMove = moveSceneActorFromBoard;
 moveSceneActorFromBoard = function(a,x,y,options={}) {
+  if(window.DAWN_TABLE_POLICY?.isManual(Scene))return lwOldBoardMove(a,x,y,options);
   if (!lwActive()) return lwOldBoardMove(a,x,y,options);
   if (!lwOwns(a.id)) return toast("Можно перемещать только своего героя");
   if (a.x === x && a.y === y) return;

@@ -9,6 +9,8 @@ import './table-manual-persistence.mjs';
 import './table-manual-policy.mjs';
 import './table-manual-workspace.mjs';
 import './table-manual-surfaces.mjs';
+import './table-manual-movement.mjs';
+import './table-manual-snapshots.mjs';
 import './scene-pan-lifecycle.mjs';
 import './hero-dice-history.mjs';
 import './freeplay-localization.mjs';

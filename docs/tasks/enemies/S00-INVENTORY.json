@@ -293,8 +293,10 @@
             "apps/companion/tests/table-manual-clock-route.mjs",
             "apps/companion/tests/table-manual-deletion-route.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
+            "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-roll-route.mjs",
+            "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/tools-support-workspace.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -1318,6 +1320,7 @@
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-roll-route.mjs",
+            "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -2816,6 +2819,7 @@
           "apps/companion/tests/scene-pointer-routing.mjs",
           "apps/companion/tests/scene-token-hud.mjs",
           "apps/companion/tests/table-manual-policy.mjs",
+          "apps/companion/tests/table-manual-snapshots.mjs",
           "apps/companion/tests/tools-workspace.mjs"
         ],
         "notRun": [
@@ -2888,6 +2892,7 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
@@ -2950,6 +2955,7 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
@@ -3015,6 +3021,7 @@
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
+            "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -5240,6 +5247,7 @@
           "apps/companion/tests/scene-token-hud.mjs",
           "apps/companion/tests/service-worker-navigation.mjs",
           "apps/companion/tests/table-manual-map-tools.mjs",
+          "apps/companion/tests/table-manual-movement.mjs",
           "apps/companion/tests/table-manual-policy.mjs",
           "apps/companion/tests/table-manual-reader-data.mjs",
           "apps/companion/tests/table-manual-surfaces.mjs",
@@ -5402,6 +5410,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
+            "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
@@ -5558,6 +5567,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
+            "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
@@ -5720,6 +5730,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
+            "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
@@ -9092,11 +9103,13 @@
             "apps/companion/tests/table-manual-clock-route.mjs",
             "apps/companion/tests/table-manual-deletion-route.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
+            "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-network.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-public-projection.mjs",
             "apps/companion/tests/table-manual-roll-route.mjs",
+            "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs"

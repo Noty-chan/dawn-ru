@@ -231,7 +231,7 @@ function commitScene(label,mutator,options={}){
       Scene.undo.unshift({id:uid(),label,state:before});Scene.undo=Scene.undo.slice(0,20);
       sceneEvent(label);
       assertNetworkSceneFits(Scene);
-      if(!queueNetworkV2Snapshot(sceneSnapshot(),label))throw new Error("Общий стол недоступен; изменение не отправлено");
+      if(!queueNetworkV2Snapshot(sceneSnapshot(),label,{restore:options.tableRestore===true}))throw new Error("Общий стол недоступен; изменение не отправлено");
       syncHeroFromScene();persist();if(store.mode==="play")renderPlay();else renderScene();
       return{queued:true};
     }
@@ -281,6 +281,7 @@ let lastSceneEventSubmission={fingerprint:"",at:0};
 function captureSceneFxContext(events=[]){const wrap=$("scene-board-wrap");if(!wrap)return{};const wrapRect=wrap.getBoundingClientRect(),points={};for(const event of events.filter(item=>item.type==="actor.move")){const token=wrap.querySelector(`[data-scene-actor="${CSS.escape(event.actorId||"")}"]`),rect=token?.getBoundingClientRect();if(rect)points[event.actorId]={x:rect.left-wrapRect.left+wrap.scrollLeft+rect.width/2,y:rect.top-wrapRect.top+wrap.scrollTop+rect.height/2}}return{points}}
 function commitSceneEvents(label,events){if(Scene.rulesEdition==="lionwing"&&(Scene.actors||[]).some(actor=>String(actor.profileId||"").startsWith("enemy.modifier.")))return toast("В этой Сцене LionWing есть модификаторы старой редакции. Продолжение боя заблокировано; создайте новую Сцену с модификаторами LionWing.");const fingerprint=JSON.stringify([label,events]),now=performance.now();if(fingerprint===lastSceneEventSubmission.fingerprint&&now-lastSceneEventSubmission.at<450)return toast("Двойное нажатие пропущено; это не подтверждение сервера");lastSceneEventSubmission={fingerprint,at:now};const fxContext=captureSceneFxContext(events);let sharedResult;try{sharedResult=submitNetworkV2Events(label,events)}catch(error){lastSceneEventSubmission={fingerprint:"",at:0};toast(friendlySyncError(error,"Это действие пока нельзя отправить за общий стол"));return null}if(sharedResult)return sharedResult;const before=sceneSnapshot(),expectedVersion=Number(Scene.version||0);let result;try{result=SceneEngine.dispatchMany(Scene,events,{expectedVersion})}catch(error){lastSceneEventSubmission={fingerprint:"",at:0};return toast(error.message||"Не удалось применить события Сцены")}Scene=normalizeScene(result.scene);if(result.events.some(event=>event.type==="round.end"))Scene.turnUndo=[];if(result.events.some(event=>event.type==="turn.start"))Scene.turnUndo=[{id:uid(),label:"До начала Хода",state:before,checkpoint:"turn-start"},...(Scene.turnUndo||[])].slice(0,120);Scene.undo.unshift({id:uid(),label,state:before});Scene.undo=Scene.undo.slice(0,20);Scene.redo=[];syncHeroFromScene();persist();if(store.mode==="play")renderPlay();else if(store.mode==="tools")renderToolsWorkspace();else renderScene();renderChallengeRequestDock();playSceneEventFx(result.events,fxContext);return result}
 function restoreSceneHistory(step,source,target,prefix){
+  if(activeSceneView()!=="gm")return toast("Отменой стола управляет Нарратор");
   const previous=Scene,current=sceneSnapshot(),remaining=source.slice(1),restored=sceneCore(step.state),opposite=[{id:uid(),label:step.label,state:current},...target].slice(0,20),turnHistory=source===Scene.turnUndo?remaining:[...(Scene.turnUndo||[])],shared=Boolean(Sync?.state?.().sceneId),label=`scene.history:${prefix}:${step.label}`;
   restored.version=Number(current.version||0)+1;
   if(source===Scene.undo){restored.undo=remaining;restored.redo=opposite}
@@ -288,11 +289,16 @@ function restoreSceneHistory(step,source,target,prefix){
   else{restored.redo=remaining;restored.undo=opposite}
   restored.turnUndo=turnHistory;
   try{
+    window.DAWN_TABLE_POLICY?.validateSnapshot(previous,restored,{history:true});
+    if(window.DAWN_TABLE_POLICY?.isManual(previous)){
+      if(previous.lionwing?.receipts){restored.lionwing||={};restored.lionwing.receipts=JSON.parse(JSON.stringify(previous.lionwing.receipts));}
+      if(previous.eventReceipts)restored.eventReceipts=JSON.parse(JSON.stringify(previous.eventReceipts));
+    }
     Scene=restored;
     sceneEvent(`${prefix}: ${step.label}`);
     if(shared){
       assertNetworkSceneFits(Scene);
-      if(!queueNetworkV2Snapshot(sceneSnapshot(),label))throw new Error("Общий стол недоступен; отмена не отправлена");
+      if(!queueNetworkV2Snapshot(sceneSnapshot(),label,{history:true}))throw new Error("Общий стол недоступен; отмена не отправлена");
     }
   }catch(error){Scene=previous;toast(error.message||"Не удалось отменить изменение Сцены");return null}
   syncHeroFromScene();persist();
@@ -445,10 +451,11 @@ function sceneTracePartGlyph(part,kind){
   return `<g class="trace-part trace-part-${kind}" transform="translate(${middle.x.toFixed(3)} ${middle.y.toFixed(3)}) rotate(${angle.toFixed(2)})"><circle r=".105"/><text x="0" y=".006">${symbol}</text></g><g class="trace-part-number" transform="translate(${badge.x.toFixed(3)} ${badge.y.toFixed(3)})"><circle r=".095"/><text x="0" y=".006">${part.index}</text></g>`
 }
 function sceneMovementTracesSvg(space,actors){
-  if(!sceneCombatStarted(Scene))return"";
-  const status=SceneEngine.movementTraceStatus(Scene,{space:space.id});if(!status.available)return"";
+  const manual=globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene);
+  if(!manual&&!sceneCombatStarted(Scene))return"";
+  const status=manual?{available:true,traces:actors.flatMap(actor=>{const trace=actor.manualMovementTrace,valid=point=>point?.space===space.id&&Number.isSafeInteger(point.x)&&Number.isSafeInteger(point.y)&&point.x>=0&&point.y>=0&&point.x<space.width&&point.y<space.height;if(!valid(trace?.from)||!valid(trace?.to)||trace.from.x===trace.to.x&&trace.from.y===trace.to.y)return[];return[{actorId:actor.id,from:trace.from,destination:trace.to,points:[trace.from,trace.to],movement:manualTableCopy("Ручное перемещение","Manual movement"),kind:"manual"}];})}:SceneEngine.movementTraceStatus(Scene,{space:space.id});if(!status.available)return"";
   const actorMap=new Map(actors.map(actor=>[actor.id,actor]));
-  const traces=status.traces.map((trace,index)=>{const actor=actorMap.get(trace.actorId);if(!actor)return"";const color=safeColor(actor.tokenColor,"#47bfd3"),marker=`move-arrow-${index}`,geometry=insetSceneTracePoints(trace.teleport?[trace.from,trace.destination]:trace.points),path=sceneTracePathData(geometry,actors,actor.id,space),origin=geometry[0],destination=geometry.at(-1),kind=trace.kind||"step",title=esc(`${actor.name}: ${trace.movement} · ${trace.parts?.length||1} ч. пути`),parts=(trace.parts||[]).map(part=>sceneTracePartGlyph(part,kind)).join("");
+  const traces=status.traces.map((trace,index)=>{const actor=actorMap.get(trace.actorId);if(!actor)return"";const color=safeColor(actor.tokenColor,"#47bfd3"),marker=`move-arrow-${index}`,geometry=insetSceneTracePoints(trace.teleport?[trace.from,trace.destination]:trace.points),path=manual?`M ${geometry[0].x} ${geometry[0].y} L ${geometry.at(-1).x} ${geometry.at(-1).y}`:sceneTracePathData(geometry,actors,actor.id,space),origin=geometry[0],destination=geometry.at(-1),kind=trace.kind||"step",title=esc(`${actor.name}: ${trace.movement}${manual?"":` · ${trace.parts?.length||1} ч. пути`}`),parts=(trace.parts||[]).map(part=>sceneTracePartGlyph(part,kind)).join("");
     if(trace.teleport)return `<g class="scene-move-trace teleport" style="--trace-color:${color}"><title>${title}</title><path class="trace-halo" d="${path}"/><path class="trace-line" d="${path}"/><circle class="trace-origin-ring" cx="${origin.x}" cy="${origin.y}" r=".13"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".045"/><path class="trace-rift" d="M ${((origin.x+destination.x)/2)-.12} ${(origin.y+destination.y)/2} l .08 -.08 l .08 .08 l .08 -.08"/><path class="trace-destination" d="M ${destination.x} ${destination.y-.14} L ${destination.x+.14} ${destination.y} L ${destination.x} ${destination.y+.14} L ${destination.x-.14} ${destination.y} Z"/><text class="trace-destination-symbol" x="${destination.x}" y="${destination.y+.012}">✦</text></g>`;
     return `<g class="scene-move-trace normal ${kind}" style="--trace-color:${color}"><title>${title}</title><defs><marker id="${marker}" viewBox="0 0 8 8" markerWidth="4" markerHeight="4" refX="6.8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 L2.2,4 Z" fill="${color}"/></marker></defs><path class="trace-halo" d="${path}"/><path class="trace-line" d="${path}" marker-end="url(#${marker})"/><circle class="trace-origin-ring" cx="${origin.x}" cy="${origin.y}" r=".105"/><circle class="trace-origin" cx="${origin.x}" cy="${origin.y}" r=".04"/>${parts}</g>`
   }).join("");

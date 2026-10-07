@@ -330,6 +330,7 @@ function buildStorageContext(storage, idb) {
 }
 
 function installUndoHarness(context, scene) {
+  context.activeSceneView=()=>"gm";
   const sceneSource = fs.readFileSync(new URL("../scene-ui.js", import.meta.url), "utf8");
   const start = sceneSource.indexOf("function sceneSnapshot()");
   const end = sceneSource.indexOf("function applyNarratorOverride", start);

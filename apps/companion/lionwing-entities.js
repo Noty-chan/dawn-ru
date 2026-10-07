@@ -742,6 +742,7 @@
   }
 
   function applyCleanup(scene, plan) {
+    manualMutationGuard(scene);
     const blocked = (plan?.cleanups || []).find(item => item.protected || item.resolved === false);
     if (blocked) fail(blocked.protected ? "Удаление блокирует защищённая зависимость сущности." : "Удаление блокирует неразрешённая зависимость сущности.", blocked.protected ? "protected-dependency" : "unresolved-dependency", { cleanup: clone(blocked) });
     const next = clone(scene || {}), ids = new Set(plan?.entityIds || []);
@@ -867,7 +868,12 @@
 
   function alreadySame(map, id, entity) { return own(map, id) && sameJson(registrySnapshot({ [id]: map[id] }), registrySnapshot({ [id]: entity })); }
 
+  function manualMutationGuard(scene) {
+    if(scene?.tablePolicy?.mode === "manual") fail("Автоматические сущности выключены в ручном столе.", "TABLE_AUTOMATION_BLOCKED");
+  }
+
   function create(scene, raw, options = {}) {
+    manualMutationGuard(scene);
     assertVersion(scene, options);
     const map = registryMap(scene), existingRaw = raw?.id == null ? null : map[raw.id];
     if (existingRaw) {
@@ -901,6 +907,7 @@
   }
 
   function prepareDestroy(scene, ref, options = {}) {
+    manualMutationGuard(scene);
     assertNarrator(options);
     assertVersion(scene, options);
     const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId, old = map[id];
@@ -931,6 +938,7 @@
   }
 
   function transform(scene, ref, rawBacking, options = {}) {
+    manualMutationGuard(scene);
     assertVersion(scene, options);
     const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId;
     const old = map[id];
@@ -946,6 +954,7 @@
   }
 
   function destroy(scene, ref, options = {}) {
+    manualMutationGuard(scene);
     assertNarrator(options);
     const id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId;
     const operation = options.purge === true || options.removeRecord === true ? "remove" : "destroy";
@@ -960,6 +969,7 @@
   }
 
   function changeOwner(scene, ref, ownerActorId, options = {}) {
+    manualMutationGuard(scene);
     assertVersion(scene, options);
     const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.entityId, old = map[id], nextOwner = plainId(ownerActorId, "новый ID владельца");
     if (!old) fail("Сущность для смены владельца не найдена.", "missing-entity");
@@ -971,6 +981,7 @@
   }
 
   function link(scene, raw, options = {}) {
+    manualMutationGuard(scene);
     assertVersion(scene, options);
     const map = registryMap(scene), linkRecord = makeLink(raw), source = map[linkRecord.from], target = map[linkRecord.to];
     if (!source || !target) fail("Связь не может ссылаться на отсутствующую сущность.", "dangling-link");
@@ -989,6 +1000,7 @@
   }
 
   function unlink(scene, ref, options = {}) {
+    manualMutationGuard(scene);
     assertVersion(scene, options);
     const map = registryMap(scene), id = typeof ref === "string" ? ref : ref?.id ?? ref?.linkId;
     const existing = allLinks(map).find(linkRecord => linkRecord.id === id);
@@ -1003,6 +1015,7 @@
   // link.  They do not copy a vehicle's resources, health, turn or geometry;
   // a caller may pass a placement status when exit needs a Narrator decision.
   function pilotEnter(scene, controller, controlled, options = {}) {
+    manualMutationGuard(scene);
     const from = typeof controller === "string" ? controller : controller?.id ?? controller?.entityId;
     const to = typeof controlled === "string" ? controlled : controlled?.id ?? controlled?.entityId;
     const result = link(scene, { ...(options.link || {}), id: options.linkId || options.link?.id, type: "pilot", from, to }, options);
@@ -1010,6 +1023,7 @@
   }
 
   function pilotExit(scene, controller, controlled = null, options = {}) {
+    manualMutationGuard(scene);
     const from = typeof controller === "string" ? controller : controller?.id ?? controller?.entityId;
     const to = controlled == null ? null : typeof controlled === "string" ? controlled : controlled?.id ?? controlled?.entityId;
     const candidate = linksFor(scene, from).find(item => item.type === "pilot" && item.from === from && (to == null || item.to === to));
@@ -1035,6 +1049,7 @@
   }
 
   function sourceLoss(scene, source, options = {}) {
+    manualMutationGuard(scene);
     assertVersion(scene, options);
     const plan = sourceLossPlan(scene, source, options), map = registryMap(scene);
     if (!plan.actions.length) return { ok: true, scene: clone(scene), plan, replayed: true, idempotent: true, event: null };
@@ -1059,6 +1074,7 @@
   }
 
   function transition(scene, operation, options = {}) {
+    manualMutationGuard(scene);
     const action = typeof operation === "string" ? { operation } : operation || {};
     const type = String(action.operation || action.kind || action.type || "").replace(/^lionwing\./u, "").replace(/^entities?\./u, "").replace(/^entity\./u, "");
     const payload = action.payload || action.request || action;
@@ -1077,6 +1093,7 @@
   }
 
   function replay(scene, rawEvent, options = {}) {
+    manualMutationGuard(scene);
     const event = typeof rawEvent === "string" ? JSON.parse(rawEvent) : clone(rawEvent);
     if (!isObject(event) || typeof event.type !== "string") fail("Событие сущности не является JSON-объектом.", "invalid-event");
     const receipts = receiptsOf(scene);
@@ -1091,6 +1108,7 @@
   }
 
   function undo(scene, rawEvent, options = {}) {
+    manualMutationGuard(scene);
     const event = typeof rawEvent === "string" ? JSON.parse(rawEvent) : rawEvent;
     if (!isObject(event) || !isObject(event.before) || !isObject(event.after)) fail("Событие сущности не содержит снимки для отката.", "invalid-event");
     const current = registrySnapshot(registryMap(scene));
@@ -1115,6 +1133,7 @@
   function reload(serialized, options = {}) {
     const scene = typeof serialized === "string" ? JSON.parse(serialized) : clone(serialized);
     if (!isObject(scene)) fail("Сохранение Сцены не является JSON-объектом.", "invalid-scene");
+    if(scene.tablePolicy?.mode === "manual") return clone(scene);
     const graph = graphStatus(scene);
     if (!graph.valid && options.allowInvalid !== true) fail("Сохранение содержит недопустимый граф сущностей.", "invalid-entity-graph", { errors: graph.errors });
     return withRegistry(scene, registryMap(scene), receiptsOf(scene));
