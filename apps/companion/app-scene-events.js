@@ -142,7 +142,18 @@ $("scene-zoom").addEventListener("input",event=>applySceneZoom(event.target.valu
 $("scene-zoom-fit").addEventListener("click",()=>fitSceneZoom(false));
 window.addEventListener("resize",()=>{clearTimeout(sceneResizeTimer);sceneResizeTimer=setTimeout(()=>{if(store.mode!=="play")return;hideSceneTokenTip(0);const nextViewport=sceneViewportProfile(),changed=nextViewport!==sceneViewportMode;sceneViewportMode=nextViewport;if(changed){syncScenePanels();window.DAWN_SCENE_WORKSPACE?.refresh()}scheduleSceneViewportFit()},140)});
 if(typeof ResizeObserver!=="undefined")new ResizeObserver(()=>scheduleSceneViewportFit()).observe($("scene-board-wrap"));
-$("scene-board-wrap").addEventListener("wheel",event=>{if(event.ctrlKey||event.metaKey){event.preventDefault();const step=Math.abs(event.deltaY)<80?4:10;applySceneZoom(sceneZoom+(event.deltaY<0?step:-step),{manual:true});return}const tool=activeSceneTool();if(!["area","wall"].includes(tool)||Date.now()-sceneToolWheelAt<160)return;sceneToolWheelAt=Date.now();event.preventDefault();const select=tool==="wall"?$("scene-wall-direction"):$("scene-area-type"),options=[...select.options].filter(option=>!option.disabled),index=options.indexOf(select.selectedOptions[0]),next=options[(index+(event.deltaY>0?1:-1)+options.length)%options.length];if(!next)return;select.value=next.value;select.dispatchEvent(new Event("change",{bubbles:true}));toast((tool==="wall"?"Сторона Стены: ":"Тип области: ")+next.textContent)},{passive:false});
+$("scene-board-wrap").addEventListener("wheel",event=>{
+  const tool=activeSceneTool();
+  // Rotation owns every wheel event in Wall mode, including throttled events.
+  if((event.ctrlKey||event.metaKey)&&tool!=="wall"){event.preventDefault();const step=Math.abs(event.deltaY)<80?4:10;applySceneZoom(sceneZoom+(event.deltaY<0?step:-step),{manual:true});return}
+  if(!["area","wall"].includes(tool))return;
+  event.preventDefault();
+  if(!event.deltaY||Date.now()-sceneToolWheelAt<160)return;
+  sceneToolWheelAt=Date.now();
+  const select=tool==="wall"?$("scene-wall-direction"):$("scene-area-type"),options=[...select.options].filter(option=>!option.disabled),index=options.indexOf(select.selectedOptions[0]),next=options[(index+(event.deltaY>0?1:-1)+options.length)%options.length];
+  if(!next)return;
+  select.value=next.value;select.dispatchEvent(new Event("change",{bubbles:true}));toast((tool==="wall"?"Сторона Стены: ":"Тип области: ")+next.textContent);
+},{passive:false});
 $("scene-board-wrap").addEventListener("mousedown",event=>{if(event.button!==1&&!(sceneSpaceHeld&&event.button===0))return;const wrap=event.currentTarget;scenePanState={x:event.clientX,y:event.clientY,left:wrap.scrollLeft,top:wrap.scrollTop};wrap.classList.add("is-panning");event.preventDefault()});
 window.addEventListener("mousemove",event=>{if(!scenePanState)return;const wrap=$("scene-board-wrap");wrap.scrollLeft=scenePanState.left-(event.clientX-scenePanState.x);wrap.scrollTop=scenePanState.top-(event.clientY-scenePanState.y)});
 window.addEventListener("mouseup",()=>{scenePanState=null;$("scene-board-wrap").classList.remove("is-panning")});

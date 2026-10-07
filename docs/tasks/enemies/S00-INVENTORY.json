@@ -275,6 +275,7 @@
             "apps/companion/tests/network-table-switch-history.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
+            "apps/companion/tests/scene-board-wheel.mjs",
             "apps/companion/tests/scene-empty-state.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
