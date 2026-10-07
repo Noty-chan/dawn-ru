@@ -254,6 +254,13 @@ function lionwingDestroyDescription(plan){
 }
 function commitLionwingDestroy(target,options={}){
   if(Scene.rulesEdition!=="lionwing")return null;
+  if(window.DAWN_TABLE_POLICY?.isManual(Scene)){
+    if(activeSceneView()!=="gm")return null;
+    if(options.confirm!==false&&options.confirmation&&!window.confirm(options.confirmation))return null;
+    if(target?.kind==="backing"&&["object","wall","marker"].includes(target.backing?.type))return commitSceneEvents(options.label||"Удаление со стола",[{type:"table.command",actorId:null,payload:{kind:`${target.backing.type}/remove`,id:target.backing.id}}]);
+    if(target?.kind==="actor")return commitSceneEvents(options.label||"Убрать участника",(options.actorIds||[target.id]).map(id=>({type:"table.command",actorId:null,payload:{kind:"actor/remove",id}})));
+    return toast("Это удаление пока не подключено к ручному столу");
+  }
   const plans=window.DAWN_LIONWING_DESTROY_PLAN;
   if(!plans?.prepare||!plans?.apply)return toast("Модуль единого удаления LionWing недоступен");
   const eventId=options.eventId||`destroy:${uid()}`;

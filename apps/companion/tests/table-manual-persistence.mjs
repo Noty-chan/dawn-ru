@@ -10,6 +10,8 @@ const context = vm.createContext({window:{},structuredClone, console, uid:()=>"n
 vm.runInContext(read("scene-table-policy.js"),context);
 const source=read("app-core.js");
 vm.runInContext(source.slice(source.indexOf("function blankScene()"),source.indexOf("function addEnemyDeploymentPassives")),context);
+vm.runInContext(source.slice(source.indexOf("function addEnemyDeploymentPassives"),source.indexOf("function validateTableEdit")),context);
+assert.equal(context.addEnemyDeploymentPassives({tablePolicy:{mode:'manual'},actors:[]},{id:'npc'}).length,0,'manual participant creation never calls deployment mechanics');
 const plain=v=>JSON.parse(JSON.stringify(v));
 assert.equal(context.blankScene().tablePolicy.mode,"manual","new scene opts into manual");
 assert.equal(context.sceneCore({}).tablePolicy.mode,"rules","old save remains rules");
@@ -20,6 +22,10 @@ scene.actors=[{id:"a",kind:"enemy",profileId:"lionwing.npc.bodyguards",rulesEdit
 scene.objects=[{id:"manual-area",space:"main",type:"manual-area",manual:true,ownerActorId:"a",cells:["1,1"],hidden:true,color:"#6fc9d8"}];
 scene.sessionClocks=[{id:"manual-clock",name:"Counter",kind:"counter",manual:true,ownerActorId:"a",size:2000,value:7,current:7}];
 const once=plain(context.normalizeScene(scene)),twice=plain(context.normalizeScene(once));
+const orphan=plain(scene);orphan.actors=[];
+const orphanReload=plain(context.normalizeScene(orphan));
+assert.equal(orphanReload.sessionClocks[0].ownerActorId,'a','deleted owner does not make a personal clock public');
+assert.equal(orphanReload.objects[0].ownerActorId,'a','deleted owner does not make an informational area public');
 assert.equal(once.objects[0].type,"manual-area","informational area does not become mechanical terrain");
 assert.equal(once.objects[0].manual,true);assert.equal(once.objects[0].ownerActorId,"a");assert.equal(once.objects[0].hidden,true);
 assert.equal(once.sessionClocks[0].manual,true,"next clock/set can recognize a reloaded manual clock");

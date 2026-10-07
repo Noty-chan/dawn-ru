@@ -1,4 +1,8 @@
 import './table-manual-roll-route.mjs';
+import './table-manual-clock-route.mjs';
+import './table-manual-deletion-route.mjs';
+import './table-manual-reader-data.mjs';
+import './table-manual-public-projection.mjs';
 import './table-manual-network.mjs';
 import './table-manual-persistence.mjs';
 import './table-manual-policy.mjs';

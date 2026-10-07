@@ -28,6 +28,7 @@ appFiles.splice(appFiles.indexOf("app.js"),0,"lionwing-ui.js");
 appFiles.push("lionwing-engine.js");
 appFiles.push("scene-table-policy.js");
 appFiles.splice(appFiles.indexOf("app.js"),0,"scene-manual-workspace.js");
+appFiles.splice(appFiles.indexOf("app.js"),0,"scene-manual-reader-data.js");
 appFiles.splice(appFiles.indexOf("app.js"),0,"scene-manual-integration.js");
 appFiles.push("lionwing-restored-techniques.js");
 const appSource = appFiles.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");

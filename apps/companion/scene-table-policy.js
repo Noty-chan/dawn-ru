@@ -39,7 +39,7 @@
   }
   // Only typed technical references are detached. Actor values, consequences,
   // durations, effect arrays and the historical journal are never executed.
-  const REF_KEYS = new Set(["objectId", "markerId", "areaId", "wallId", "entityId", "sourceEntityId", "ownerEntityId", "linkedEntityId", "backingId"]);
+  const REF_KEYS = new Set(["actorId", "objectId", "markerId", "areaId", "wallId", "entityId", "sourceEntityId", "ownerEntityId", "linkedEntityId", "backingId"]);
   const REF_ARRAY_KEYS = new Set(["objectIds", "markerIds", "areaIds", "wallIds", "entityIds", "sourceEntityIds"]);
   function detachReferences(value, ids) {
     if (!value || typeof value !== "object") return;
@@ -170,6 +170,12 @@
       exactKeys(p, ["kind", "id", "space", "x", "y"]); safeId(p.id);
       const marker = (scene.markers || []).find(row => row.id === p.id);
       if (!marker) fail("Метка отсутствует."); Object.assign(marker, cell(scene, p.space, p.x, p.y));
+    } else if (p.kind === "actor/remove") {
+      exactKeys(p, ["kind", "id"]);safeId(p.id);
+      removeStoredObject(scene,"actors",p.id);
+      if(scene.selectedActor===p.id)scene.selectedActor=null;
+      if(scene.manualTable?.actorId===p.id)scene.manualTable.actorId=null;
+      scene.targetIds=(scene.targetIds||[]).filter(id=>id!==p.id);
     } else if (["marker/remove", "object/remove", "wall/remove"].includes(p.kind)) {
       exactKeys(p, ["kind", "id"]); safeId(p.id);
       removeStoredObject(scene, { "marker/remove": "markers", "object/remove": "objects", "wall/remove": "walls" }[p.kind], p.id);
@@ -192,6 +198,10 @@
       const event = { ...copy(request), id: request.id || contract.generatedId(next, `table-${Date.now()}-${++serial}`, reserved),
         at: request.at || new Date().toISOString(), actorId: request.actorId || null, payload: copy(request.payload || {}), visibility: request.visibility || "public" };
       if (!["public", "gm", "owner"].includes(event.visibility)) fail("Некорректная видимость события.");
+      const collection={"clock/set":"sessionClocks","clock/remove":"sessionClocks","actor/remove":"actors","object/remove":"objects","area/remove":"objects","marker/remove":"markers","wall/remove":"walls"}[event.payload.kind];
+      const target=collection?(next[collection]||[]).find(row=>row.id===event.payload.id):null;
+      const privateTarget=target?.hidden||target?.manual&&target.ownerActorId&&(!actor(next,target.ownerActorId)||actor(next,target.ownerActorId).hidden);
+      if(privateTarget)event.visibility="gm";
       if (actor(next, event.actorId)?.hidden || event.payload?.kind === "marker/create" && event.payload.marker?.hidden || event.payload?.kind === "area/create" && event.payload.area?.hidden) event.visibility = "gm";
       reduce(next, event);
       next.version = Number(next.version || 0) + 1;

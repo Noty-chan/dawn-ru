@@ -14,8 +14,10 @@ function projectScene(scene, viewer = {}) {
       return publicActor;
     });
     const visibleActorIds = new Set(projected.actors.map(actor => actor.id));
+    projected.sessionClocks=(projected.sessionClocks||[]).filter(clock=>!clock.manual||!clock.ownerActorId||visibleActorIds.has(clock.ownerActorId));
     projected.selectedActor = visibleActorIds.has(projected.selectedActor) ? projected.selectedActor : null;
     projected.activeActorId = visibleActorIds.has(projected.activeActorId) ? projected.activeActorId : null;
+    if(projected.manualTable)projected.manualTable.actorId=visibleActorIds.has(projected.manualTable.actorId)?projected.manualTable.actorId:null;
     projected.targetIds = (projected.targetIds || []).filter(id => visibleActorIds.has(id));
     projected.objects = (projected.objects || []).filter(object => !object.hidden && (!object.ownerActorId || visibleActorIds.has(object.ownerActorId)));
     projected.markers = (projected.markers || []).filter(marker => marker.kind !== "hidden" && !marker.hidden).map(marker => {
