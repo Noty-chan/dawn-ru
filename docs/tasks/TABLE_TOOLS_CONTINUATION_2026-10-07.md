@@ -76,7 +76,9 @@
 Первый пакет aee944c: полный npm test, exit 0.
 Пакет footer/mobile до финальных shortcuts: полный npm test, exit 0.
 Финальный повтор после shortcuts: полный npm test, exit 0.
-После последнего dialog guard повтор выполнен отдельно (результат ниже).
+После последнего dialog guard: полный npm test на a7aa445, exit 0.
+Передача: [draft PR №9](https://github.com/Noty-chan/dawn-ru/pull/9).
+При остатке 10% пятичасового лимита работа остановлена; временные browser/server закрыты.
 Browser dialog guard: при открытых настройках реальные M/W/A/K/P/T
 оставили Scene.tool=select и sceneNeutralTool=null; диалог остался открыт.
 Точечные scene-pointer-routing и scene-board-wheel после последних правок: PASS.
