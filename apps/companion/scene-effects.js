@@ -105,6 +105,7 @@ function eraseSceneEnvironment(point){
   return commitScene(label,scene=>{const key={object:"objects",wall:"walls",marker:"markers"}[type];scene[key]=scene[key].filter(item=>item.id!==entity.id)});
 }
 function previewSceneWall(point){
+  sceneWallPreviewPoint={...point,space:Scene.activeSpace};
   const board=$("scene-board");board.querySelectorAll(".scene-wall-preview").forEach(node=>node.remove());
   const side=$("scene-wall-direction").value,vectors={north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]},[dx,dy]=vectors[side]||vectors.east,space=activeSceneSpace();
   if(point.x+dx<0||point.y+dy<0||point.x+dx>=space.width||point.y+dy>=space.height)return;

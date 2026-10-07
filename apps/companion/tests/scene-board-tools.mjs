@@ -41,6 +41,7 @@ for (const id of ["scene-zoom-fit", "scene-undo", "scene-redo", "scene-clear-tar
 for (const id of ["scene-area-controls", "scene-wall-controls", "scene-marker-controls", "scene-topology-controls"]) { const node = new Element(); node.hidden = true; controls.set(`#${id}`, node); candidate.append(node); }
 candidate.querySelector = selector => selector === ".scene-tool-group" ? oldPrimary : selector === ".scene-tool-actions" ? oldActions : controls.get(selector);
 candidate.querySelectorAll = selector => operations.get(selector) || [];
+operations.set('[data-scene-tool="area"][data-scene-area-type="terrain"]', operations.get('[data-scene-tool="area"]'));
 const documentListeners = [];
 let lateMount = true;
 const mapTools = new Element();

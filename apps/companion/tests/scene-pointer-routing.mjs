@@ -50,6 +50,8 @@ load(section(events,'$("scene-context-menu").addEventListener("click",','documen
 load(section(events,'document.addEventListener("keydown",event=>{\n  if(event.key!=="Escape"','\n},true);')+'\n},true);');
 load(line(events,'document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!event.defaultPrevented'));
 load(line(events,'document.addEventListener("keydown",event=>{if(event.key==="Escape"){'));
+load(line(events,'document.addEventListener("keydown",event=>{if(event.key.toLowerCase()!=="w"'));
+load(line(events,'document.addEventListener("keydown",event=>{if(event.key.toLowerCase()==="m"'));
 load(lionwing.slice(lionwing.lastIndexOf('document.addEventListener("keydown", event => {')));
 context.lwCancelDestination=()=>run("lwDestination=null");
 
@@ -157,6 +159,29 @@ for(const preparation of [
 }
 
 reset();run('Scene.pendingActionPlan={actorId:"hero",phase:"destination"};changeSceneTool("measure")');const measuredPreparation=resources();escape();assert.equal(resources(),measuredPreparation);assert.equal(cancellations,0);assert.equal(run("sceneNeutralTool"),null);
+
+// Leaving neutral measurement through ordinary shortcuts clears its override.
+for(const view of ["gm","player"]){
+  reset(view);run('changeSceneTool("measure")');
+  const event={key:"v",target:{matches:()=>false,closest:()=>null},preventDefault(){},ctrlKey:false,metaKey:false,altKey:false};
+  for(const row of keyboard)if(!row.capture)row.handler(event);
+  assert.equal(run("sceneNeutralTool"),null);assert.equal(run("activeSceneTool()"),"select");
+}
+
+reset();run('changeSceneTool("measure")');
+const wallShortcut=()=>{const event={key:"w",target:{matches:()=>false,closest:()=>null},preventDefault(){},ctrlKey:false,metaKey:false,altKey:false};for(const row of keyboard)if(!row.capture)row.handler(event);};
+wallShortcut();assert.equal(run("sceneNeutralTool"),null);assert.equal(run("activeSceneTool()"),"wall");
+reset();run('lwDestination={actorId:"hero",field:"destination"};changeSceneTool("measure")');
+wallShortcut();assert.equal(run("sceneNeutralTool"),"measure");assert.equal(cancellations,0,"Wall shortcut cannot interrupt pending destination selection");
+
+// App dialogs own keyboard input; table shortcuts must not mutate hidden tools.
+for(const shortcut of ["m","w","v","p","t","a","k"]){
+  reset();run('changeSceneTool("measure")');openDialog={id:"app-settings-dialog",open:true};
+  const before=run("JSON.stringify({tool:Scene.tool,playerSceneTool,sceneNeutralTool})");
+  const event={key:shortcut,target:{matches:()=>false,closest:()=>null},preventDefault(){},ctrlKey:false,metaKey:false,altKey:false};
+  for(const row of keyboard)if(!row.capture)row.handler(event);
+  assert.equal(run("JSON.stringify({tool:Scene.tool,playerSceneTool,sceneNeutralTool})"),before,`dialog owns ${shortcut}`);
+}
 
 // Escape belongs to the visible section or app dialog before any Scene cancel path.
 const seedPreparation=()=>run(`Scene.pendingActionPlan={actorId:"hero",phase:"destination"};

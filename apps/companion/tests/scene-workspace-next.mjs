@@ -43,3 +43,8 @@ assert.equal(reads,3,'hidden Table geometry does not consume a handoff');
 viewportHeight=160;turnContext.revealCurrentTurn(turns,true,false);
 assert.equal(reads,4,'returning to Table reveals the current participant');
 console.log('Portrait turn roster reveal: handoff/layout changes only, manual scroll and hidden/classic/mobile preservation passed');
+
+const css=fs.readFileSync(new URL('../scene-workspace-next.css',import.meta.url),'utf8');
+assert.ok(!css.includes('var(--scene-header-height'),'mobile shell has a single measured header owner');
+assert.ok(css.includes('height:calc(100dvh - var(--mobile-header-height,101px) - 12px)'),'mobile header changes update the full shell immediately');
+console.log('Mobile shell: live header measurement, no stale second header height');

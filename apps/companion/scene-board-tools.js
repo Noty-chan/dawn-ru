@@ -11,7 +11,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   const groups = [
     { id: "tokens", label: "Жетоны", icon: "●", selectors: ['[data-scene-tool="select"]','[data-scene-tool="place"]','[data-scene-tool="target"]','#scene-clear-targets'] },
     { id: "measure", label: "Измерение", icon: "↔", selectors: ['[data-scene-tool="measure"]','#scene-clear-movement-traces'] },
-    { id: "areas", label: "Окружение", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"]','[data-scene-tool="wall"]','[data-scene-tool="erase"]'], controls: ["scene-area-controls","scene-wall-controls"] },
+    { id: "areas", label: "Окружение", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"][data-scene-area-type="terrain"]','[data-scene-tool="wall"]','[data-scene-tool="erase"]'], controls: ["scene-area-controls","scene-wall-controls"] },
     { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: ["scene-marker-controls"] },
     { id: "history", label: "История", icon: "↶", gm: true, selectors: ['#scene-undo','#scene-redo'] }
   ];
@@ -24,11 +24,12 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     if (homes.has(node)) return homes.get(node);
     const anchor = document.createComment("board tool home");
     node.before(anchor);
-    const record = { anchor, html: button ? node.innerHTML : null, label: button ? node.textContent.trim() : "", aria: button ? node.getAttribute("aria-label") : null };
+    const record = { anchor, html: button ? node.innerHTML : null, label: button ? node.textContent.trim() : "", aria: button ? node.getAttribute("aria-label") : null, help:node.dataset?.toolHelp };
     homes.set(node, record); return record;
   }
   function decorate(node) {
     const home = remember(node, true);
+    if(node.dataset?.sceneTool==="erase"){const label=copy("scene.boardTools.eraseEnvironment","Удалить окружение; участники сохраняются");node.dataset.toolHelp=label;node.setAttribute("aria-label",label);node.title=label;}
     const operation = ({area:"areas",wall:"walls",marker:"markers",topology:"edit",erase:"clear"})[node.dataset?.sceneTool] || node.dataset?.sceneTool || ({"scene-zoom-fit":"view","scene-undo":"undo","scene-redo":"redo","scene-clear-targets":"clear","scene-clear-movement-traces":"traces"})[node.id];
     const svg = icon(operation);
     if (svg && !node.querySelector(".scene-board-tool-original-label")) node.innerHTML = svg + `<span class="scene-board-tool-original-label">${escape(home.label)}</span>`;
@@ -87,6 +88,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       categories.set(group.id, button); panels.set(group.id, panel);
       strip.append(button); tools.append(panel);
       }
+      const label=labelFor(group);if(button.title!==label){button.title=label;button.setAttribute("aria-label",label);panel.children[0].textContent=label;}
       for (const node of nodes) { decorate(node); if (node.parentNode !== panel) panel.append(node); }
       for (const id of group.controls || []) {
         const controls = document.getElementById(id);
@@ -148,6 +150,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       if (home.anchor.parentNode) home.anchor.after(node);
       if (home.html !== null) {
         node.innerHTML = home.html;
+        if(home.help!==undefined)node.dataset.toolHelp=home.help;
         if (home.aria === null) node.removeAttribute("aria-label"); else node.setAttribute("aria-label", home.aria);
       }
     }

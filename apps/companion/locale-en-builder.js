@@ -458,4 +458,7 @@ window.DAWN_I18N?.registerLocale("en", {
   "tools.support.manageClocks": "Add / edit",
   "tools.support.manageBonds": "Create / use",
   "tools.support.open": "Open",
+  "scene.session.newRound": "New Round",
+  "scene.session.newScene": "New Scene",
+  "scene.boardTools.eraseEnvironment": "Erase environment; participants are preserved",
 });

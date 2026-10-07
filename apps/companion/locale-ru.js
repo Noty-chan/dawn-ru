@@ -638,4 +638,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "tools.support.manageClocks": "Добавить / изменить",
   "tools.support.manageBonds": "Создать / использовать",
   "tools.support.open": "Открыть",
+  "scene.session.newRound": "Новый Раунд",
+  "scene.session.newScene": "Новая Сцена",
+  "scene.boardTools.eraseEnvironment": "Удалить окружение; участники сохраняются",
 });
