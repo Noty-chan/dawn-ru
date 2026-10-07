@@ -25,6 +25,7 @@ document.addEventListener("change",event=>{
 });
 
 function setPlayCounter(key,value){
+  if(["influence","stress"].includes(key))return setToolsResource(key,value,key==="stress"?"Стресс":"Влияние",{correction:true});
   const native=window.DAWN_LIONWING_ENGINE?.isScene(Scene),actor=native?heroSheetLinkedActor():currentHeroActor();
   if(native&&actor){
     if(!lwCanNarrate())return toast("Точные исправления доступны Нарратору");
@@ -149,7 +150,7 @@ $("freeplay-hero-panel").addEventListener("click",event=>{
   if(attr){$("dice-attr").value=attr.dataset.freeplayAttr;recalculateDicePool();$("roll-dice").scrollIntoView({behavior:"smooth",block:"center"});return}
   if(skill){$("dice-skill").value=skill.dataset.freeplaySkill;recalculateDicePool();$("roll-dice").scrollIntoView({behavior:"smooth",block:"center"});return}
   if(ability){$("dice-ability").value=ability.dataset.freeplayAbility;recalculateDicePool();$("roll-dice").scrollIntoView({behavior:"smooth",block:"center"});return}
-  if(resource){const key=resource.dataset.freeplayResource,labels={stress:"Стресс",influence:"Влияние"},next=toolsResourceValue(key)+Number(resource.dataset.freeplayDelta||0);setToolsResource(key,next,labels[key]||key)}
+  if(resource){const key=resource.dataset.freeplayResource,labels={stress:"Стресс",influence:"Влияние"},next=toolsResourceValue(key)+Number(resource.dataset.freeplayDelta||0);setToolsResource(key,next,labels[key]||key,{correction:true})}
 });
 $("freeplay-bond-add").onclick=()=>{
   const name=$("freeplay-bond-name").value.trim(),quick=$("freeplay-bond-quick").checked;
@@ -178,9 +179,6 @@ $("clocks").addEventListener("click",event=>{if(!toolsSyncContext().canEdit)retu
 $("clocks").addEventListener("change",event=>{if(!toolsSyncContext().canEdit)return;const kindId=event.target.dataset.clockKind;if(kindId){const clock=sessionClocks().find(item=>item.id===kindId),kind=event.target.value;if(clock&&kind!==clock.kind)commitSceneEvents("Изменён тип часов Сцены",[{type:"session-clock.kind",payload:{id:kindId,kind}}]);return}const sizeId=event.target.dataset.clockSize;if(sizeId){const clock=sessionClocks().find(item=>item.id===sizeId),size=Number(event.target.value);if(clock&&size!==Number(clock.max??clock.size))commitSceneEvents("Изменён размер часов Сцены",[{type:"session-clock.size",payload:{id:sizeId,size}}]);return}const currentId=event.target.dataset.clockCurrent;if(currentId){const clock=sessionClocks().find(item=>item.id===currentId),current=Number(event.target.value);if(clock&&Number.isSafeInteger(current)&&current!==Number(clock.current??clock.value))commitSceneEvents(`Изменены часы «${clock.name}»`,[{type:"session-clock.set",payload:{id:currentId,current}}]);return}const id=event.target.dataset.clockName,name=event.target.value.trim();if(!id)return;const clock=sessionClocks().find(item=>item.id===id);if(!clock)return;if(!name){event.target.value=clock.name;return}if(name!==clock.name)commitSceneEvents("Переименованы часы Сцены",[{type:"session-clock.rename",payload:{id,name}}])});
 $("clocks").addEventListener("keydown",event=>{const input=event.target.closest("[data-clock-name]");if(!input||event.key!=="Enter")return;event.preventDefault();event.currentTarget.querySelector(`[data-clock-save="${CSS.escape(input.dataset.clockName)}"]`)?.click()});
 $("stress-trackers").addEventListener("click",event=>{
-  const button=event.target.closest("[data-stress-value]"),context=toolsSyncContext();if(!button||!context.canEdit)return;
-  const actorId=button.dataset.stressActor,actor=context.shared?Scene.actors.find(item=>item.id===actorId):null,hero=context.shared?null:store.heroes.find(item=>item.id===actorId),maximum=stressMaximumFor(actor||hero||S),value=clamp(button.dataset.stressValue,0,maximum);
-  if(context.shared){if(!actor)return;const next=actor.stress===value?Math.max(0,value-1):value,sceneEvent={type:"actor.runtime.set",actorId:actor.id,payload:{key:"stress",value:next}},result=commitSceneEvents(`${actor.name}: Стресс → ${next}`,[sceneEvent]);if(result?.pending)applyOptimisticToolsEvents([sceneEvent]);if(result){renderStressTrackers();refreshFreeplayResourceUi();updateAllInAvailability()}return}
-  if(!hero)return;hero.runtime.stress=hero.runtime.stress===value?Math.max(0,value-1):value;if(hero.id===S.id)S.runtime.stress=hero.runtime.stress;renderStressTrackers();refreshFreeplayResourceUi();updateAllInAvailability();persistAfterPaint();
+  const button=event.target.closest("[data-stress-value]");if(button)setToolsStressTracker(button.dataset.stressActor,Number(button.dataset.stressValue));
 });
 $("scene-utility").addEventListener("click",event=>{const button=event.target.closest("[data-scene-sacrifice-roll]");if(!button)return;const actor=sceneUtilityActor(),price=event.currentTarget.querySelector("[data-scene-sacrifice-choice]")?.value,prepared=SceneEngine.prepareSacrifice(Scene,{actorId:actor?.id,rollId:button.dataset.sceneSacrificeRoll,sacrifice:price});if(!prepared.ok)return toast(prepared.errors.join(" "));const committed=commitSceneEvents(`${actor.name}: Жертва`,prepared.events);if(committed)toast(committed.pending?"Жертва отправлена Нарратору":"Бросок превращён в Крайний успех")});

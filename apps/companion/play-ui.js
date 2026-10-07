@@ -58,7 +58,7 @@ function sessionClocks(){Scene.sessionClocks||=[];Scene.tools||={clocksMigrated:
 function freeplayState(){S.runtime.freeplay||={target:null};return S.runtime.freeplay}
 function defaultChallengeTarget(actor=S){return Logic.standardChallengeTarget({edition:actor.rulesEdition||(isLionwingEdition()?"lionwing":"ru-v0.9"),tier:actor.tier})}
 function requireChallengeTarget(input){const target=Number(input?.value);if(input?.value!==""&&Number.isInteger(target)&&target>=1&&target<=99)return true;toast(isEnglishPreview()?"Set a Success Target from 1 to 99.":"Задайте Цель Успехов от 1 до 99.");input?.focus();return false}
-function currentChallengeRequest(){const request=Scene.challengeRequest,actor=currentHeroActor();return request&&actor&&request.actorId===actor.id?request:null}
+function currentChallengeRequest(){const request=Scene.challengeRequest,actor=(Scene.actors||[]).find(item=>item.heroId===S.id||item.characterId===S.id);return request&&actor&&request.actorId===actor.id?request:null}
 function currentOpposedRoll(){return Scene.opposedRoll||null}
 function opposedParticipantForHero(request=Scene.opposedRoll,hero=S){if(!request||!hero)return null;const actor=Scene.actors.find(item=>item.heroId===hero.id);return request.participants.find(item=>item.heroId===hero.id||actor&&item.actorId===actor.id)||null}
 function currentOpposedParticipant(){return opposedParticipantForHero()}
@@ -67,12 +67,22 @@ function activeToolsRollKind(){return Scene.opposedRoll?"opposed":"challenge"}
 function freeplayTarget(){const context=toolsSyncContext(),request=currentChallengeRequest();return context.shared&&!context.canEdit&&request?clamp(request.target,1,99):clamp($("dice-target").value,1,99)}
 function freeplayScenario(){return{target:freeplayTarget()}}
 function toolsRollContext(){
-  const persisted=currentHeroActor();
+  const persisted=toolsHeroActor();
   if(persisted)return{scene:Scene,actor:persisted,persisted:true};
   const space=Scene.spaces.find(item=>item.id===Scene.activeSpace)||Scene.spaces[0]||{id:"main"},actor=heroActorState(S,{id:`freeplay-${S.id}`,space:space.id,x:0,y:0});
   return{scene:{...Scene,actors:[...(Scene.actors||[]),actor]},actor,persisted:false};
 }
-function toolsRuntimeActor(){return toolsSyncContext().shared?currentHeroActor():null}
+function toolsHeroActor(){return (Scene.actors||[]).find(actor=>(actor.heroId===S.id||actor.characterId===S.id)&&(Scene.rulesEdition!=="lionwing"||actor.team==="hero"||actor.kind==="hero"))||null}
+function toolsRuntimeActor(){return Scene.rulesEdition==="lionwing"||toolsSyncContext().shared?toolsHeroActor():null}
+function toolsResourceCorrectionReason(){
+  const actor=toolsRuntimeActor(),context=toolsSyncContext();
+  if(context.shared&&!actor)return typeof t==="function"?t("tools.resources.addHero"):isEnglishPreview()?"Add your hero to the Table first.":"Сначала добавьте своего героя на Стол.";
+  if(actor&&Scene.rulesEdition==="lionwing"){
+    if(typeof lwCanNarrate==="function"?!lwCanNarrate():context.shared&&!context.canEdit)return typeof t==="function"?t("tools.resources.narratorOnly"):isEnglishPreview()?"Only the Narrator can edit.":"Изменяет Нарратор";
+    return typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";
+  }
+  return "";
+}
 function toolsResourceValue(key){const actor=toolsRuntimeActor(),owner=actor||S;return clamp(actor?.[key]??S.runtime[key],0,key==="stress"?stressMaximumFor(owner):999)}
 function refreshFreeplayResourceUi(){
   for(const key of ["influence","stress"]){
@@ -80,11 +90,24 @@ function refreshFreeplayResourceUi(){
     if(!group)continue;
     group.querySelector("strong").textContent=maximum?`${value} / ${maximum}`:String(value);
     const down=group.querySelector(`[data-freeplay-delta="-1"]`),up=group.querySelector(`[data-freeplay-delta="1"]`);
-    if(down)down.disabled=value<=0;if(up)up.disabled=maximum!=null&&value>=maximum;
+    const reason=toolsResourceCorrectionReason();
+    if(down){down.disabled=Boolean(reason)||value<=0;down.title=reason}if(up){up.disabled=Boolean(reason)||maximum!=null&&value>=maximum;up.title=reason}
   }
+  if(typeof refreshHeroSheetResourceControls==="function")refreshHeroSheetResourceControls();
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
-function setToolsResource(key,value,label){
+function setToolsResource(key,value,label,{correction=false}={}){
+  if(!["influence","stress"].includes(key))return false;
   const actor=toolsRuntimeActor(),context=toolsSyncContext(),maximum=key==="stress"?stressMaximumFor(actor||S):999,next=clamp(value,0,maximum);
+  if(context.shared&&!actor){toast(toolsResourceCorrectionReason());return false}
+  if(correction){const reason=toolsResourceCorrectionReason();if(reason){toast(reason);return false}
+    if(actor&&Scene.rulesEdition==="lionwing"){
+      if(typeof lwSubmit!=="function")return false;
+      const result=lwSubmit(actor.id,{kind:"correct",resource:key,amount:next},`${actor.name}: ${label} → ${next}`);
+      if(!result)return false;
+      refreshFreeplayResourceUi();if(key==="stress")renderStressTrackers();updateAllInAvailability();return true;
+    }
+  }
   if(actor&&context.shared&&!context.canEdit){
     actor[key]=next;S.runtime[key]=next;refreshFreeplayResourceUi();if(key==="stress")renderStressTrackers();updateAllInAvailability();persistAfterPaint();
     Sync.submitCommand("update_runtime",{actorId:actor.id,key,value:next}).catch(error=>{toast(error?.message||"Не удалось синхронизировать ресурс");Promise.resolve(Sync.refreshScene?.()).catch(()=>{})});
@@ -109,15 +132,21 @@ function freeplayBondStatus(bond){
   return{amount,parts};
 }
 function toolSkillId(skill){return skill?.definitionId||skill?.id||""}
+function toolsSelectedAbility(key=$("dice-ability").value){
+  if(key==="main")return S.ability?.enabled?S.ability:null;
+  if(key==="tainted")return S.mods.taintedBody&&S.taintedAbility?.enabled?S.taintedAbility:null;
+  const source=typeof heroGadgetDiceSources==="function"?heroGadgetDiceSources().find(item=>item.value===key):null;
+  return source?(S.gadgets||[]).find(gadget=>gadget.id===source.id&&gadget.status!=="destroyed")?.ability||null:null;
+}
 function toolsDiceRequest(){
-  const abilityKey=$("dice-ability").value,skill=S.skills.find(item=>toolSkillId(item)===$("dice-skill").value),ability=abilityKey==="tainted"?S.taintedAbility:abilityKey==="main"?S.ability:null,bond=S.bonds.find(item=>item.id===$("dice-bond").value),bondStatus=freeplayBondStatus(bond),hooks=[];
+  const abilityKey=$("dice-ability").value,skill=S.skills.find(item=>toolSkillId(item)===$("dice-skill").value),ability=toolsSelectedAbility(abilityKey),bond=S.bonds.find(item=>item.id===$("dice-bond").value),bondStatus=freeplayBondStatus(bond),hooks=[];
   if(skill)hooks.push({type:"advantage",ruleId:`freeplay.skill:${toolSkillId(skill)}`,label:`Навык: ${skillDisplayName(skill)}`,amount:effectiveSkillRank(skill)});
-  if(ability?.enabled)hooks.push({type:"advantage",ruleId:`freeplay.ability:${abilityKey}`,label:`Способность: ${ability.name||"без названия"}`,amount:ability.rank});
+  if(ability?.enabled)hooks.push({type:"advantage",ruleId:`freeplay.ability:${abilityKey.replace("|",":")}`,label:`Способность: ${ability.name||"без названия"}`,amount:ability.rank});
   if(bond&&bondStatus.amount)hooks.push({type:"advantage",ruleId:`freeplay.bond:${bond.id}`,label:`Связь: ${bond.name} (${bondStatus.parts.join(", ")})`,amount:bondStatus.amount});
   if($("dice-outgunned")?.checked)hooks.push({type:"advantage",ruleId:"freeplay.wolf.outgunned",label:"В меньшинстве · подтверждено по нарративу",amount:2});
   if($("dice-saint")?.checked)hooks.push({type:"advantage",ruleId:"boon.beacon.saint",label:isEnglishPreview()?"Saint · condition confirmed":"Святой · условие подтверждено",amount:2});
   const fundingSpend=clamp($("dice-trust-fund")?.value||0,0,Math.max(0,Number(S.runtime.funding||0)));if(fundingSpend)hooks.push({type:"advantage",ruleId:"boon.blessed.trust-fund",label:isEnglishPreview()?`Trust Fund · ${fundingSpend} Funding`:`Родовое состояние · ${fundingSpend} финансирования`,amount:fundingSpend});
-  return{scope:"challenge",sceneContext:false,baseCount:clamp($("dice-count").value,1,40),advantage:clamp($("dice-adv").value,0,30),hindrance:clamp($("dice-dis").value,0,30),attribute:$("dice-attr").value==="manual"?null:$("dice-attr").value,usesAbility:Boolean(abilityKey),abilityKey:abilityKey||null,selectedHookIds:$("dice-dark-urge")?.checked?["wolf.dark-urge"]:[],targetIds:[],hooks};
+  return{scope:"challenge",sceneContext:false,baseCount:clamp($("dice-count").value,1,40),advantage:clamp($("dice-adv").value,0,30),hindrance:clamp($("dice-dis").value,0,30),attribute:$("dice-attr").value==="manual"?null:$("dice-attr").value,usesAbility:Boolean(ability?.enabled),abilityKey:ability?.enabled?abilityKey:null,selectedHookIds:$("dice-dark-urge")?.checked?["wolf.dark-urge"]:[],targetIds:[],hooks};
 }
 function renderOutcomeGuide(){
   const copy=toolsCopy();
@@ -174,6 +203,7 @@ function renderFreeplayDirector(){
   clearButton.textContent=kind==="opposed"?"Отменить встречный бросок":"Отменить запрос";
   document.body.classList.toggle("tools-narrator-mode",role==="network-narrator"&&store.mode==="tools");
   document.querySelector(".freeplay-grid").dataset.toolsRole=role;
+  document.querySelector(".freeplay-grid").dataset.toolsRequestActive=String(Boolean(request||opposed));
   document.querySelector(".freeplay-hero-tool").hidden=false;
   document.querySelector(".dice-tool").hidden=false;
   document.querySelector(".freeplay-bonds-tool").hidden=false;
@@ -209,18 +239,24 @@ function renderChallengeRequestDock(){
   const dock=$("challenge-request-dock"),context=toolsSyncContext(),request=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),result=opposedParticipantResult(participant,opposed),opponent=opposed?.participants.find(item=>item.id!==participant?.id),visible=context.shared&&!context.canEdit&&Boolean(request||participant)&&store.mode!=="tools";
   const resolved=Boolean(participant?result:request?.result);dock.hidden=!visible;dock.classList.toggle("resolved",resolved);if(visible)$("challenge-request-dock-text").textContent=participant?(result?`Запрос → Ответ · ${result.successes} Успехов · ${opposedResultSummary(opposed)}`:`Запрос · встречный бросок против ${opponent?.name||"соперника"}`):request.result?`Запрос → Ответ · ${challengeResultSummary(request.result)}`:`Запрос · ${request.requestedBy} просит бросок · цель ${request.target}`;
 }
+function syncToolsSourceSelection(){
+  for(const [selector,key,control] of [["[data-freeplay-attr]","freeplayAttr","dice-attr"],["[data-freeplay-skill]","freeplaySkill","dice-skill"],["[data-freeplay-ability]","freeplayAbility","dice-ability"],["[data-bond-use]","bondUse","dice-bond"]]){
+    const value=$(control)?.value;
+    $$(selector).forEach(button=>{const selected=Boolean(value&&button.dataset[key]===value);button.classList.toggle("tools-source-selected",selected);button.setAttribute("aria-pressed",String(selected))});
+  }
+}
 function updateDicePoolTotal(){
   const request=toolsDiceRequest(),context=toolsRollContext(),status=SceneEngine.diceHookStatus(context.scene,context.actor.id,request),total=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance),dark=$("dice-dark-urge"),copy=toolsCopy();
   if(dark){dark.disabled=!request.usesAbility;if(!request.usesAbility)dark.checked=false}
   const automatic=status.sources?.filter(source=>["advantage","hindrance"].includes(source.type)).map(source=>`${source.type==="hindrance"?"−":"+"}${source.amount} ${source.label}`)||[];
   $("dice-pool-total").innerHTML=`<span>${copy.pool}</span><strong>${total}D6</strong><small>${esc([`${request.baseCount} ${copy.fromAttribute}`,request.advantage?`+${request.advantage} ${copy.otherAdvantage}`:"",request.hindrance?`−${request.hindrance} ${copy.hindrance}`:"",...automatic].filter(Boolean).join(" · "))}</small>`;
-  $$("[data-dice-count]").forEach(button=>button.classList.toggle("on",+$("dice-count").value===+button.dataset.diceCount));renderOutcomeGuide();
+  $$("[data-dice-count]").forEach(button=>button.classList.toggle("on",+$("dice-count").value===+button.dataset.diceCount));renderOutcomeGuide();syncToolsSourceSelection();
 }
-function recalculateDicePool(){const attr=$("dice-attr").value,count=$("dice-count");count.readOnly=attr!=="manual";if(attr!=="manual")count.value=Math.max(1,attrValue(attr));updateDicePoolTotal()}
+function recalculateDicePool(){const attr=$("dice-attr").value,count=$("dice-count");count.readOnly=attr!=="manual";if(attr!=="manual")count.value=Math.max(1,attrValue(attr));updateDicePoolTotal();if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh()}
 function renderDiceComposer(){
   const skill=$("dice-skill"),ability=$("dice-ability"),bond=$("dice-bond"),skillValue=skill.value,abilityValue=ability.value,bondValue=bond.value,darkChecked=$("dice-dark-urge")?.checked,outgunnedChecked=$("dice-outgunned")?.checked,saintChecked=$("dice-saint")?.checked,fundingValue=$("dice-trust-fund")?.value||0,copy=toolsCopy();
   skill.innerHTML=`<option value="">${copy.noSkill}</option>${S.skills.filter(item=>skillDisplayName(item).trim()).map(item=>`<option value="${esc(toolSkillId(item))}">${esc(skillDisplayName(item))} · +${effectiveSkillRank(item)}D6</option>`).join("")}`;if([...skill.options].some(option=>option.value===skillValue))skill.value=skillValue;
-  ability.innerHTML=`<option value="">${copy.noAbility}</option>${S.ability.enabled?`<option value="main">${esc(S.ability.name||copy.ability)} · +${S.ability.rank}D6</option>`:""}${S.mods.taintedBody&&S.taintedAbility.enabled?`<option value="tainted">${esc(S.taintedAbility.name||(isEnglishPreview()?"Tainted Body":"Порченое тело"))} · +${S.taintedAbility.rank}D6</option>`:""}`;if([...ability.options].some(option=>option.value===abilityValue))ability.value=abilityValue;
+  ability.innerHTML=`<option value="">${copy.noAbility}</option>${S.ability.enabled?`<option value="main">${esc(S.ability.name||copy.ability)} · +${S.ability.rank}D6</option>`:""}${S.mods.taintedBody&&S.taintedAbility.enabled?`<option value="tainted">${esc(S.taintedAbility.name||(isEnglishPreview()?"Tainted Body":"Порченое тело"))} · +${S.taintedAbility.rank}D6</option>`:""}${(typeof heroGadgetDiceSources==="function"?heroGadgetDiceSources():[]).map(source=>`<option value="${esc(source.value)}">${esc(source.label)} · +${source.count}D6</option>`).join("")}`;if([...ability.options].some(option=>option.value===abilityValue))ability.value=abilityValue;
   bond.innerHTML=`<option value="">${copy.noBond}</option>${S.bonds.map(item=>{const status=freeplayBondStatus(item);return`<option value="${item.id}">${esc(item.name)} · +${status.amount}D6</option>`}).join("")}`;if([...bond.options].some(option=>option.value===bondValue))bond.value=bondValue;
   const opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opponent=opposed?.participants.find(item=>item.id!==participant?.id);
   $("dice-hero-context").innerHTML=`<span>${isEnglishPreview()?"Rolling":"Бросает"}</span><strong>${esc(S.name||copy.unnamed)}</strong><small>${participant?(isEnglishPreview()?`Opposed Roll against ${esc(opponent?.name||"opponent")} · attempt ${opposed.attempt}`:`Встречный бросок против ${esc(opponent?.name||"соперника")} · попытка ${opposed.attempt}`):`${copy.tier} ${S.tier} · ${copy.successTarget.toLowerCase()} ${freeplayTarget()}`}</small>`;
@@ -229,20 +265,35 @@ function renderDiceComposer(){
 }
 function openToolsDicePreset({attr="",skillId="",abilityKey=""}={}){setMode("tools");renderDiceComposer();if(attr&&[...$("dice-attr").options].some(option=>option.value===attr))$("dice-attr").value=attr;if(skillId&&[...$("dice-skill").options].some(option=>option.value===skillId))$("dice-skill").value=skillId;if(abilityKey&&[...$("dice-ability").options].some(option=>option.value===abilityKey))$("dice-ability").value=abilityKey;recalculateDicePool();requestAnimationFrame(()=>$("roll-dice").focus())}
 function renderFreeplayHeroPanel(){
-  const actor=toolsRuntimeActor(),stressMaximum=stressMaximumFor(actor||S),stress=clamp(actor?.stress??S.runtime.stress,0,stressMaximum),influence=Math.max(0,Number(actor?.influence??S.runtime.influence)||0),gifts=selectedGifts(),techniques=Object.entries(S.techniques).filter(([,level])=>level>0).map(([id,level])=>({tech:techById(id),level})).filter(item=>item.tech),locked=toolsSyncContext().shared&&!actor,copy=toolsCopy(),attrs=activeAttrs();
+  const root=$("freeplay-hero-panel"),sameHero=root.dataset.toolsHero===S.id;
+  const opened=new Set(sameHero?[...root.querySelectorAll("details[open][data-tools-feature]")].map(detail=>detail.dataset.toolsFeature):[]);
+  const focused=sameHero&&root.contains(document.activeElement)?document.activeElement:null;
+  const focusKey=focused&&["freeplayAttr","freeplaySkill","freeplayAbility","freeplayResource"].find(key=>focused.dataset[key]);
+  const focusValue=focusKey&&focused.dataset[focusKey],focusDelta=focused?.dataset.freeplayDelta;
+  const actor=toolsRuntimeActor(),stressMaximum=stressMaximumFor(actor||S),stress=clamp(actor?.stress??S.runtime.stress,0,stressMaximum),influence=Math.max(0,Number(actor?.influence??S.runtime.influence)||0),gifts=selectedGifts(),techniques=Object.entries(S.techniques).filter(([,level])=>level>0).map(([id,level])=>({tech:techById(id),level})).filter(item=>item.tech),locked=toolsSyncContext().shared&&!actor||(typeof toolsResourceCorrectionReason==="function"&&Boolean(toolsResourceCorrectionReason())),copy=toolsCopy(),attrs=activeAttrs();
   const resource=(key,label,value,maximum="")=>`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${value}${maximum?` / ${maximum}`:""}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button></div>`;
   $("freeplay-hero-panel").innerHTML=`<header class="freeplay-hero-head">${S.media.portrait?`<img src="${S.media.portrait}" alt="">`:`<i>✦</i>`}<div><span class="kind">${copy.sheet}</span><h2>${esc(S.name||copy.unnamed)}</h2><p>${esc(S.concept||(isEnglishPreview()?"No concept recorded":"Концепция не записана"))} · ${copy.tier} ${S.tier}</p></div><div class="freeplay-resources">${resource("influence",copy.influence,influence)}${resource("stress",copy.stress,stress,stressMaximum)}</div></header><div class="freeplay-sheet-picks"><section><h3>${copy.attributes}</h3><div>${attrs.map(([key,label])=>`<button type="button" data-freeplay-attr="${key}"><span>${label}</span><b>${attrValue(key)}D6</b></button>`).join("")}</div></section><section><h3>${copy.skills}</h3><div>${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-freeplay-skill="${esc(toolSkillId(skill))}"><span>${esc(skillDisplayName(skill))}</span><b>+${effectiveSkillRank(skill)}D6</b></button>`).join("")||`<p class="autosave">${copy.noSkills}</p>`}</div></section>${S.ability.enabled?`<section><h3>${copy.ability}</h3><button type="button" class="freeplay-ability-pick" data-freeplay-ability="main"><span><b>${esc(S.ability.name||abilityFormula())}</b><small>${esc(abilityFormula())}</small></span><strong>+${S.ability.rank}D6</strong></button></section>`:""}</div><div class="freeplay-features"><details><summary>${copy.boons} <small>${gifts.length}</small></summary>${gifts.map(gift=>`<article><strong>${esc(gift.name)}</strong><p>${md(gift.text)}</p></article>`).join("")||`<p class="autosave">${copy.noBoons}</p>`}</details><details><summary>${copy.techniques} <small>${techniques.reduce((sum,item)=>sum+item.level,0)} ${isEnglishPreview()?"Lv.":"ур."}</small></summary>${techniques.map(({tech,level})=>`<article><strong>${esc(tech.name)} · ${isEnglishPreview()?"Level":"Уровень"} ${level}</strong>${tech.levels.slice(0,level).map(item=>`<p><b>${item.n}: ${esc(item.name)}</b> — ${md(item.text)}</p>`).join("")}</article>`).join("")||`<p class="autosave">${copy.noTechniques}</p>`}</details></div>`;
+  root.dataset.toolsHero=S.id;
+  const features=root.querySelector(".freeplay-features");
+  if(features){
+    [...features.querySelectorAll("details")].forEach((detail,index)=>{detail.dataset.toolsFeature=index===0?"gifts":"techniques";detail.open=opened.has(detail.dataset.toolsFeature)});
+    const gadgets=typeof heroGadgetsSheetMarkup==="function"?heroGadgetsSheetMarkup():"";
+    if(gadgets){const detail=document.createElement("details"),summary=document.createElement("summary");detail.dataset.toolsFeature="gadgets";detail.open=opened.has("gadgets");summary.textContent=gadgetText("title");detail.append(summary);detail.insertAdjacentHTML("beforeend",gadgets);features.append(detail)}
+  }
+  syncToolsSourceSelection();
+  if(focusKey){const replacement=[...root.querySelectorAll("button")].find(button=>button.dataset[focusKey]===focusValue&&(!focusDelta||button.dataset.freeplayDelta===focusDelta));replacement?.focus({preventScroll:true})}
 }
 function renderFreeplayBonds(){
   const standard=D.bonds.actions.map(action=>action.tag);
   $("freeplay-bonds").innerHTML=S.bonds.map(bond=>{const status=freeplayBondStatus(bond),canRaise=bond.rank<3&&bond.tags.length>=bond.rank;return`<article class="freeplay-bond-card"><header><div><strong>${esc(bond.name)}</strong><small>${bond.quick?"Быстрая Связь · ":""}Преимущество +${status.amount}</small></div><div class="freeplay-bond-rank"><button type="button" data-bond-rank="${bond.id}" data-bond-delta="-1" ${bond.rank<=1?"disabled":""}>−</button><b>Ранг ${bond.rank}</b><button type="button" data-bond-rank="${bond.id}" data-bond-delta="1" title="${canRaise?"Повысить Ранг":"Для повышения нужны все теги текущего Ранга"}" ${canRaise?"":"disabled"}>+</button></div></header><div class="freeplay-bond-tags">${bond.tags.map(tag=>`<span>${esc(tag)}</span>`).join("")||`<small>Тегов пока нет</small>`}</div><div class="freeplay-bond-actions"><select data-bond-tag-select="${bond.id}" ${bond.tags.length>=bond.rank?"disabled":""}><option value="">${bond.tags.length>=bond.rank?"Все места тегов заняты":"Добавить тег…"}</option>${standard.filter(tag=>!bond.tags.includes(tag)).map(tag=>`<option>${esc(tag)}</option>`).join("")}<option value="__custom">Свой тег…</option></select><button type="button" data-bond-use="${bond.id}">В бросок</button><button type="button" class="remove" data-bond-remove="${bond.id}">Удалить</button></div></article>`}).join("")||`<p class="autosave">Связей пока нет. В обычной или быстрой Связи можно хранить Ранг и неизменяемые теги.</p>`;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderAllInControls(){
   renderFreeplayDirector();
-  if(toolsRole()==="network-narrator")return;
   renderDiceComposer();
   renderFreeplayHeroPanel();
   renderFreeplayBonds();
+  syncToolsSourceSelection();
   renderStressTrackers();
   updateAllInAvailability();
 }
@@ -257,8 +308,9 @@ function updateAllInAvailability(){
   $("all-in-flashback").disabled=!pendingAllIn;
   if(!pendingAllIn)$("all-in-flashback").checked=false;
   const copy=toolsCopy();$("all-in-hint").textContent=!pendingAllIn?copy.allInFirst:influence>0?copy.allInInfluence:stressPayment&&stress<stressMaximum?copy.allInStress:copy.allInBlocked;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
-function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderDiceHistory();renderAllInControls();renderChallengeRequestDock()}
+function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderDiceHistory();renderAllInControls();renderChallengeRequestDock();if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh()}
 function applyOptimisticToolsEvents(events){
   try{Scene=normalizeScene(SceneEngine.dispatchMany(Scene,events,{expectedVersion:Number(Scene.version||0)}).scene);syncHeroFromScene();persistAfterPaint();return true}catch{return false}
 }
@@ -292,21 +344,46 @@ function allIn(payment){
 function renderDiceHistory(){
   const context=toolsSyncContext(),history=context.shared?(Scene.rollFeed||[]).filter(roll=>activeSceneView()==="gm"||roll.visibility!=="gm"):S.runtime.diceHistory,empty=isEnglishPreview()?"No public rolls at this table yet.":"На этом столе ещё не было публичных бросков.";
   $("dice-history").innerHTML=history.map(h=>{const rolls=Array.isArray(h.rolls)?h.rolls:[],criticalAt=Number(h.dice?.criticalAt||6),threshold=Number(h.dice?.threshold||4),actor=h.actor|| (isEnglishPreview()?"System":"Система"),formula=h.formula||`${h.count||rolls.length}D6 ≥${threshold}`,result=isEnglishPreview()?`${h.successes} successes · ${h.crits} crits`:`${h.successes} успех. · ${h.crits} крит.`,badge=h.payment?(isEnglishPreview()?"ALL IN":"ВА-БАНК"):h.opposedRequestId?(isEnglishPreview()?"OPPOSED":"ВСТРЕЧНЫЙ"):isEnglishPreview()?"ROLL":"БРОСОК";return`<li class="roll-feed-card"><header><div><strong>${esc(actor)}</strong><small>${esc(formula)}${h.at?` · ${esc(h.at)}`:""}</small></div><span>${badge}</span></header><div class="roll-feed-dice">${rolls.map(value=>`<i class="${value>=criticalAt?"crit":value>=threshold?"success":""}">${value}</i>`).join("")}</div><div class="roll-feed-result">${esc(result)}${h.outcome?` · ${esc(h.outcome)}`:""}</div>${h.target?`<small>${isEnglishPreview()?"Success Target":"Цель Успехов"}: ${esc(h.target)}</small>`:""}</li>`}).join("")||`<li class="roll-feed-card"><small>${empty}</small></li>`;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderClocks(){
   const context=toolsSyncContext(),clocks=sessionClocks(),locked=context.shared&&!context.canEdit,addActions=$("clock-add-progress").closest(".clock-add-actions");addActions.hidden=locked;
   const editableCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock ${c.kind==="progress"?"progress":"danger"}"><div class="clock-head"><label>Название<input data-clock-name="${c.id}" value="${esc(c.name)}" maxlength="120" title="${esc(c.name)}"></label><div class="clock-head-actions"><button type="button" data-clock-save="${c.id}">✓ Сохранить</button><button type="button" data-clock-reset="${c.id}">↺ Сбросить</button><button type="button" class="remove" data-clock-remove="${c.id}">× Удалить</button></div></div><div class="clock-meta"><label>Тип<select data-clock-kind="${c.id}"><option value="progress" ${c.kind==="progress"?"selected":""}>Хорошие</option><option value="danger" ${c.kind==="progress"?"":"selected"}>Плохие</option></select></label><label>Текущее<input type="number" data-clock-current="${c.id}" min="${c.min??0}" max="${max}" value="${current}"></label><label>Максимум<select data-clock-size="${c.id}">${[4,6,8,12].map(size=>`<option value="${size}" ${max===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="segments">${Array.from({length:max},(_,i)=>`<button type="button" class="segment ${i<current?"on":""}" data-clock="${c.id}" data-value="${i+1}" aria-label="${i+1} из ${max}"></button>`).join("")}</div></article>`};
   const readOnlyCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock clock-readonly ${c.kind==="progress"?"progress":"danger"}"><div class="clock-readonly-head"><strong title="${esc(c.name)}">${esc(c.name)}</strong><small>${current} / ${max}</small></div><div class="segments" role="img" aria-label="${esc(`${c.name}: заполнено ${current} из ${max}`)}">${Array.from({length:max},(_,i)=>`<span class="segment ${i<current?"on":""}"></span>`).join("")}</div></article>`};
   const card=locked?readOnlyCard:editableCard,group=(kind,title,empty)=>{const items=clocks.filter(clock=>(clock.kind==="progress"?"progress":"danger")===kind);return`<section class="clock-group ${kind}"><h3>${title}</h3>${items.map(card).join("")||`<p class="autosave">${empty}</p>`}</section>`};$("clocks").innerHTML=isEnglishPreview()?group("progress","Good Clocks","No progress Clocks yet.")+group("danger","Bad Clocks",locked?"The Narrator has not added a threat Clock yet.":"No threat Clocks yet."):group("progress","Хорошие часы","Пока нет часов прогресса.")+group("danger","Плохие часы",locked?"Нарратор ещё не добавил часы угрозы.":"Пока нет часов угрозы.");renderToolsSyncState();
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
+}
+function toolsStressOwners(){
+  const context=toolsSyncContext();
+  if(context.shared)return Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token").map(actor=>({id:actor.id,name:actor.name,actor,stress:Number(actor.stress||0),maxStress:stressMaximumFor(actor)}));
+  return store.heroes.map(hero=>{const actor=Scene.rulesEdition==="lionwing"?Scene.actors.find(item=>(item.heroId===hero.id||item.characterId===hero.id)&&(item.team==="hero"||item.kind==="hero")):null;
+    return{id:hero.id,name:hero.name||"Безымянный герой",hero,actor,stress:Number(actor?.stress??hero.runtime?.stress??0),maxStress:stressMaximumFor(actor||hero)};});
+}
+function toolsStressCorrectionReason(owner){
+  if(!toolsSyncContext().canEdit)return isEnglishPreview()?"Edited by the Narrator":"Изменяет Нарратор";
+  if(owner?.actor&&Scene.rulesEdition==="lionwing"){
+    if(!lwCanNarrate())return isEnglishPreview()?"Edited by the Narrator":"Изменяет Нарратор";
+    return sceneNumericCorrectionReason();
+  }
+  return "";
+}
+function setToolsStressTracker(id,value){
+  const owner=toolsStressOwners().find(item=>item.id===id);if(!owner)return false;
+  const reason=toolsStressCorrectionReason(owner);if(reason){toast(reason);return false;}
+  const chosen=clamp(value,0,owner.maxStress),next=owner.stress===chosen?Math.max(0,chosen-1):chosen,label=`${owner.name}: Стресс → ${next}`;
+  if(owner.actor){
+    if(Scene.rulesEdition==="lionwing"){if(!lwSubmit(owner.actor.id,{kind:"correct",resource:"stress",amount:next},label))return false;}
+    else {const sceneEvent={type:"actor.runtime.set",actorId:owner.actor.id,payload:{key:"stress",value:next}},result=commitSceneEvents(label,[sceneEvent]);if(!result)return false;if(result?.pending)applyOptimisticToolsEvents([sceneEvent]);}
+  }else {owner.hero.runtime.stress=next;if(owner.hero.id===S.id)S.runtime.stress=next;persistAfterPaint();}
+  renderStressTrackers();refreshFreeplayResourceUi();updateAllInAvailability();return true;
 }
 function renderStressTrackers(){
-  const root=$("stress-trackers"),context=toolsSyncContext(),heroes=context.shared
-    ?Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token")
-    :store.heroes.map(hero=>({id:hero.id,name:hero.name||"Безымянный герой",stress:clamp(hero.runtime?.stress,0,stressMaximumFor(hero)),maxStress:stressMaximumFor(hero)}));
-  const segment=(hero,index)=>context.canEdit
+  const root=$("stress-trackers"),heroes=toolsStressOwners();
+  const segment=(hero,index)=>!toolsStressCorrectionReason(hero)
     ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: Стресс ${index}`)}"></button>`
     :`<span class="${index<=hero.stress?"on":""}"></span>`;
-  root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress??stressMaximumFor(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${Number(hero.stress)>=maxStress?"Максимум · герой вне строя":`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${context.canEdit?"":`role="img" aria-label="${esc(`${hero.name}: Стресс ${clamp(hero.stress,0,maxStress)} из ${maxStress}`)}"`}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${context.shared?"Добавьте героев за общий стол.":"Нет текущего героя."}</p>`;
+  root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress,reason=toolsStressCorrectionReason(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${Number(hero.stress)>=maxStress?"Максимум · герой вне строя":`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${reason?`role="img" aria-label="${esc(`${hero.name}: Стресс ${clamp(hero.stress,0,maxStress)} из ${maxStress}`)}"`:""}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${toolsSyncContext().shared?"Добавьте героев за общий стол.":"Нет текущего героя."}</p>`;
+  if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 
 function bondRuleItems(){return [

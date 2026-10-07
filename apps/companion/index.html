@@ -12,10 +12,13 @@
   <link rel="stylesheet" href="hero-gadgets.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="mobile-header.css?v=__BUILD_VERSION__">
   <link rel="stylesheet" href="prototype-test-ui.css?v=__BUILD_VERSION__">
-  <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<3||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
+  <script>try{const sceneUi=JSON.parse(localStorage.getItem("dawn-ru-companion-v2")||"null")?.sceneUi||{};if(Number(sceneUi.interfaceRolloutVersion||0)<4||sceneUi.interfaceVersion==="next")document.documentElement.classList.add("scene-interface-next")}catch{document.documentElement.classList.add("scene-interface-next")}</script>
   <link id="scene-interface-classic-styles" rel="stylesheet" href="vtt-interface-classic.css?v=__BUILD_VERSION__">
   <link id="scene-interface-next-styles" rel="stylesheet" href="vtt-cockpit.css?v=__BUILD_VERSION__" disabled>
   <script>{const next=document.documentElement.classList.contains("scene-interface-next");document.getElementById("scene-interface-classic-styles").disabled=next;document.getElementById("scene-interface-next-styles").disabled=!next}</script>
+  <link rel="stylesheet" href="scene-board-tools.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="tools-workspace.css?v=__BUILD_VERSION__">
+  <link rel="stylesheet" href="scene-workspace-next.css?v=__BUILD_VERSION__">
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="app.skip">К содержимому</a>
@@ -45,6 +48,7 @@
       <section class="app-settings-section"><div><h3 data-i18n="settings.contentTitle">Язык и правила</h3><p data-i18n="settings.contentHelp">Редакция определяет правила и отдельный лист героя.</p></div><div class="content-switchers" aria-label="Язык и редакция правил" data-i18n-aria-label="settings.content"><label><span data-i18n="settings.language">Язык</span><select id="locale-select"><option value="ru">Русский</option><option value="en">English</option></select></label><label><span data-i18n="settings.edition">Редакция</span><select id="edition-select"><option value="ru-v0.9">RU v0.9</option><option value="lionwing">LionWing</option></select></label></div></section>
       <section class="app-settings-section"><div><h3 data-i18n="settings.appearance">Оформление</h3><p data-i18n="settings.appearanceHelp">Тема хранится только на этом устройстве.</p></div><button type="button" id="theme-toggle" data-i18n="settings.toggleTheme">Сменить светлую и тёмную тему</button></section>
       <details id="supplement-picker" class="supplement-picker app-settings-section"><summary><span data-i18n="supplements.title">Дополнения</span><small id="supplement-count"></small></summary><div id="supplement-options" class="supplement-options"></div></details>
+      <section class="app-settings-section"><div><h3 data-i18n="settings.toolsTitle">Интерфейс Инструментов</h3><p data-i18n="settings.toolsHelp">Тестовая версия включена по умолчанию. Переключение сохраняет лист, броски и ресурсы.</p></div><label><span data-i18n="settings.toolsVersion">Версия</span> <select id="tools-interface-version"><option value="next" data-i18n="tools.version.next">Новая · тестовая</option><option value="classic" data-i18n="tools.version.classic">Старая</option></select></label></section>
       <section class="app-settings-section app-table-settings"><div><h3 data-i18n="settings.tableTitle">Интерфейс стола</h3><p data-i18n="settings.tableHelp">Компоновка, размеры панелей и вид ленты участников.</p></div><div id="scene-layout-settings" class="scene-layout-settings"></div></section>
     </div>
   </dialog>
@@ -469,12 +473,16 @@
   <script src="app-workspace.js?v=__BUILD_VERSION__"></script>
   <script src="app-navigation.js?v=__BUILD_VERSION__"></script>
   <script src="mobile-header.js?v=__BUILD_VERSION__"></script>
+  <script src="tools-workspace.js?v=__BUILD_VERSION__"></script>
   <script src="play-ui.js?v=__BUILD_VERSION__"></script>
   <script src="app-builder-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-sync-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-scene-events.js?v=__BUILD_VERSION__"></script>
   <script src="app-play-events.js?v=__BUILD_VERSION__"></script>
   <script src="lionwing-ui.js?v=__BUILD_VERSION__"></script>
+  <script src="ui-icons.js?v=__BUILD_VERSION__"></script>
+  <script src="scene-workspace-next.js?v=__BUILD_VERSION__"></script>
+  <script src="scene-board-tools.js?v=__BUILD_VERSION__"></script>
   <script src="scene-token-hud.js?v=__BUILD_VERSION__"></script>
   <script src="diagnostics.js?v=__BUILD_VERSION__"></script>
   <script src="app.js?v=__BUILD_VERSION__"></script>

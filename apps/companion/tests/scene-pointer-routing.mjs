@@ -25,7 +25,7 @@ const context={
   console,performance:{now:()=>1000},HTMLElement:class {},requestAnimationFrame:()=>{},
   document:{activeElement:null,querySelector:selector=>selector==="dialog[open]"?openDialog:null,
     addEventListener(type,handler,capture=false){if(type==="keydown")keyboard.push({handler,capture});}},
-  $:element,activeSceneView:()=>role,canControlScenePrompt:()=>false,
+   $:element,sceneViewportProfile:()=>"desktop",activeSceneView:()=>role,canControlScenePrompt:()=>false,
   syncScenePanels:()=>{},persist:()=>{},renderScene:()=>{renders++;},toast:text=>messages.push(text),
   focusSceneActorOnBoard:()=>{},SceneEngine:{},window:{},S:{id:"owned-hero"},
   lwActive:()=>true,cancelSceneFlow:()=>{cancellations++;},
@@ -117,6 +117,14 @@ reset();run('Scene.tool="target";Scene.targetIds=[];Scene.targetCells=["3,2"]');
 assert.deepEqual(targets(),{actorIds:["enemy"],cells:[]},"explicit targeting keeps its existing actor/cell behavior");
 clickBoard("enemy",undefined,true);
 assert.deepEqual(targets(),{actorIds:[],cells:["3,2"]},"Shift still picks the cell beneath a token");
+
+// Next token selection leaves the field visible for its token HUD.
+for(const version of ["next","classic"]){
+  reset("gm",version);run('activeScenePanels={left:null,right:null};activeScenePanel=null');
+  clickBoard("enemy");
+  assert.equal(run("Scene.selectedActor"),"enemy");
+  assert.equal(run("isScenePanelOpen('inspector')"),version==="classic","only classic token selection opens Info automatically");
+}
 
 // The context ruler uses the same local Player tool as the next actual board click.
 reset("player");run('Scene.tool="place"');const measureResources=resources(),measureTargets=targets();
