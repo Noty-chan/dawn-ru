@@ -1,5 +1,5 @@
 const RAW_BUILD = "__BUILD_VERSION__";
-const BUILD = RAW_BUILD.startsWith("__") ? "dev-20261006-switchable-workspaces-4" : RAW_BUILD;
+const BUILD = RAW_BUILD.startsWith("__") ? "dev-20261007-portrait-turns" : RAW_BUILD;
 const CACHE = `dawn-ru-companion-${BUILD}`;
 const versioned = path => `${path}?v=${BUILD}`;
 const SCRIPT_ASSETS = [
@@ -9,7 +9,7 @@ const SCRIPT_ASSETS = [
   "./app-bootstrap.js", "./app-reference-data.js", "./app-core.js", "./hero-ui.js", "./scene-ui.js", "./scene-effects.js", "./scene-actions-ui.js", "./scene-sync-ui.js", "./app-workspace.js", "./app-navigation.js", "./mobile-header.js", "./tools-workspace.js", "./play-ui.js",
   "./app-builder-events.js", "./app-sync-events.js", "./app-scene-events.js", "./app-play-events.js", "./ui-icons.js", "./scene-workspace-next.js", "./scene-board-tools.js", "./scene-token-hud.js", "./app.js",
 ];
-const ASSETS = ["./", "./index.html", "./testing.html", versioned("./prototype-test-ui.css"), versioned("./prototype-test-ui.js"), versioned("./app.css"), versioned("./hero-gadgets.css"), versioned("./mobile-header.css"), versioned("./scene-board-tools.css"), versioned("./tools-workspace.css"), versioned("./scene-workspace-next.css"), versioned("./vtt-interface-classic.css"), versioned("./vtt-cockpit.css"), ...SCRIPT_ASSETS.map(versioned), "./manifest.webmanifest", "./icon.svg"];
+const ASSETS = ["./", "./index.html", versioned("./app.css"), versioned("./hero-gadgets.css"), versioned("./mobile-header.css"), versioned("./scene-board-tools.css"), versioned("./tools-workspace.css"), versioned("./scene-workspace-next.css"), versioned("./vtt-interface-classic.css"), versioned("./vtt-cockpit.css"), ...SCRIPT_ASSETS.map(versioned), "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", event => {

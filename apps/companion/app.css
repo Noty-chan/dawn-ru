@@ -210,6 +210,7 @@ main{min-width:0;padding:clamp(1rem,3vw,3rem)}.mode-page{display:none}.mode-page
 .scene-turn-chip{display:grid;grid-template-columns:30px minmax(74px,auto);align-items:center;gap:.4rem;min-width:max-content;padding:.32rem .5rem .32rem .35rem;border-color:var(--line);background:color-mix(in srgb,var(--surface-2) 86%,transparent);text-align:left}
 .scene-turn-chip>i,.scene-turn-chip>img{display:grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--token-color,var(--surface));object-fit:cover;color:#fff;font-size:.65rem;font-style:normal;font-weight:900}
 .scene-turn-chip>span{display:grid;gap:.08rem}.scene-turn-chip b{max-width:115px;overflow:hidden;font-size:.64rem;text-overflow:ellipsis;white-space:nowrap}.scene-turn-chip small{color:var(--muted);font-size:.55rem}
+.scene-turn-chip>.scene-turn-state{display:none}
 .scene-turn-chip.enemy{border-bottom-color:color-mix(in srgb,var(--red) 70%,var(--line))}.scene-turn-chip.active{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,var(--surface));box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent)}
 .scene-turn-chip.acted{opacity:.48}.scene-turn-chip.active{opacity:1}.scene-turn-chip.knocked-out{filter:grayscale(1)}
 @media(max-width:720px){.scene-turn-strip{margin-bottom:.35rem}.scene-turn-chip{grid-template-columns:26px minmax(64px,auto);padding:.28rem .4rem}.scene-turn-chip>i,.scene-turn-chip>img{width:26px;height:26px}.scene-turn-chip b{max-width:90px}}

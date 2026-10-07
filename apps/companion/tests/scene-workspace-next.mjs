@@ -11,3 +11,35 @@ height=102.2;context.measureMobileControls();assert.equal(values.get('--scene-mo
 mobile=false;context.measureMobileControls();assert.equal(values.get('--scene-mobile-controls-height'),'0px','desktop clears the reserved mobile boundary');
 mobile=true;next=false;context.measureMobileControls();assert.equal(values.get('--scene-mobile-controls-height'),'0px','classic is not changed');
 console.log('Next scene measured dock boundary: fractional height, resize/content and desktop/classic reset passed');
+
+const turnStart=source.indexOf('  function revealCurrentTurn('),turnEnd=source.indexOf('  function measureMobileControls()',turnStart);
+const classes=new Set(),turnScene={activeActorId:'one'};
+let item={top:210,bottom:254},reads=0,renderedActor='one',viewportHeight=160;
+const turns={scrollTop:40,getBoundingClientRect:()=>({top:0,bottom:viewportHeight,height:viewportHeight}),
+  querySelector:()=>({dataset:{sceneTurnActor:renderedActor},getBoundingClientRect:()=>{reads++;return item}})};
+const turnContext=vm.createContext({Scene:turnScene,document:{body:{classList:{contains:name=>classes.has(name)}}}});
+vm.runInContext('let turnLayout=null,turnActorId=null;'+source.slice(turnStart,turnEnd),turnContext);
+turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(turns.scrollTop,140,'initial current participant becomes visible in a long roster');
+turns.scrollTop=20;turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(turns.scrollTop,20,'ordinary resource redraw does not undo manual roster scrolling');
+assert.equal(reads,1);
+turns.scrollTop=100;turnScene.activeActorId='two';item={top:-40,bottom:4};turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(reads,1,'pre-render refresh does not consume a handoff against the old roster DOM');
+renderedActor='two';turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(turns.scrollTop,54,'turn handoff reveals the new current participant after rendering');
+classes.add('scene-panel-open-both');turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(reads,2,'hidden two-panel roster is not scrolled');
+classes.delete('scene-panel-open-both');classes.add('scene-panel-open-left');
+turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(reads,3,'reopening the compact block reveals the current turn');
+classes.add('focus-mode');turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(reads,3,'focus mode keeps the hidden roster quiet');
+classes.clear();turnContext.revealCurrentTurn(turns,false,false);turnContext.revealCurrentTurn(turns,true,true);
+assert.equal(reads,3,'classic and phone layouts are not scrolled by desktop presentation');
+viewportHeight=0;turnScene.activeActorId='three';renderedActor='three';
+turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(reads,3,'hidden Table geometry does not consume a handoff');
+viewportHeight=160;turnContext.revealCurrentTurn(turns,true,false);
+assert.equal(reads,4,'returning to Table reveals the current participant');
+console.log('Portrait turn roster reveal: handoff/layout changes only, manual scroll and hidden/classic/mobile preservation passed');

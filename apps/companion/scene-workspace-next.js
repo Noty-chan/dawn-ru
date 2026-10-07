@@ -1,7 +1,7 @@
 "use strict";
 // Local presentation only. All commands stay on existing actor-bound routes.
 window.DAWN_SCENE_WORKSPACE=(()=>{
-  let palettePanel,bar,more,toolbarHome,turnHome,ready=false;
+  let palettePanel,bar,more,toolbarHome,turnHome,ready=false,turnLayout=null,turnActorId=null;
   const dockHomes=new Map(),dockIcons={director:'actions',inspector:'tokens',sheet:'sheet',utility:'dice',reference:'sheet',media:'view',map:'view',entities:'effects',add:'add',table:'settings',network:'network',log:'log'};
   const copy=(ru,en)=>typeof isEnglishPreview==='function'&&isEnglishPreview()?en:ru;
   const narrow=()=>typeof sceneViewportProfile==='function'&&sceneViewportProfile()!=='desktop';
@@ -16,6 +16,17 @@ window.DAWN_SCENE_WORKSPACE=(()=>{
     if(typeof ResizeObserver==='function')new ResizeObserver(measureMobileControls).observe(bar);
     window.addEventListener('resize',refresh);return true;
   }
+  function revealCurrentTurn(turns,next,phone){
+    const hidden=document.body.classList.contains('scene-turn-strip-hidden')||document.body.classList.contains('focus-mode')||document.body.classList.contains('scene-panel-open-both');
+    const layout=!next||phone||hidden?'hidden':document.body.classList.contains('scene-panel-open-left')?'compact':'rail';
+    if(layout!=='hidden'&&(layout!==turnLayout||Scene.activeActorId!==turnActorId)){
+      const current=turns.querySelector('[aria-current="step"]');
+      // refresh also runs before the roster renderer; wait for its current actor.
+      if(Scene.activeActorId&&current?.dataset.sceneTurnActor!==Scene.activeActorId)return;
+      if(current){const box=turns.getBoundingClientRect();if(box.height<=0)return;const item=current.getBoundingClientRect();if(item.top<box.top+6)turns.scrollTop-=box.top+6-item.top;else if(item.bottom>box.bottom-6)turns.scrollTop+=item.bottom-box.bottom+6}
+    }
+    turnLayout=layout;turnActorId=Scene.activeActorId;
+  }
   function measureMobileControls(){
     if(!bar)return;const height=narrow()&&usingNextSceneInterface()?Math.ceil(bar.getBoundingClientRect().height):0;
     $("scene-workbench").style.setProperty("--scene-mobile-controls-height",`${height}px`);
@@ -28,6 +39,7 @@ window.DAWN_SCENE_WORKSPACE=(()=>{
     for(const[button,html]of dockHomes){if(next)button.setAttribute("aria-label",button.title||button.textContent.trim());else button.removeAttribute("aria-label");const wanted=next?`${window.DAWN_UI_ICONS?.html(dockIcons[button.dataset.scenePanel]||'more')||''}<span class="scene-dock-label">${html}</span>`:html;if(button.innerHTML!==wanted)button.innerHTML=wanted}
     if(phone){if(toolbar.parentElement!==palettePanel)palettePanel.append(toolbar)}else if(toolbar.previousSibling!==toolbarHome)toolbarHome.after(toolbar);
     if(next&&!phone){if(turns.parentElement!==left)left.prepend(turns)}else if(turns.previousSibling!==turnHome)turnHome.after(turns);
+    revealCurrentTurn(turns,next,phone);
     palettePanel.classList.toggle('rail-active',phone&&isScenePanelOpen('fieldtools'));
     const actor=Scene.actors.find(item=>item.id===Scene.selectedActor&&item.space===Scene.activeSpace),compound=actor&&SceneEngine.compoundEnemyStatus(Scene,actor.id),hp=compound?.active?compound.hp:actor?.hp,maximum=compound?.active?compound.maxHp:actor?.maxHp;
     bar.querySelector('.scene-mobile-selection').textContent=actor?`${actor.name} · ${copy('ЗД','HP')} ${hp} / ${maximum||'—'}`:copy('Выберите участника на поле','Select a participant on the field');
