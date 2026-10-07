@@ -55,3 +55,8 @@ Final targeted: network-v2.mjs PASS; workspace test updated to wait for canonica
 ## Дополнительный малый пакет после checkpoint
 
 Пользователь попросил ещё немного работы и разрешил отложить мобильную геометрию. Footer «Кубы» теперь открывает отдельный диалог RU/EN с выбором 1–30 D6 и направляет результат в table.command/roll. Ручной бросок сохраняется в rollFeed и получает читаемую строку журнала (формула, грани, успехи), без автоматического боя. Перепроверяются policy и владение при submit — старый открытый диалог не применяет команду после смены режима. `table-manual-roll-route.mjs` PASS (actual UI function, limits/ownership/policy/no local writes); core/network тесты roll storage ранее PASS. Browser именно нового диалога not-run. Часы пока остаются старым utility и должны быть подключены отдельно. Мобильную геометрию брать позже, desktop manual functionality прежде.
+
+
+## Ещё один малый пакет: ручные записи после reload
+
+Исправлена потеря ownership/manual/type у ручных часов и информационных областей в app-core sceneCore. Счётчик сохраняет kind counter, размер и значение; область остаётся manual-area и не превращается в механическую местность. Сохранены owner/manual/hidden/color. Расширенный actual persistence тест загружает настоящее ядро и выполняет clock/set и area/remove уже после двух normalize/reload: PASS без изменения HP. Existing lionwing-counters PASS. QA static contract remote-join обновлён под намеренный manual guard (старый regex требовал прежний код). Повторный полный npm всё ещё не запускался; остаётся ранее отмеченный stale S00 inventory.
