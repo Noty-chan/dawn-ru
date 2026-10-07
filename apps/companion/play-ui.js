@@ -40,8 +40,9 @@ function renderPlay(){
 }
 
 let pendingAllIn=null;
+let pendingToolsRoll=null;
 function resetToolsRollResult(){
-  pendingAllIn=null;
+  pendingAllIn=null;pendingToolsRoll=null;
   const result=$("dice-result"),risks=$("freeplay-risk-actions");
   if(result){result.className="dice-result";result.innerHTML=""}
   if(risks)risks.innerHTML="";
@@ -313,23 +314,40 @@ function updateAllInAvailability(){
   const stressPayment=hasGift("Overexertion")||hasGift("Durandal");
   const flashback=hasGift("Plenty To Learn");
   const influence=toolsResourceValue("influence"),stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);
-  $("all-in-reroll").disabled=!pendingAllIn||influence<1;
+  $("all-in-reroll").disabled=Boolean(pendingToolsRoll)||!pendingAllIn||influence<1;
   $("all-in-stress").hidden=!stressPayment;
-  $("all-in-stress").disabled=!pendingAllIn||stress>=stressMaximum;
+  $("all-in-stress").disabled=Boolean(pendingToolsRoll)||!pendingAllIn||stress>=stressMaximum;
   $("all-in-flashback-wrap").hidden=!flashback;
-  $("all-in-flashback").disabled=!pendingAllIn;
+  $("all-in-flashback").disabled=Boolean(pendingToolsRoll)||!pendingAllIn;
   if(!pendingAllIn)$("all-in-flashback").checked=false;
   const copy=toolsCopy();$("all-in-hint").textContent=!pendingAllIn?copy.allInFirst:influence>0?copy.allInInfluence:stressPayment&&stress<stressMaximum?copy.allInStress:copy.allInBlocked;
   if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
-function renderToolsWorkspace(){renderFreeplayDirector();renderClocks();renderDiceHistory();renderAllInControls();renderChallengeRequestDock();if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh()}
+function renderToolsWorkspace(){reconcilePendingToolsRoll();renderFreeplayDirector();renderClocks();renderDiceHistory();renderAllInControls();renderChallengeRequestDock();if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh()}
 function applyOptimisticToolsEvents(events){
   try{Scene=normalizeScene(SceneEngine.dispatchMany(Scene,events,{expectedVersion:Number(Scene.version||0)}).scene);syncHeroFromScene();persistAfterPaint();return true}catch{return false}
+}
+function failPendingToolsRoll(reason){
+  if(!pendingToolsRoll)return;
+  const pending=pendingToolsRoll;pendingToolsRoll=null;pendingAllIn=pending.originalAllIn;
+  $("dice-result").className="dice-result";$("dice-result").textContent=isEnglishPreview()?"The roll was not saved. Retry after checking the table.":"Бросок не сохранён. Проверьте стол и повторите.";
+  toast(reason);updateAllInAvailability();
+}
+function reconcilePendingToolsRoll(){
+  const pending=pendingToolsRoll;if(!pending)return;
+  if(pending.heroId!==S.id){pendingToolsRoll=null;return}
+  if(!(Scene.rollFeed||[]).some(row=>row.id===pending.eventId))return;
+  pendingToolsRoll=null;pending.finish();updateAllInAvailability();
 }
 function resolveDice(count,threshold,payment="",diceRequest=null,scenario=freeplayScenario()){
   const context=toolsRollContext(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),isOpposed=Boolean(opposed&&participant),request=diceRequest?{...diceRequest,threshold}:null,status=request?SceneEngine.diceHookStatus(context.scene,context.actor.id,request):null;
   if(request&&!status.available){toast(status.reason);return null}
   const result=Logic.rollXd6({count:status?.count||count,threshold:status?.threshold||threshold,criticalAt:status?.criticalAt||6}),prepared=request?SceneEngine.diceRollPayload(context.scene,context.actor.id,request,result):null,roll=prepared?.available?prepared.payload:{formula:`${result.initialCount}D6 ≥${threshold}`,rolls:result.rolls,successes:result.successes,crits:result.crits},resolution=isOpposed?null:Logic.challengeOutcome({successes:roll.successes,target:scenario.target}),outcome=isOpposed?"Встречный бросок":resolution.label,sources=roll.dice?.sources?.map(source=>source.label).join(" · "),darkUrge=roll.dice?.selectedHookIds?.includes("wolf.dark-urge")&&roll.successes%2===1;
+
+  const sync=toolsSyncContext(),challenge=currentChallengeRequest(),payload={...roll,actor:isOpposed?participant.name:S.name||"Система",outcome,payment,...(payment?{allOut:{rollId:pendingAllIn?.rollId,payment:payment.startsWith("Влияние")?"influence":"stress"}}:{}),...(isOpposed?{opposedRequestId:opposed.id,opposedParticipantId:participant.id,opposedAttempt:opposed.attempt}:{target:scenario.target,...(challenge?{challengeRequestId:challenge.id}:{})})},event={id:uid(),type:"roll.public",actorId:isOpposed?participant.actorId||null:context.persisted?context.actor.id:null,payload};
+  if(!event.actorId)delete payload.dice;
+  const originalAllIn=pendingAllIn;
+  const finish=()=>{
   $("dice-result").className=`dice-result ${isOpposed?"outcome-opposed":`outcome-${resolution.id}`}`;
   const en=isEnglishPreview(),displayOutcome=toolsOutcomeLabel(outcome),displayPayment=toolsPaymentLabel(payment);
   $("dice-result").innerHTML=`<div class="dice">${roll.rolls.map(v=>`<span class="die ${v>=(roll.dice?.criticalAt||6)?"crit":v>=(roll.dice?.threshold||threshold)?"success":""}">${v}</span>`).join("")}</div><strong>${esc(challengeResultSummary({successes:roll.successes,crits:roll.crits,outcome:displayOutcome}))}</strong><div class="dice-resolution">${isOpposed?(en?"Your side’s result is saved. The winner will be determined after the opponent rolls.":"Результат стороны сохранён. Победитель определится после броска соперника."):resolution.id==="failure"?(en?"No Reward is gained. The Narrator applies the agreed Risk.":"Награда не получена. Нарратор применяет проговорённый Риск."):resolution.id==="minimal"?(en?"The hero gains the agreed Reward; the Narrator adds a significant complication.":"Герой получает оговорённую награду; Нарратор добавляет значительную трудность."):(en?"The hero gains the agreed Reward and describes an additional effect.":"Герой получает оговорённую награду и описывает дополнительный эффект.")}</div><div class="autosave">${payment?`${en?"All In":"Ва-банк"} (${esc(displayPayment)}). `:""}${en?"Initial dice":"Исходных костей"}: ${result.initialCount}; ${isOpposed?(en?`Opposed Roll, attempt ${opposed.attempt}.`:`встречный бросок, попытка ${opposed.attempt}.`):(en?`target: ${scenario.target}, Extreme Success: ${scenario.target*2}.`:`цель: ${scenario.target}, Крайний успех: ${scenario.target*2}.`)}${sources?` ${en?"Rules":"Правила"}: ${esc(sources)}.`:""}${result.truncated?(en?" Exploding dice are capped at 300 dice.":" Цепочка взрывов ограничена 300 костями."):""}</div>`;
@@ -337,12 +355,27 @@ function resolveDice(count,threshold,payment="",diceRequest=null,scenario=freepl
   $("freeplay-risk-actions").innerHTML=`${darkUrge?`<div class="freeplay-rule-alert"><strong>${en?"Dark Urge: an odd number of Successes":"Тёмный порыв: нечётное число Успехов"}</strong><span>${en?"The Narrator may redirect the saved result to another character; resisting costs 2 Stress.":"Нарратор может перенаправить сохранённый результат на другого персонажа; сопротивление стоит 2 Стресса."}</span></div>`:""}${!isOpposed&&resolution.id==="failure"?`<div class="freeplay-failure-tools"><button type="button" data-freeplay-risk="stress" ${toolsResourceValue("stress")>=stressMaximum?"disabled":""}>${en?"Apply the basic Risk: +1 Stress, +1 Influence":"Применить базовый Риск: +1 Стресс, +1 Влияние"}</button><details><summary>${en?"Other Risks in the rules":"Другие Риски по правилам"}</summary><ul><li><b>${en?"Double-edged outcome:":"Обоюдоострый исход:"}</b> ${en?"the desired effect happens to the hero.":"желаемый эффект происходит с героем."}</li><li><b>${en?"Escalation:":"Эскалация:"}</b> ${en?"a more significant related Threat arises.":"возникает более значимая связанная Угроза."}</li><li><b>${en?"Compromise:":"Компромисс:"}</b> ${en?"an item, safety, or something of value is lost.":"теряется вещь, безопасность или ценность."}</li><li><b>${en?"Falter:":"Дрогнуть:"}</b> ${en?"accept an argument against a Motivation and gain 2 Influence.":"принять довод против Мотивации и получить 2 Влияния."}</li><li><b>${en?"Memento, Change the Scene, or Trip Up.":"Напоминание, Смена Сцены или Споткнуться."}</b></li></ul></details></div>`:""}`;
   S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"}),actor:isOpposed?participant.name:S.name||"Система",formula:roll.formula,rolls:roll.rolls,dice:{threshold:roll.dice?.threshold||status?.threshold||threshold,criticalAt:roll.dice?.criticalAt||status?.criticalAt||6},opposedRequestId:isOpposed?opposed.id:null,count:result.initialCount,successes:roll.successes,crits:roll.crits,outcome,target:isOpposed?null:scenario.target,allIn:Boolean(payment),payment});
   S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persistAfterPaint();renderDiceHistory();
-  const sync=toolsSyncContext(),challenge=currentChallengeRequest(),payload={...roll,actor:isOpposed?participant.name:S.name||"Система",outcome,payment,...(isOpposed?{opposedRequestId:opposed.id,opposedParticipantId:participant.id,opposedAttempt:opposed.attempt}:{target:scenario.target,...(challenge?{challengeRequestId:challenge.id}:{})})},event={type:"roll.public",actorId:isOpposed?participant.actorId||null:context.persisted?context.actor.id:null,payload};
-  if(!event.actorId)delete payload.dice;
-  if(context.persisted||sync.shared&&sync.canEdit||isOpposed){const committed=commitSceneEvents(payment?"Публичный бросок Ва-банк":"Публичный бросок",[event]);if(committed?.pending){applyOptimisticToolsEvents([event]);renderToolsWorkspace()}}
+    if(pendingAllIn){pendingAllIn.rollId=event.id;if(isOpposed||payment||resolution?.id!=="failure")pendingAllIn=null}
+  };
+  if(context.persisted||sync.shared&&sync.canEdit||isOpposed){
+    let events;
+    try{events=NetworkV2.freeplayRollEvents(Scene,event.actorId,payload,event.id)}catch(error){toast(error.message);return null}
+    const committed=commitSceneEvents(payment?"Публичный бросок Ва-банк":"Публичный бросок",events);
+    if(!committed)return null;
+    if(committed.pending){
+      pendingToolsRoll={heroId:S.id,eventId:event.id,intentId:committed.intentId,originalAllIn,finish};
+      $("dice-result").className="dice-result";$("dice-result").textContent=isEnglishPreview()?"Waiting for the table to save the roll…":"Ожидается сохранение броска за столом…";
+      $("freeplay-risk-actions").innerHTML="";updateAllInAvailability();return {...result,pending:true};
+    }
+  }else if(payment){
+    const key=payload.allOut.payment;S.runtime[key]+=key==="influence"?-1:1;
+  }
+  finish();
+
   return result;
 }
 function rollDice(){
+  if(pendingToolsRoll)return toast(isEnglishPreview()?"Wait for the table to save the roll":"Дождитесь сохранения броска за столом");
   const syncContext=toolsSyncContext(),challenge=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opposedResult=opposedParticipantResult(participant,opposed);if(opposed&&(!participant||opposedResult))return toast(opposedResult?"Результат этой стороны уже сохранён":"Текущий герой не участвует во встречном броске");
   if(!opposed&&!challenge&&!requireChallengeTarget($("dice-target")))return;
   const scenario=freeplayScenario(),state=freeplayState();Object.assign(state,scenario);persistAfterPaint();
@@ -350,8 +383,8 @@ function rollDice(){
   if(!status.available)return toast(status.reason);pendingAllIn={count,diceRequest:request,scenario};if(!resolveDice(count,4,"",request,scenario)){pendingAllIn=null;return}if(fundingSpend){S.runtime.funding=Math.max(0,Number(S.runtime.funding||0)-fundingSpend);const input=$("dice-trust-fund");if(input)input.value=0;persistAfterPaint();renderDiceComposer();if(store.mode==="play")renderPlay()}updateAllInAvailability();
 }
 function allIn(payment){
-  if(!pendingAllIn)return;
-  if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast(isEnglishPreview()?"Not enough Influence":"Недостаточно Влияния");if(!setToolsResource("influence",influence-1,"Влияние"))return}else{const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast(isEnglishPreview()?"Stress is already at maximum":"Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return}
+  if(!pendingAllIn||pendingToolsRoll)return;
+  if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast(isEnglishPreview()?"Not enough Influence":"Недостаточно Влияния")}else{const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast(isEnglishPreview()?"Stress is already at maximum":"Стресс уже максимален")}
   const flashback=hasGift("Plenty To Learn")&&$("all-in-flashback").checked,{count,diceRequest,scenario}=pendingAllIn,request=diceRequest?{...diceRequest,hooks:[...(diceRequest.hooks||[]),...(flashback?[{type:"advantage",ruleId:"student.plenty-to-learn",label:isEnglishPreview()?"Plenty To Learn":"Ещё многому учиться",amount:4}]:[])]}:null,result=resolveDice(count+(request?0:flashback?4:0),3,flashback?`${payment}, флэшбек +4` : payment,request,scenario);if(result)pendingAllIn=null;renderAllInControls();if(store.mode==="play")renderPlay();
 }
 function renderDiceHistory(){

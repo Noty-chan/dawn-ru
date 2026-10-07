@@ -121,8 +121,8 @@ function renderNetworkScene(events=[]){
 function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
-    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
-    onError:(error,row,{retrying=true}={})=>{if(!retrying)clearPendingNetworkPlacement(row);toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
+    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);if(typeof pendingToolsRoll!=="undefined"&&pendingToolsRoll?.intentId===payload.clientIntentId)pendingToolsRoll.commandId=String(command.id);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
+    onError:(error,row,{retrying=true}={})=>{if(!retrying){clearPendingNetworkPlacement(row);if(typeof pendingToolsRoll!=="undefined"&&pendingToolsRoll?.intentId===row.clientIntentId)failPendingToolsRoll(error?.message||"Команда отклонена");}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
@@ -160,7 +160,7 @@ function submitNetworkV2Events(label,events){
   const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
   previewNetworkPlacement(row,events,intent.actorId);
   if(!pendingNetworkPlacements.has(intent.actorId))toast("Действие отправлено за общий стол");
-  return{queued:true,pending:true,events:[]};
+  return{queued:true,pending:true,intentId:row.clientIntentId,events:[]};
 }
 function submitNetworkV2Intent(intent){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
@@ -218,7 +218,7 @@ async function flushNetworkV2Authority(items){
       if(command)commandIds.push(String(command.id));
     }catch(error){
       if(item.command){rejectedCommandIds.push(String(item.command.id));toast(`Действие игрока отклонено: ${friendlySyncError(error,"ошибка проверки правил")}`)}
-      else toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);
+      else {if(typeof pendingToolsRoll!=="undefined"&&item.events?.some(row=>row.id===pendingToolsRoll?.eventId))failPendingToolsRoll(error?.message||"Команда отклонена");toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);}
     }
   }
   const localUndoEntry=localUndoState

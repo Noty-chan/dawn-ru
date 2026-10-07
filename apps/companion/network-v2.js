@@ -175,9 +175,52 @@
     };
   }
 
+  function freeplayFailedRoll(scene,actorId,rollId){
+    const row=(scene.rollFeed||[]).find(item=>item.id===rollId&&item.actorId===actorId);
+    if(!row||row.opposedRequestId||!Number.isFinite(Number(row.target))||Number(row.target)<1||Number(row.successes)>=Number(row.target))throw new Error("Нужен подтверждённый провал испытания этого героя");
+    return row;
+  }
+  function freeplayRollEvents(scene,actorId,payload,eventId){
+    const actor=ownedActor(scene,actorId),roll=clone(payload),events=[];
+    if(typeof eventId!=="string"||!eventId||eventId.length>120)throw new Error("Некорректный ID броска");
+    if(roll.allOut){
+      freeplayFailedRoll(scene,actorId,roll.allOut.rollId);
+      if(roll.allOut.payment==="influence"){
+        if(Number(actor.influence||0)<1)throw new Error("Недостаточно Влияния");
+        events.push({id:`${eventId}:cost`,type:"resource.spend",actorId,payload:{resource:"influence",amount:1}});
+      }else if(roll.allOut.payment==="stress"){
+        if(!(actor.gifts||[]).some(id=>["rebel.overexertion","loyalist.durandal"].includes(id)))throw new Error("Нет особенности для оплаты Стрессом");
+        if(Number(actor.stress||0)>=3)throw new Error("Стресс уже максимален");
+        events.push(scene.rulesEdition==="lionwing"?{id:`${eventId}:cost`,type:"lionwing.command",actorId,payload:{kind:"stress"}}:{id:`${eventId}:cost`,type:"actor.runtime.set",actorId,payload:{key:"stress",value:Number(actor.stress||0)+1}});
+      }else throw new Error("Неизвестная оплата Ва-банк");
+      roll.allOut={rollId:String(roll.allOut.rollId),payment:roll.allOut.payment};
+    }
+    events.push({id:eventId,type:"roll.public",actorId,payload:roll});
+    return events;
+  }
+  function freeplayRiskEvents(scene,actorId,rollId){
+    freeplayFailedRoll(scene,actorId,rollId);
+    const actor=ownedActor(scene,actorId),id=`freeplay-risk:${rollId}`;
+    if((scene.log||[]).some(row=>row.id===id)||(scene.lionwing?.receipts||[]).some(row=>row.id===id))throw new Error("Риск этого броска уже принят");
+    if(Number(actor.stress||0)>=3)throw new Error("Стресс уже максимален");
+    if(scene.rulesEdition==="lionwing")return [{id,type:"lionwing.command",actorId,payload:{kind:"stress",sourceActorId:null,freeplayRollId:rollId}}];
+    return [{id,type:"actor.runtime.set",actorId,payload:{key:"stress",value:Number(actor.stress||0)+1}},{id:`${id}:influence`,type:"resource.gain",actorId,payload:{resource:"influence",amount:1}}];
+  }
   function intentFromEvents(scene,events,label="Действие игрока"){
     const raw=Array.isArray(events)?events:[];
     if(!raw.length||raw.length>192)throw new Error("Некорректный пакет событий");
+    const freeplay=raw.find(event=>event.type==="roll.public"&&event.payload?.allOut);
+    if(freeplay){
+      const expected=freeplayRollEvents(scene,freeplay.actorId,freeplay.payload,freeplay.id);
+      if(JSON.stringify(expected)!==JSON.stringify(raw))throw new Error("Некорректный пакет оплаты и броска");
+      return {kind:"freeplay-roll",actorId:freeplay.actorId,label:String(label).slice(0,160),eventId:freeplay.id,payload:clone(freeplay.payload)};
+    }
+    const risk=raw.find(event=>event.id?.startsWith("freeplay-risk:"));
+    if(risk){
+      const rollId=risk.id.slice("freeplay-risk:".length),expected=freeplayRiskEvents(scene,risk.actorId,rollId);
+      if(JSON.stringify(expected)!==JSON.stringify(raw))throw new Error("Некорректный пакет Риска");
+      return {kind:"freeplay-risk",actorId:risk.actorId,label:String(label).slice(0,160),rollId};
+    }
     if(raw.length===1&&raw[0].type==="lionwing.command")return{kind:"lionwing",actorId:raw[0].actorId,label:String(label).slice(0,160),request:clone(raw[0].payload)};
     const deploymentMove=raw.find(event=>event.type==="actor.move"&&event.payload?.placement&&event.payload?.movement==="Развертывание");
     if(deploymentMove)return{kind:"deployment",label:String(label).slice(0,160),actorId:deploymentMove.actorId,destination:{space:String(deploymentMove.payload.space||""),x:Number(deploymentMove.payload.x),y:Number(deploymentMove.payload.y)}};
@@ -241,7 +284,7 @@
     const sacrifice=raw.length===1&&raw[0].type==="gift.sacrifice"?raw[0]:null;
     if(sacrifice)return{kind:"gift-sacrifice",label:String(label).slice(0,160),actorId:sacrifice.actorId,rollId:String(sacrifice.payload?.rollId||"").slice(0,120),sacrifice:String(sacrifice.payload?.sacrifice||"")};
     const publicRoll=raw.find(event=>event.type==="roll.public");
-    if(publicRoll&&raw.length===1)return {kind:"public-roll",label:String(label).slice(0,160),actorId:publicRoll.actorId,payload:safeObject(publicRoll.payload)};
+    if(publicRoll&&raw.length===1)return {kind:"public-roll",label:String(label).slice(0,160),actorId:publicRoll.actorId,eventId:publicRoll.id,payload:safeObject(publicRoll.payload)};
     throw new Error("Это изменение пока нельзя отправить как безопасное намерение игрока");
   }
 
@@ -257,6 +300,8 @@
     if(!Engine)throw new Error("Ядро Сцены не загружено");
     if(!intent||typeof intent!=="object")throw new Error("Пустое намерение игрока");
     const actor=ownedActor(scene,intent.actorId,ownerId);
+    if(intent.kind==="freeplay-roll")return freeplayRollEvents(scene,actor.id,safeObject(intent.payload),intent.eventId);
+    if(intent.kind==="freeplay-risk")return freeplayRiskEvents(scene,actor.id,intent.rollId);
     if(intent.kind==="lionwing"){
       const kernel=global.DAWN_LIONWING_ENGINE,raw=safeObject(intent.request);
       if(!kernel?.isScene(scene)||!["action","reaction","choice","roll","dice-create","dice-apply","punish","invisible","search","inventory"].includes(raw.kind))throw new Error("Эта операция LionWing доступна только Нарратору");
@@ -387,7 +432,8 @@
       return result.events;
     }
     if(intent.kind==="public-roll"){
-      const event={id:makeId(),type:"roll.public",actorId:actor.id,payload:safeObject(intent.payload)};
+      const event={id:typeof intent.eventId==="string"&&intent.eventId.length<=120?intent.eventId:makeId(),type:"roll.public",actorId:actor.id,payload:safeObject(intent.payload)};
+      if(event.payload.allOut)throw new Error("Оплату Ва-банк отправляйте вместе с броском");
       Engine.validateEvent(scene,event);
       return [event];
     }
@@ -576,7 +622,7 @@
 
   global.DAWN_NETWORK_V2={
     AUTOMATIC_COMMANDS,AuthorityQueue,MAX_AUTHORITY_ITEMS,MAX_BATCH_EVENTS,MAX_OUTBOX_ITEMS,PROTOCOL,PlayerOutbox,REQUEST_TIMEOUT_MS,TICK_MS,isSceneVersionConflict,retryableAuthorityFailure,withTimeout,
-    captureLocalUi,clearConfirmedScene,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,resetLocalUiForSceneSwitch,
+    captureLocalUi,clearConfirmedScene,freeplayRollEvents,freeplayRiskEvents,getConfirmedScene,intentFromEvents,materializeIntent,mergeRemoteScene,resetLocalUiForSceneSwitch,
     networkSceneState,rebaseSceneSnapshot,restoreLocalUi,setConfirmedScene,validateIntentEnvelope,
   };
 })(typeof window==="object"?window:globalThis);
