@@ -19,7 +19,7 @@ context.renderManualActorInspector(scene.actors[0]);
 assert.ok(element('scene-inspector').innerHTML.includes('data-manual-resource="stress"'));
 assert.ok(!element('scene-inspector').innerHTML.includes('data-core-action'));
 assert.ok(!element('scene-inspector').innerHTML.includes('data-scene-actor-acted'));
-role='player';assert.equal(context.manualTableAbilities(scene.actors[1])[0].id,'access','player cannot read private NPC abilities');
+role='player';context.renderManualActorInspector({...scene.actors[2],name:'SECRET',hp:13});assert.ok(!element('scene-inspector').innerHTML.includes('SECRET'));assert.ok(!element('scene-inspector').innerHTML.includes('value="13"'));assert.equal(context.manualTableAbilities(scene.actors[1])[0].id,'access','player cannot read private NPC abilities');
 assert.equal(context.manualTableAbilities(scene.actors[0])[0].text,'Private hero');
 assert.equal(context.openManualActorReader('hidden'),false);assert.equal(opened.length,0);
 assert.equal(context.openManualActorReader('hero'),true);assert.deepEqual(opened,['hero']);

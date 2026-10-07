@@ -142,6 +142,7 @@ function manualTableAbilities(actor){
 }
 function renderManualActorInspector(actor){
   const root=$("scene-inspector");if(!root)return;
+  if(actor?.hidden&&activeSceneView()!=="gm")actor=null;
   if(!actor){root.innerHTML=`<p>${manualTableCopy("Выберите участника на поле.","Select a participant on the board.")}</p>`;return;}
   const allowed=canControlSceneActor(actor),fields=[["hp","Здоровье","Health"],["maxHp","Максимум ЗД","Maximum HP"],["focus","Фокус","Focus"],["influence","Влияние","Influence"],["stress","Стресс","Stress"]];
   root.innerHTML=`<section class="manual-actor-settings"><h3>${esc(actor.name)}</h3><p>${manualTableCopy("Значения записываются вручную. Последствия определяет Нарратор.","Values are recorded manually. The Narrator decides the consequences.")}</p><div class="scene-stat-grid">${fields.map(([key,ru,en])=>`<label>${manualTableCopy(ru,en)}<input type="number" min="0" max="9999" step="1" data-manual-resource="${key}" data-manual-actor="${esc(actor.id)}" value="${Number(actor[key])||0}" ${allowed?"":"disabled"}></label>`).join("")}</div>${activeSceneView()==="gm"?`<label>${manualTableCopy("Имя","Name")}<input data-scene-actor-name="${esc(actor.id)}" value="${esc(actor.name)}"></label><label>${manualTableCopy("Цвет токена","Token color")}<input type="color" data-scene-token-color="${esc(actor.id)}" value="${esc(actor.tokenColor)}"></label><button type="button" class="danger-quiet" data-scene-remove-actor="${esc(actor.id)}">${manualTableCopy("Убрать участника со стола","Remove participant from table")}</button>`:""}</section>`;

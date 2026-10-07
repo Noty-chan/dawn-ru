@@ -6,6 +6,7 @@
   const copy = value => JSON.parse(JSON.stringify(value));
   const RESOURCE_FIELDS = Object.freeze(["hp", "maxHp", "ap", "baseAp", "focus", "influence", "wounds", "stress", "armor", "evasion", "speed"]);
   const installed = new WeakSet();
+  const approvedHistoryAnchors = new Set();
   let serial = 0;
   function fail(message, code = "TABLE_COMMAND_INVALID") {
     const error = new Error(message); error.code = code; throw error;
@@ -247,13 +248,30 @@
     if(!isManual(before)||!isManual(after)||JSON.stringify(normalizePolicy(before.tablePolicy))!==JSON.stringify(normalizePolicy(after.tablePolicy)))fail("Снимок и отмена не могут менять Ведение стола.","TABLE_SNAPSHOT_POLICY");
     if(options.restore===true){if(pendingWork(before)||pendingWork(after))fail("Сначала завершите ожидающее действие.","TABLE_PENDING_WORK");return true;}
     const history=options.history===true,same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    for(const key of ["eventReceipts"])if(!same(before[key],after[key]))fail("Снимок не может сбрасывать журнал принятых команд.","TABLE_SNAPSHOT_RUNTIME");
+    if(!same(before.lionwing?.receipts,after.lionwing?.receipts))fail("Снимок не может сбрасывать журнал принятых команд.","TABLE_SNAPSHOT_RUNTIME");
+    const auditBefore=before.log||[],auditAfter=after.log||[];
+    const auditAppend=Array.from({length:20},(_,i)=>i+1).some(count=>auditAfter.length===Math.min(200,auditBefore.length+count)&&auditAfter.slice(0,count).length===count&&auditAfter.slice(0,count).every(row=>row.type==="legacy.note"&&row.actorId===null&&row.visibility==="public"&&typeof row.text==="string"&&row.payload?.label===row.text)&&same(auditAfter.slice(count),auditBefore.slice(0,200-count)));
+    if(!history&&!same(before.log,after.log)&&!auditAppend)fail("Снимок не может менять журнал событий.","TABLE_SNAPSHOT_RUNTIME");
     const runtime=scene=>{const value=copy(scene.lionwing||{});delete value.receipts;return value;};
-    if(!same(runtime(before),runtime(after)))fail("Снимок не может менять замороженную механику LionWing.","TABLE_SNAPSHOT_RUNTIME");
-    for(const key of ["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","reminders","topology","movementTraces"]){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
-    if(!history)for(const key of ["manualTable","sessionClocks","objects","walls","markers","rollFeed"]){if(!same(before[key],after[key]))fail("Используйте явные команды ручного стола.","TABLE_SNAPSHOT_RUNTIME");}
+    if(!history&&!same(runtime(before),runtime(after)))fail("Снимок не может менять замороженную механику LionWing.","TABLE_SNAPSHOT_RUNTIME");
+    for(const key of ["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","topology","movementTraces","challengeRequest","opposedRoll"]){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
+    if(!history)for(const key of ["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"]){if(!same(before[key],after[key]))fail("Используйте явные команды ручного стола.","TABLE_SNAPSHOT_RUNTIME");}
     const editable=new Set(["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","ownerId"]);
     if(history)for(const key of [...RESOURCE_FIELDS,"space","x","y","manualMovementTrace","manualStatuses","manualTechniqueState"])editable.add(key);
     const stored=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!editable.has(key)));
+    if(history){
+      // History is a restoration of a saved step, not a second mutation API.
+      // In particular, backing entities and detached references must come from
+      // that step; comparing deletion projections would erase their contents.
+      const keys=["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"];
+      const historyActor=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","ownerId"].includes(key)));
+      const anchor=[...(options.historyAnchor&&approvedHistoryAnchors.has(JSON.stringify(options.historyAnchor))?[{state:options.historyAnchor}]:[]),...(before.undo||[]),...(before.redo||[]),...(before.turnUndo||[])].map(step=>step.state).find(state=>state&&same(normalizePolicy(state.tablePolicy),normalizePolicy(after.tablePolicy))&&same(runtime(state),runtime(after))&&keys.every(key=>same(state[key],after[key]))&&same((state.actors||[]).map(historyActor),(after.actors||[]).map(historyActor)));
+      if(!anchor)fail("Отмена должна восстанавливать сохранённый шаг истории.","TABLE_SNAPSHOT_HISTORY");
+      approvedHistoryAnchors.add(JSON.stringify(anchor));
+      if(approvedHistoryAnchors.size>100)approvedHistoryAnchors.delete(approvedHistoryAnchors.values().next().value);
+      return true;
+    }
     for(const old of before.actors||[]){const next=(after.actors||[]).find(row=>row.id===old.id);if(!next){if(!history)fail("Удаление участника требует ручной команды.","TABLE_SNAPSHOT_RUNTIME");continue;}if(!same(stored(old),stored(next)))fail("Снимок не может менять боевое состояние участника.","TABLE_SNAPSHOT_RUNTIME");}
     return true;
   }

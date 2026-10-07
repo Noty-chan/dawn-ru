@@ -289,16 +289,16 @@ function restoreSceneHistory(step,source,target,prefix){
   else{restored.redo=remaining;restored.undo=opposite}
   restored.turnUndo=turnHistory;
   try{
-    window.DAWN_TABLE_POLICY?.validateSnapshot(previous,restored,{history:true});
     if(window.DAWN_TABLE_POLICY?.isManual(previous)){
       if(previous.lionwing?.receipts){restored.lionwing||={};restored.lionwing.receipts=JSON.parse(JSON.stringify(previous.lionwing.receipts));}
       if(previous.eventReceipts)restored.eventReceipts=JSON.parse(JSON.stringify(previous.eventReceipts));
     }
+    window.DAWN_TABLE_POLICY?.validateSnapshot(previous,restored,{history:true});
     Scene=restored;
     sceneEvent(`${prefix}: ${step.label}`);
     if(shared){
       assertNetworkSceneFits(Scene);
-      if(!queueNetworkV2Snapshot(sceneSnapshot(),label,{history:true}))throw new Error("Общий стол недоступен; отмена не отправлена");
+      if(!queueNetworkV2Snapshot(sceneSnapshot(),label,{history:true,historyAnchor:step.state}))throw new Error("Общий стол недоступен; отмена не отправлена");
     }
   }catch(error){Scene=previous;toast(error.message||"Не удалось отменить изменение Сцены");return null}
   syncHeroFromScene();persist();
