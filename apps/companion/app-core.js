@@ -218,6 +218,7 @@ function sceneCore(raw){
   const base=blankScene(),scene=raw&&typeof raw==="object"?raw:{};
   // Missing policy is an existing rules save, never an implicit opt-in to manual.
   base.tablePolicy=normalizedTablePolicy(scene.tablePolicy);
+  if(Array.isArray(scene.manualInitiative))base.manualInitiative=scene.manualInitiative.slice(0,120).filter(row=>row&&typeof row.id==="string"&&typeof row.name==="string").map(row=>({id:row.id.slice(0,120),name:row.name.slice(0,120),space:String(row.space||"main").slice(0,120),hidden:true,initiativeOnly:true}));
   base.manualTable={actorId:typeof scene.manualTable?.actorId==="string"?scene.manualTable.actorId:null,round:clamp(scene.manualTable?.round||1,1,999)};
   base.rulesEdition=["lionwing","ru-v0.9"].includes(scene.rulesEdition)?scene.rulesEdition:(scene.actors||[]).some(actor=>actor.rulesEdition==="lionwing"||String(actor.profileId||"").startsWith("lionwing."))?"lionwing":(scene.actors||[]).length?"ru-v0.9":"ru-v0.9";
   if(scene.lionwing&&typeof scene.lionwing==="object")base.lionwing=JSON.parse(JSON.stringify(scene.lionwing));
@@ -232,6 +233,7 @@ function sceneCore(raw){
     const source=scene.actors?.[index]||{};
     actor.nameI18n=sceneI18n(source.nameI18n,120);
     actor.manualStatuses=[...new Set(cleanArray(source.manualStatuses))].slice(0,80);
+    if(typeof source.manualInitiativeVisible==="boolean")actor.manualInitiativeVisible=source.manualInitiativeVisible;
     if(source.manualMovementTrace&&typeof source.manualMovementTrace==="object")actor.manualMovementTrace=JSON.parse(JSON.stringify(source.manualMovementTrace));
     if(source.manualTechniqueState&&typeof source.manualTechniqueState==="object"&&!Array.isArray(source.manualTechniqueState))actor.manualTechniqueState=JSON.parse(JSON.stringify(source.manualTechniqueState));
     actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:String(source.profileId||"").startsWith("lionwing.")?"lionwing":"ru-v0.9";

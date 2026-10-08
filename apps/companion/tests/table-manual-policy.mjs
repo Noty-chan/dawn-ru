@@ -77,3 +77,11 @@ assert.throws(()=>engine.eventPacketContract.dispatchContinuation(s,[{type:"turn
 assert.equal(engine.dispatchMany(s,[event("h",{kind:"resource",values:{focus:5}})]).scene.actors[0].focus,5);
 const oldScene=fixture(); oldScene.activeActorId=null; assert.equal(lw.dispatchMany(oldScene,[{id:"rules-still-live",type:"lionwing.command",actorId:"h",payload:{kind:"turn-start"}}]).scene.turnSerial,9,"ordinary rules scenes keep the original dispatcher");
 console.log("Manual table policy: real engine storage commands, side-effect isolation, atomic validation, references, replay, stale guards and blocked automatic APIs passed");
+
+const known=plain(s);known.actors[1].hidden=true;known.actors[1].manualInitiativeVisible=true;known.manualTable.actorId=known.actors[1].id;
+const projected=engine.projectScene(known,{role:'player'});
+assert.equal(projected.actors.some(actor=>actor.id===known.actors[1].id),false);
+assert.deepEqual(Object.keys(projected.manualInitiative[0]).sort(),['hidden','id','initiativeOnly','name','space']);
+assert.equal(projected.manualTable.actorId,known.actors[1].id);
+const twice=engine.projectScene(projected,{role:'player'});assert.deepEqual(plain(twice.manualInitiative),plain(projected.manualInitiative));assert.equal(twice.manualTable.actorId,projected.manualTable.actorId);
+known.actors[1].manualInitiativeVisible=false;assert.equal(engine.projectScene(known,{role:'player'}).manualInitiative.length,0);

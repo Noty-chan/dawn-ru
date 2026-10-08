@@ -27,5 +27,13 @@ try{
   assert.equal((await db.query('select state from public.scenes')).rows[0].state.sessionClocks.length,5,'authoritative data untouched');
   await db.exec(migration);
   assert.deepEqual((await db.query('select state from public.scene_public_snapshots')).rows[0].state,projected,'repeat migration remains stable');
+  const known={...state,tablePolicy:{mode:'manual'},actors:[{id:'secret',name:'Known vanished enemy',space:'main',hidden:true,manualInitiativeVisible:true,hp:18,x:4,privateNotes:'classified'},{id:'never-seen',name:'Ambush secret',hidden:true}]};
+  const knownProjection=(await db.query('select public.public_scene_projection($1::jsonb) as state',[JSON.stringify(known)])).rows[0].state;
+  assert.equal(knownProjection.actors.length,0);
+  assert.deepEqual(knownProjection.manualInitiative,[{id:'secret',name:'Known vanished enemy',space:'main',hidden:true,initiativeOnly:true}]);
+  assert.equal(knownProjection.manualTable.actorId,'secret');
+  assert.ok(!JSON.stringify(knownProjection).includes('Ambush secret'));
+  assert.equal(knownProjection.manualInitiative[0].hp,undefined);
+  const twice=(await db.query('select public.public_scene_projection($1::jsonb) as state',[JSON.stringify(knownProjection)])).rows[0].state;assert.deepEqual(twice.manualInitiative,knownProjection.manualInitiative);assert.equal(twice.manualTable.actorId,'secret');
   console.log('Manual table SQL projection: raw leak reproduced, hidden/orphan clocks filtered, pointer/receipts private, backfill and repeat apply passed');
 }finally{await db.close()}

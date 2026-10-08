@@ -257,7 +257,7 @@
     if(!history&&!same(runtime(before),runtime(after)))fail("Снимок не может менять замороженную механику LionWing.","TABLE_SNAPSHOT_RUNTIME");
     for(const key of ["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","topology","movementTraces","challengeRequest","opposedRoll"]){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
     if(!history)for(const key of ["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"]){if(!same(before[key],after[key]))fail("Используйте явные команды ручного стола.","TABLE_SNAPSHOT_RUNTIME");}
-    const editable=new Set(["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","ownerId"]);
+    const editable=new Set(["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","manualInitiativeVisible","ownerId"]);
     if(history)for(const key of [...RESOURCE_FIELDS,"space","x","y","manualMovementTrace","manualStatuses","manualTechniqueState"])editable.add(key);
     const stored=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!editable.has(key)));
     if(history){
@@ -265,7 +265,7 @@
       // In particular, backing entities and detached references must come from
       // that step; comparing deletion projections would erase their contents.
       const keys=["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"];
-      const historyActor=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","ownerId"].includes(key)));
+      const historyActor=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","manualInitiativeVisible","ownerId"].includes(key)));
       const anchor=[...(options.historyAnchor&&approvedHistoryAnchors.has(JSON.stringify(options.historyAnchor))?[{state:options.historyAnchor}]:[]),...(before.undo||[]),...(before.redo||[]),...(before.turnUndo||[])].map(step=>step.state).find(state=>state&&same(normalizePolicy(state.tablePolicy),normalizePolicy(after.tablePolicy))&&same(runtime(state),runtime(after))&&keys.every(key=>same(state[key],after[key]))&&same((state.actors||[]).map(historyActor),(after.actors||[]).map(historyActor)));
       if(!anchor)fail("Отмена должна восстанавливать сохранённый шаг истории.","TABLE_SNAPSHOT_HISTORY");
       approvedHistoryAnchors.add(JSON.stringify(anchor));

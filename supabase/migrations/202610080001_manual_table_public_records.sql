@@ -30,6 +30,12 @@ as $$
     select item
     from src, jsonb_array_elements(coalesce(value->'actors','[]'::jsonb)) item
     where coalesce((item->>'hidden')::boolean,false)=false
+  ), initiative_items as (
+    select item from src, jsonb_array_elements(coalesce(value->'actors','[]'::jsonb)) item
+    where src.value->'tablePolicy'->>'mode'='manual' and item->>'hidden'='true' and item->>'manualInitiativeVisible'='true'
+    union all
+    select item from src, jsonb_array_elements(coalesce(value->'manualInitiative','[]'::jsonb)) item
+    where src.value->'tablePolicy'->>'mode'='manual' and item->>'initiativeOnly'='true' and not exists(select 1 from jsonb_array_elements(coalesce(src.value->'actors','[]'::jsonb)) actor where actor->>'id'=item->>'id')
   ), visible_actor_ids as (
     select item->>'id' as id from visible_actors where item ? 'id'
   ), hidden_ids as (
@@ -70,7 +76,8 @@ as $$
     'activeActorId',case when value->>'activeActorId' in (select id from visible_actor_ids) then value->'activeActorId' else 'null'::jsonb end,
     'targetIds',coalesce((select jsonb_agg(id) from jsonb_array_elements_text(coalesce(value->'targetIds','[]'::jsonb)) as targets(id) where id in (select visible_actor_ids.id from visible_actor_ids)),'[]'::jsonb),
     'sessionClocks',coalesce((select jsonb_agg(item) from jsonb_array_elements(coalesce(value->'sessionClocks','[]'::jsonb)) item where coalesce(item->>'manual','false')<>'true' or item->>'ownerActorId' is null or item->>'ownerActorId' in (select id from visible_actor_ids)),'[]'::jsonb),
-    'manualTable',case when jsonb_typeof(value->'manualTable')='object' then value->'manualTable' || jsonb_build_object('actorId',case when value->'manualTable'->>'actorId' in (select id from visible_actor_ids) then value->'manualTable'->'actorId' else 'null'::jsonb end) else 'null'::jsonb end,
+    'manualInitiative',case when value->'tablePolicy'->>'mode'='manual' then coalesce((select jsonb_agg(jsonb_build_object('id',item->'id','name',item->'name','space',item->'space','hidden',true,'initiativeOnly',true)) from initiative_items),'[]'::jsonb) else '[]'::jsonb end,
+    'manualTable',case when jsonb_typeof(value->'manualTable')='object' then value->'manualTable' || jsonb_build_object('actorId',case when (value->'manualTable'->>'actorId' in (select id from visible_actor_ids) or (value->'tablePolicy'->>'mode'='manual' and exists(select 1 from initiative_items where item->>'id'=src.value->'manualTable'->>'actorId'))) then value->'manualTable'->'actorId' else 'null'::jsonb end) else 'null'::jsonb end,
     'actors',coalesce((select jsonb_agg(item - 'notes' - 'privateNotes' - 'ownerId' - 'characterId' - 'profileId' - 'antagonistTraitId' - 'attrs' - 'skills' - 'ability' - 'taintedAbility' - 'techniques') from visible_actors),'[]'::jsonb),
     'objects',coalesce((select jsonb_agg(item - 'privateNotes') from jsonb_array_elements(coalesce(value->'objects','[]'::jsonb)) item where coalesce((item->>'hidden')::boolean,false)=false and (not (item ? 'ownerActorId') or item->>'ownerActorId' is null or item->>'ownerActorId' in (select id from visible_actor_ids))),'[]'::jsonb),
     'walls',coalesce((select jsonb_agg(item) from jsonb_array_elements(coalesce(value->'walls','[]'::jsonb)) item where coalesce((item->>'hidden')::boolean,false)=false and (item->>'ownerActorId' is null or item->>'ownerActorId' in (select id from visible_actor_ids))),'[]'::jsonb),

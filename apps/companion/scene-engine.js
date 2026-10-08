@@ -8,6 +8,8 @@ function projectScene(scene, viewer = {}) {
   if (!narrator) {
     delete projected.eventReceipts;
     if (projected.lionwing) delete projected.lionwing.receipts;
+    const manual=projected.tablePolicy?.mode==="manual";
+    projected.manualInitiative=manual?[...(projected.actors||[]).filter(actor=>actor.hidden&&actor.manualInitiativeVisible===true),...(projected.manualInitiative||[]).filter(row=>!(projected.actors||[]).some(actor=>actor.id===row.id))].map(actor=>({id:actor.id,name:actor.name,space:actor.space,hidden:true,initiativeOnly:true})):[];
     projected.actors = (projected.actors || []).filter(actor => !actor.hidden).map(actor => {
       if (ownActorIds.has(actor.id)) return actor;
       const { notes, privateNotes, ownerId, ...publicActor } = actor;
@@ -17,7 +19,7 @@ function projectScene(scene, viewer = {}) {
     projected.sessionClocks=(projected.sessionClocks||[]).filter(clock=>!clock.manual||!clock.ownerActorId||visibleActorIds.has(clock.ownerActorId));
     projected.selectedActor = visibleActorIds.has(projected.selectedActor) ? projected.selectedActor : null;
     projected.activeActorId = visibleActorIds.has(projected.activeActorId) ? projected.activeActorId : null;
-    if(projected.manualTable)projected.manualTable.actorId=visibleActorIds.has(projected.manualTable.actorId)?projected.manualTable.actorId:null;
+    if(projected.manualTable)projected.manualTable.actorId=visibleActorIds.has(projected.manualTable.actorId)||projected.manualInitiative.some(row=>row.id===projected.manualTable.actorId)?projected.manualTable.actorId:null;
     projected.targetIds = (projected.targetIds || []).filter(id => visibleActorIds.has(id));
     projected.objects = (projected.objects || []).filter(object => !object.hidden && (!object.ownerActorId || visibleActorIds.has(object.ownerActorId)));
     projected.walls=(projected.walls||[]).filter(wall=>!wall.hidden&&(!wall.ownerActorId||visibleActorIds.has(wall.ownerActorId)));

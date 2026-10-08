@@ -4,7 +4,7 @@ import vm from 'node:vm';
 const read=name=>fs.readFileSync(new URL(`../${name}`,import.meta.url),'utf8');
 const handlers=new Map(),nodes=new Map(),events=[],opened=[];
 const element=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',value:'',checked:false,closest:()=>({hidden:false})});return nodes.get(id)};
-let role='gm';const scene={tablePolicy:{mode:'manual',epoch:0,processStatuses:false},activeSpace:'main',selectedActor:'hero',manualTable:{actorId:'hero',round:1},actors:[{id:'hero',heroId:'owned',space:'main',name:'Hero',hp:7,maxHp:10,focus:4,influence:1,stress:0,tokenColor:'#112233'},{id:'enemy',space:'main',name:'Enemy',hidden:false},{id:'hidden',space:'main',hidden:true}],version:0};
+let role='gm';const scene={tablePolicy:{mode:'manual',epoch:0,processStatuses:false},spaces:[{id:'main',name:'Main',width:7,height:7}],activeSpace:'main',selectedActor:'hero',manualTable:{actorId:'hero',round:1},actors:[{id:'hero',heroId:'owned',space:'main',name:'Hero',hp:7,maxHp:10,focus:4,influence:1,stress:0,tokenColor:'#112233'},{id:'enemy',space:'main',name:'Enemy',hidden:false},{id:'hidden',space:'main',hidden:true}],version:0};
 const context={window:{DAWN_TABLE_POLICY:{isManual:s=>s.tablePolicy?.mode==='manual'},DAWN_MANUAL_READER_DATA:{entries:a=>[{id:'ability',name:a.name,text:`Private ${a.id}`}]},DAWN_MANUAL_WORKSPACE:{render:o=>{context.options=o},open:id=>{opened.push(id);return true}}},Scene:scene,Sync:{state:()=>({})},activeScenePanel:null,isEnglishPreview:()=>false,activeSceneView:()=>role,canControlSceneActor:a=>role==='gm'||a.id==='hero',esc:v=>String(v).replaceAll('<','&lt;'),$:element,document:{body:{dataset:{}},addEventListener:(name,handler)=>handlers.set(name,handler),querySelectorAll:()=>[]},persist:()=>{},renderScene:()=>{},closeAllScenePanels:()=>{},enemyProfile:()=>{},antagonistDefense:()=>{},wordById:()=>{},t:()=>{},sceneEffectList:()=>[],commitSceneEvents:(label,packet)=>{events.push(packet);return {ok:true}},setNarratorActorValue:()=>{throw Error('legacy numeric mutation')},setNarratorEffect:()=>{throw Error('legacy effect mutation')}};
 vm.createContext(context);const source=read('scene-manual-integration.js');
 vm.runInContext(source.slice(0,source.indexOf('function placeManualMapObject')),context);
@@ -24,9 +24,9 @@ assert.equal(context.manualTableAbilities(scene.actors[0])[0].text,'Private hero
 assert.equal(context.openManualActorReader('hidden'),false);assert.equal(opened.length,0);
 assert.equal(context.openManualActorReader('hero'),true);assert.deepEqual(opened,['hero']);
 const change=handlers.get('change');const input={value:'3',dataset:{manualResource:'focus',manualActor:'hero'}};
-change({target:{closest:()=>input}});assert.equal(events.at(-1)[0].payload.kind,'resource');assert.equal(events.at(-1)[0].payload.values.focus,3);
-input.dataset.manualActor='enemy';change({target:{closest:()=>input}});assert.equal(events.length,1,'foreign values cannot be edited');
-input.dataset.manualActor='hero';input.value='';change({target:{closest:()=>input}});assert.equal(events.length,1,'blank is not interpreted as zero');
+change({target:{closest:selector=>selector.includes("data-manual-resource")?input:null}});assert.equal(events.at(-1)[0].payload.kind,'resource');assert.equal(events.at(-1)[0].payload.values.focus,3);
+input.dataset.manualActor='enemy';change({target:{closest:selector=>selector.includes("data-manual-resource")?input:null}});assert.equal(events.length,1,'foreign values cannot be edited');
+input.dataset.manualActor='hero';input.value='';change({target:{closest:selector=>selector.includes("data-manual-resource")?input:null}});assert.equal(events.length,1,'blank is not interpreted as zero');
 change({target:{id:'scene-manual-status-processing',checked:true}});assert.equal(events.length,1,'player cannot toggle shared hints');
 role='gm';change({target:{id:'scene-manual-status-processing',checked:true}});assert.equal(events.at(-1)[0].payload.processStatuses,true);
 assert.equal(JSON.stringify(scene),before,'reading and commands never write resource/policy locally');
@@ -49,3 +49,11 @@ context.SceneEngine={ruleResourceDefinitions:()=>[],ruleClockDefinitions:()=>[],
 vm.runInContext(uiSource.slice(uiSource.indexOf('function sceneResourceChips('),uiSource.indexOf('function clockEventText(')),context);
 assert.ok(context.sceneResourceChips({ap:3,focus:2}).includes('3 ОД'),'rules resource tray remains executable');
 console.log('Manual panel regressions: stale sheet/director render is nonrecursive, environment remains readable, rules resource chips execute');
+
+context.commitScene=(label,mutate)=>{mutate(scene);return {ok:true}};
+context.clamp=(n,min,max)=>Math.max(min,Math.min(max,n));role='gm';
+const hide={dataset:{manualActorHidden:'enemy'},checked:true};const hideEvent={target:{closest:selector=>selector.includes('data-manual-actor-hidden')?hide:null}};
+scene.manualTable.actorId=null;change(hideEvent);assert.equal(scene.actors[1].hidden,true);assert.equal(scene.actors[1].manualInitiativeVisible,false,'hidden before start stays out of initiative');
+scene.actors[1].hidden=false;delete scene.actors[1].manualInitiativeVisible;scene.manualTable.actorId='hero';change(hideEvent);assert.equal(scene.actors[1].manualInitiativeVisible,true,'vanishing during play keeps initiative');
+const toggle={dataset:{manualInitiativeVisible:'enemy'},checked:false};change({target:{closest:selector=>selector.includes('data-manual-initiative-visible')?toggle:null}});assert.equal(scene.actors[1].manualInitiativeVisible,false);
+role='player';toggle.checked=true;change({target:{closest:selector=>selector.includes('data-manual-initiative-visible')?toggle:null}});assert.equal(scene.actors[1].manualInitiativeVisible,false,'player cannot reveal hidden initiative');

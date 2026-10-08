@@ -93,7 +93,7 @@ const resourceCards=new Map(["influence","stress"].map(key=>{
   return[key,{count,note,buttons,querySelector:selector=>selector==="strong"?count:selector===".hero-sheet-resource-reason"?note:null,querySelectorAll:()=>buttons}];
 }));
 const resourceRoot={querySelector:selector=>resourceCards.get(selector.match(/data-resource="([^"]+)"/)?.[1])||null};
-const resourceContext={Scene:{rulesEdition:"lionwing",actors:[resourceActor]},S:{id:"hero",runtime:{influence:1,stress:1}},Sync:{state:()=>resourceRole},
+const resourceContext={window:{},Scene:{rulesEdition:"lionwing",actors:[resourceActor]},S:{id:"hero",runtime:{influence:1,stress:1}},Sync:{state:()=>resourceRole},
   $:()=>resourceRoot,networkV2QueueStatus:()=>resourceQueue,isEnglishPreview:()=>englishResources,
   ensureRuntime(){},derived:()=>({hp:10,focus:2,speed:4}),stressMaximumFor:()=>3,
   clamp:(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0)),t:key=>key};

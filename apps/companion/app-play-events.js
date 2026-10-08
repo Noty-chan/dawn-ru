@@ -164,7 +164,7 @@ $("freeplay-hero-panel").addEventListener("click",event=>{
   if(attr){$("dice-attr").value=attr.dataset.freeplayAttr;recalculateDicePool();$("roll-dice").scrollIntoView({behavior:"smooth",block:"center"});return}
   if(skill){$("dice-skill").value=skill.dataset.freeplaySkill;recalculateDicePool();$("roll-dice").scrollIntoView({behavior:"smooth",block:"center"});return}
   if(ability){$("dice-ability").value=ability.dataset.freeplayAbility;recalculateDicePool();$("roll-dice").scrollIntoView({behavior:"smooth",block:"center"});return}
-  if(resource){const key=resource.dataset.freeplayResource,labels={stress:"Стресс",influence:"Влияние"},next=toolsResourceValue(key)+Number(resource.dataset.freeplayDelta||0);setToolsResource(key,next,labels[key]||key,{correction:true})}
+  if(resource){const key=resource.dataset.freeplayResource,labels={stress:"Стресс",influence:"Влияние"},next=resource.dataset.freeplayValue!==undefined?Number(resource.dataset.freeplayValue):toolsResourceValue(key)+Number(resource.dataset.freeplayDelta||0);setToolsResource(key,next,labels[key]||key,{correction:true})}
 });
 $("freeplay-bond-add").onclick=()=>{
   const name=$("freeplay-bond-name").value.trim(),quick=$("freeplay-bond-quick").checked;

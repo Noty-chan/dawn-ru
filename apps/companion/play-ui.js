@@ -128,11 +128,20 @@ function toolsResourceCorrectionReason(){
   return "";
 }
 function toolsResourceValue(key){const actor=toolsRuntimeActor(),owner=actor||S;return clamp(actor?.[key]??S.runtime[key],0,key==="stress"?stressMaximumFor(owner):999)}
+function toolsResourceValueMarkup(key,value,maximum,locked=false){
+  if(key!=="stress")return String(value);
+  const count=Math.max(1,Math.min(12,Number(maximum)||3));
+  return `<span class="tools-stress-segments" role="group" aria-label="${esc(isEnglishPreview()?`Stress: ${value} of ${maximum}`:`Стресс: ${value} из ${maximum}`)}">${Array.from({length:count},(_,i)=>{const next=value>=i+1?i:i+1;return `<button type="button" class="${i<value?"filled":""}" data-freeplay-resource="stress" data-freeplay-value="${next}" data-stress-segment="${i}" aria-pressed="${i<value}" aria-label="${esc(isEnglishPreview()?`Set Stress to ${next}`:`Установить Стресс: ${next}`)}" ${locked?"disabled":""}></button>`}).join("")}</span>`;
+}
+
 function refreshFreeplayResourceUi(){
   for(const key of ["influence","stress"]){
     const value=toolsResourceValue(key),maximum=key==="stress"?stressMaximumFor(toolsRuntimeActor()||S):null,group=document.querySelector(`[data-freeplay-resource-group="${key}"]`);
     if(!group)continue;
-    group.querySelector("strong").textContent=maximum?`${value} / ${maximum}`:String(value);
+    const focused=document.activeElement?.dataset?.stressSegment;
+    group.querySelector("strong").innerHTML=toolsResourceValueMarkup(key,value,maximum,Boolean(toolsResourceCorrectionReason()));
+    if(focused!=null&&key==="stress")group.querySelector(`[data-stress-segment="${focused}"]`)?.focus({preventScroll:true});
+    const warning=group.querySelector(".tools-stress-warning");if(warning)warning.hidden=value<maximum;
     const down=group.querySelector(`[data-freeplay-delta="-1"]`),up=group.querySelector(`[data-freeplay-delta="1"]`);
     const reason=toolsResourceCorrectionReason();
     if(down){down.disabled=Boolean(reason)||value<=0;down.title=reason}if(up){up.disabled=Boolean(reason)||maximum!=null&&value>=maximum;up.title=reason}
@@ -341,9 +350,9 @@ function renderFreeplayHeroPanel(){
   const opened=new Set(sameHero?[...root.querySelectorAll("details[open][data-tools-feature]")].map(detail=>detail.dataset.toolsFeature):[]);
   const focused=sameHero&&root.contains(document.activeElement)?document.activeElement:null;
   const focusKey=focused&&["freeplayAttr","freeplaySkill","freeplayAbility","freeplayResource"].find(key=>focused.dataset[key]);
-  const focusValue=focusKey&&focused.dataset[focusKey],focusDelta=focused?.dataset.freeplayDelta;
+  const focusValue=focusKey&&focused.dataset[focusKey],focusDelta=focused?.dataset.freeplayDelta,focusSegment=focused?.dataset.stressSegment;
   const actor=toolsRuntimeActor(),stressMaximum=stressMaximumFor(actor||S),stress=clamp(actor?.stress??S.runtime.stress,0,stressMaximum),influence=Math.max(0,Number(actor?.influence??S.runtime.influence)||0),gifts=selectedGifts(),techniques=Object.entries(S.techniques).filter(([,level])=>level>0).map(([id,level])=>({tech:techById(id),level})).filter(item=>item.tech),locked=toolsSyncContext().shared&&!actor||(typeof toolsResourceCorrectionReason==="function"&&Boolean(toolsResourceCorrectionReason())),copy=toolsCopy(),attrs=activeAttrs();
-  const resource=(key,label,value,maximum="")=>`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${value}${maximum?` / ${maximum}`:""}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button></div>`;
+  const resource=(key,label,value,maximum="")=>key==="stress"?`<div class="freeplay-resource freeplay-resource-stress" data-freeplay-resource-group="stress"><span>${label}</span><strong>${toolsResourceValueMarkup(key,value,maximum,locked)}</strong><small class="tools-stress-warning" ${value<maximum?"hidden":""}>${isEnglishPreview()?"Stress limit":"Предел Стресса"}</small></div>`:`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${toolsResourceValueMarkup(key,value,maximum)}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button>${key==="stress"?`<small class="tools-stress-warning" ${value<maximum?"hidden":""}>${(isEnglishPreview()?"Stress limit":"Предел Стресса")}</small>`:""}</div>`;
   $("freeplay-hero-panel").innerHTML=`<header class="freeplay-hero-head">${S.media.portrait?`<img src="${S.media.portrait}" alt="">`:`<i>✦</i>`}<div><span class="kind">${copy.sheet}</span><h2>${esc(S.name||copy.unnamed)}</h2><p>${esc(S.concept||(isEnglishPreview()?"No concept recorded":"Концепция не записана"))} · ${copy.tier} ${S.tier}</p></div><div class="freeplay-resources">${resource("influence",copy.influence,influence)}${resource("stress",copy.stress,stress,stressMaximum)}</div></header><div class="freeplay-sheet-picks"><section><h3>${copy.attributes}</h3><div>${attrs.map(([key,label])=>`<button type="button" data-freeplay-attr="${key}"><span>${label}</span><b>${attrValue(key)}D6</b></button>`).join("")}</div></section><section><h3>${copy.skills}</h3><div>${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-freeplay-skill="${esc(toolSkillId(skill))}"><span>${esc(skillDisplayName(skill))}</span><b>+${toolsSkillRank(skill)}D6</b></button>`).join("")||`<p class="autosave">${copy.noSkills}</p>`}</div></section>${S.ability.enabled?`<section><h3>${copy.ability}</h3><button type="button" class="freeplay-ability-pick" data-freeplay-ability="main"><span><b>${esc(S.ability.name||abilityFormula())}</b>${S.ability.name?`<small>${esc(abilityFormula())}</small>`:""}</span><strong>+${S.ability.rank}D6</strong></button></section>`:""}</div><div class="freeplay-features"><details><summary>${copy.boons} <small>${gifts.length}</small></summary>${gifts.map(gift=>`<article><strong>${esc(gift.name)}</strong><p>${md(gift.text)}</p></article>`).join("")||`<p class="autosave">${copy.noBoons}</p>`}</details><details><summary>${copy.techniques} <small>${techniques.reduce((sum,item)=>sum+item.level,0)} ${isEnglishPreview()?"Lv.":"ур."}</small></summary>${techniques.map(({tech,level})=>`<article><strong>${esc(tech.name)} · ${isEnglishPreview()?"Level":"Уровень"} ${level}</strong>${tech.levels.slice(0,level).map(item=>`<p><b>${item.n}: ${esc(item.name)}</b> — ${md(item.text)}</p>`).join("")}</article>`).join("")||`<p class="autosave">${copy.noTechniques}</p>`}</details></div>`;
   root.dataset.toolsHero=S.id;
   const features=root.querySelector(".freeplay-features");
@@ -353,7 +362,7 @@ function renderFreeplayHeroPanel(){
     if(gadgets){const detail=document.createElement("details"),summary=document.createElement("summary");detail.dataset.toolsFeature="gadgets";detail.open=opened.has("gadgets");summary.textContent=gadgetText("title");detail.append(summary);detail.insertAdjacentHTML("beforeend",gadgets);features.append(detail)}
   }
   syncToolsSourceSelection();
-  if(focusKey){const replacement=[...root.querySelectorAll("button")].find(button=>button.dataset[focusKey]===focusValue&&(!focusDelta||button.dataset.freeplayDelta===focusDelta));replacement?.focus({preventScroll:true})}
+  if(focusKey){const replacement=[...root.querySelectorAll("button")].find(button=>button.dataset[focusKey]===focusValue&&(!focusDelta||button.dataset.freeplayDelta===focusDelta)&&(focusSegment==null||button.dataset.stressSegment===focusSegment));replacement?.focus({preventScroll:true})}
 }
 function renderFreeplayBonds(){
   const standard=D.bonds.actions.map(action=>action.tag),tagLabels={"Партнер":"Partner","Соперник":"Rival","Ученик":"Student","Учитель":"Teacher","Враг":"Enemy","Легенда":"Legend","Товарищ":"Comrade","Подопечный":"Ward","Доверенное лицо":"Confidant","Объект":"Subject","Приятель":"Buddy","без тега":"no tag"};

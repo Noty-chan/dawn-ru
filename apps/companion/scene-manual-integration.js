@@ -145,9 +145,31 @@ function renderManualActorInspector(actor){
   if(actor?.hidden&&activeSceneView()!=="gm")actor=null;
   if(!actor){root.innerHTML=`<p>${manualTableCopy("Выберите участника на поле.","Select a participant on the board.")}</p>`;return;}
   const allowed=canControlSceneActor(actor),fields=[["hp","Здоровье","Health"],["maxHp","Максимум ЗД","Maximum HP"],["focus","Фокус","Focus"],["influence","Влияние","Influence"],["stress","Стресс","Stress"]];
-  root.innerHTML=`<section class="manual-actor-settings"><h3>${esc(actor.name)}</h3><p>${manualTableCopy("Значения записываются вручную. Последствия определяет Нарратор.","Values are recorded manually. The Narrator decides the consequences.")}</p><div class="scene-stat-grid">${fields.map(([key,ru,en])=>`<label>${manualTableCopy(ru,en)}<input type="number" min="0" max="9999" step="1" data-manual-resource="${key}" data-manual-actor="${esc(actor.id)}" value="${Number(actor[key])||0}" ${allowed?"":"disabled"}></label>`).join("")}</div>${activeSceneView()==="gm"?`<label>${manualTableCopy("Имя","Name")}<input data-scene-actor-name="${esc(actor.id)}" value="${esc(actor.name)}"></label><label>${manualTableCopy("Цвет токена","Token color")}<input type="color" data-scene-token-color="${esc(actor.id)}" value="${esc(actor.tokenColor)}"></label><button type="button" class="danger-quiet" data-scene-remove-actor="${esc(actor.id)}">${manualTableCopy("Убрать участника со стола","Remove participant from table")}</button>`:""}</section>`;
+  root.innerHTML=`<section class="manual-actor-settings"><h3>${esc(actor.name)}</h3><p>${manualTableCopy("Значения записываются вручную. Последствия определяет Нарратор.","Values are recorded manually. The Narrator decides the consequences.")}</p><div class="scene-stat-grid">${fields.map(([key,ru,en])=>`<label>${manualTableCopy(ru,en)}<input type="number" min="0" max="9999" step="1" data-manual-resource="${key}" data-manual-actor="${esc(actor.id)}" value="${Number(actor[key])||0}" ${allowed?"":"disabled"}></label>`).join("")}</div>${allowed&&Scene.spaces.length>1?`<label>${manualTableCopy("Поле участника","Participant board")}<select data-manual-actor-space="${esc(actor.id)}">${Scene.spaces.map(space=>`<option value="${esc(space.id)}" ${space.id===actor.space?"selected":""}>${esc(space.name)} · ${space.width}×${space.height}</option>`).join("")}</select></label>`:""}${activeSceneView()==="gm"?`<label>${manualTableCopy("Имя","Name")}<input data-scene-actor-name="${esc(actor.id)}" value="${esc(actor.name)}"></label><label>${manualTableCopy("Цвет токена","Token color")}<input type="color" data-scene-token-color="${esc(actor.id)}" value="${esc(actor.tokenColor)}"></label><label class="switch"><input type="checkbox" data-manual-actor-hidden="${esc(actor.id)}" ${actor.hidden?"checked":""}><span>${manualTableCopy("Скрыть токен на поле","Hide token on board")}</span></label><label class="switch"><input type="checkbox" data-manual-initiative-visible="${esc(actor.id)}" ${actor.manualInitiativeVisible??!actor.hidden?"checked":""}><span>${manualTableCopy("Показывать в инициативе","Show in initiative")}</span></label><button type="button" class="danger-quiet" data-scene-remove-actor="${esc(actor.id)}">${manualTableCopy("Убрать участника со стола","Remove participant from table")}</button>`:""}</section>`;
 }
 document.addEventListener("change",event=>{
+  const destination=event.target.closest?.("[data-manual-actor-space]");
+  if(destination&&manualTableActive()){
+    const actor=Scene.actors.find(a=>a.id===destination.dataset.manualActorSpace),space=Scene.spaces.find(s=>s.id===destination.value);
+    if(!actor||!space||!canControlSceneActor(actor)){renderScene();return;}
+    const x=clamp(actor.x,0,space.width-1),y=clamp(actor.y,0,space.height-1);
+    const result=commitSceneEvents(manualTableCopy("Участник перенесён на другое поле","Participant moved to another board"),[{type:"table.command",actorId:actor.id,payload:{kind:"move",space:space.id,x,y}}]);
+    if(result&&!result.pending){Scene.activeSpace=space.id;persist();renderScene();}return;
+  }
+  const initiativeToggle=event.target.closest?.("[data-manual-initiative-visible]");
+  if(initiativeToggle&&manualTableActive()){
+    const actor=Scene.actors.find(a=>a.id===initiativeToggle.dataset.manualInitiativeVisible);
+    if(!actor||activeSceneView()!=="gm"){renderScene();return;}
+    const visible=Boolean(initiativeToggle.checked);
+    commitScene(manualTableCopy("Изменена видимость участника в инициативе","Participant initiative visibility changed"),scene=>{const current=scene.actors.find(a=>a.id===actor.id);if(current)current.manualInitiativeVisible=visible});return;
+  }
+  const visibility=event.target.closest?.("[data-manual-actor-hidden]");
+  if(visibility&&manualTableActive()){
+    const actor=Scene.actors.find(a=>a.id===visibility.dataset.manualActorHidden);
+    if(!actor||activeSceneView()!=="gm"){renderScene();return;}
+    const hidden=Boolean(visibility.checked);
+    commitScene(manualTableCopy(hidden?"Токен скрыт от игроков":"Токен показан игрокам",hidden?"Token hidden from players":"Token shown to players"),scene=>{const current=scene.actors.find(a=>a.id===actor.id);if(current){if(current.manualInitiativeVisible===undefined)current.manualInitiativeVisible=hidden?Boolean(scene.manualTable?.actorId||scene.manualTable?.round>1):true;current.hidden=hidden}});return;
+  }
   if(event.target.id==="scene-manual-status-processing"){
     if(!manualTableActive()||activeSceneView()!=="gm"){renderScene();return;}
     commitSceneEvents(manualTableCopy("Подсказки статусов","Status hints"),[{type:"table.command",actorId:null,payload:{kind:"policy",mode:"manual",processStatuses:Boolean(event.target.checked)}}]);return;
@@ -167,6 +189,7 @@ function renderManualTable(){
   renderManualClocks();
   renderManualMapTools();
   document.body.dataset.tablePolicy=manualTableActive()?"manual":"rules";
+  const sizeLabel=$("scene-space-size-label");if(sizeLabel?.firstChild)sizeLabel.firstChild.textContent=manualTableCopy("Размер нового поля","New board size");
   const selector=$("scene-control-mode");if(selector)selector.value=manualTableActive()?"manual":"rules";
   const hints=$("scene-manual-status-processing");if(hints){hints.checked=Boolean(Scene.tablePolicy?.processStatuses);hints.closest("label").hidden=!manualTableActive();}
   for(const button of document.querySelectorAll('#scene-dock [data-scene-panel="director"],#scene-dock [data-scene-panel="sheet"],#scene-dock [data-scene-panel="utility"],#scene-dock [data-scene-panel="entities"]'))button.hidden=manualTableActive();

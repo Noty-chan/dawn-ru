@@ -585,6 +585,7 @@
       const hiddenActorIds = new Set((scene?.actors || []).filter(item => item?.hidden).map(item => item.id));
       const hiddenMarkerIds = new Set((scene?.markers || []).filter(item => item?.hidden || item?.kind === "hidden").map(item => item.id));
       const hiddenObjectIds = new Set((scene?.objects || []).filter(item => item?.hidden || item?.visibility === "hidden" || item?.metadata?.hidden || item?.type === "hidden" || item?.kind === "hidden").map(item => item.id));
+      if(scene?.tablePolicy?.mode==="manual")result.manualInitiative=[...(scene.actors||[]).filter(actor=>actor.hidden&&actor.manualInitiativeVisible===true),...(scene.manualInitiative||[]).filter(row=>!(scene.actors||[]).some(actor=>actor.id===row.id))].map(actor=>({id:actor.id,name:actor.name,space:actor.space,hidden:true,initiativeOnly:true}));
       result.actors = (result.actors || []).filter(item => !hiddenActorIds.has(item.id));
       result.markers = (result.markers || []).filter(item => !hiddenMarkerIds.has(item.id));
       result.objects = (result.objects || []).filter(item => !hiddenObjectIds.has(item.id));

@@ -129,3 +129,9 @@ vm.runInContext(fs.readFileSync(new URL('../scene-manual-workspace.js',import.me
 assert.equal(localeContext.window.DAWN_I18N.t('scene.manual.rules',{}, {locale:'ru'}),'По правилам');
 assert.equal(localeContext.window.DAWN_I18N.t('scene.manual.rules',{}, {locale:'en'}),'With rules');
 console.log('Manual workspace shell: script order, policy options, RU/EN labels and versioned offline assets passed (structural checks; browser layout remains separate).');
+
+scene.tablePolicy.mode='manual';scene.actors.push({id:'vanished',name:'Known enemy',space:'main',hidden:true,manualInitiativeVisible:true,tokenImage:'private-image',hp:99});
+const privacy=ui.render({...options,canNarrate:false,canRead:actor=>!actor.hidden&&actor.id!=='secret'});
+const card=privacy.initiativeActors.find(actor=>actor.id==='vanished');assert.equal(card.initiativeOnly,true);assert.equal(card.tokenImage,undefined);assert.equal(card.hp,undefined);
+assert.ok(!nodes.get('scene-manual-initiative').innerHTML.includes('private-image'));
+scene.actors.at(-1).manualInitiativeVisible=false;assert.ok(!ui.render(options).initiativeActors.some(actor=>actor.id==='vanished'));
