@@ -7,12 +7,13 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     const value = typeof t === "function" ? t(key) : key;
     return value && value !== key ? value : fallback;
   };
-  const labelFor = group => copy(`scene.boardTools.category.${group.id}`, group.label);
+  const labelFor = group => group.id === "highlights" ? (typeof isEnglishPreview === "function" && isEnglishPreview() ? "Ability highlights" : "Подсветки способностей") : copy(`scene.boardTools.category.${group.id}`, group.label);
   const groups = [
     { id: "tokens", label: "Жетоны", icon: "●", selectors: ['[data-scene-tool="select"]','[data-scene-tool="place"]','[data-scene-tool="target"]','#scene-clear-targets'] },
     { id: "measure", label: "Измерение", icon: "↔", selectors: ['[data-scene-tool="measure"]','#scene-clear-movement-traces'] },
     { id: "areas", label: "Окружение", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"][data-scene-area-type="terrain"]','[data-scene-tool="wall"]','[data-scene-tool="erase"]'], controls: ["scene-area-controls","scene-wall-controls"] },
     { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: ["scene-marker-controls"] },
+    { id: "highlights", label: "Подсветки способностей", icon: "✦", selectors: ["#manual-table-area-tool"], controls: ["manual-table-area-tools"] },
     { id: "history", label: "История", icon: "↶", gm: true, selectors: ['#scene-undo','#scene-redo'] }
   ];
   let toolbar = null, strip = null, tools = null, oldPrimary = null, primaryHidden = false, enabled = false, selected = "tokens";
@@ -41,7 +42,9 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   function select(id) {
     const group = groups.find(item => item.id === id);
     if (!enabled || !group || !categories.has(id) || group.gm && player()) return false;
+    const changed = selected !== id;
     selected = id;
+    if(changed)toolbar.dispatchEvent(new CustomEvent("scene-board-category-change",{detail:{id}}));
     for (const [key, button] of categories) button.setAttribute("aria-pressed", String(key === selected));
     for (const [key, panel] of panels) panel.hidden = key !== selected;
     return true;

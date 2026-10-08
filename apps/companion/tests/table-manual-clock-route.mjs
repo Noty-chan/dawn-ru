@@ -37,10 +37,12 @@ context.Scene.tablePolicy.mode='manual';context.activeSceneView=()=> 'player';co
 context.Scene.sessionClocks=[{id:'draft',manual:true,ownerActorId:'a',size:6,value:1}];
 const focused={dataset:{manualClockId:'draft'},value:'4',max:'6'};
 let closed=false,replaced=false;
-const dialog={open:true,dataset:{scope:'local:2'},close:()=>closed=true,querySelector:()=>({replaceChildren:()=>{replaced=true;throw Error('rebuild')}})};
+const dialog={open:true,dataset:{scope:'local:2',visibility:context.manualClockVisibilityScope()},close:()=>closed=true,querySelector:()=>({replaceChildren:()=>{replaced=true;throw Error('rebuild')}})};
 context.Sync={state:()=>({})};context.$=()=>dialog;context.document={activeElement:focused};
 context.renderManualClocks();assert.equal(replaced,false);assert.equal(focused.value,'4','unconfirmed draft survives scene render');
 context.Scene.sessionClocks[0].size=3;context.renderManualClocks();assert.equal(focused.max,'3','new bounds update without losing draft');
 context.canControlSceneActor=()=>false;assert.throws(()=>context.renderManualClocks(),/rebuild/,'lost rights reset stale editor');
+context.canControlSceneActor=()=>true;context.Scene.actors.find(a=>a.id==='a').hidden=true;assert.throws(()=>context.renderManualClocks(),/rebuild/,'hidden owner resets stale visible rows');
+context.Scene.actors.find(a=>a.id==='a').hidden=false;context.activeSceneView=()=> 'gm';dialog.dataset.visibility=context.manualClockVisibilityScope();context.activeSceneView=()=> 'player';assert.throws(()=>context.renderManualClocks(),/rebuild/,'view changes rebuild every private row despite focused own clock');
 context.Scene.tablePolicy.epoch=3;context.renderManualClocks();assert.equal(closed,true,'changed policy closes stale dialog');
 console.log('manual clock UI route: create/set/remove, owner recheck, atomic bounds and no combat mutations passed');

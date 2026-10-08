@@ -45,11 +45,147 @@ function renderManualEnvironmentInspector(){
   const rows=[...Scene.objects.map(o=>({record:o,kind:"object",meta:`${sceneObjectDisplayName(o)} · ${o.cells.length} ${copy("клеток","cells")}`})),...Scene.walls.map(w=>({record:w,kind:"wall",meta:`${copy("Стена","Wall")} · ${w.a} ↔ ${w.b}`})),...Scene.markers.map(m=>({record:m,kind:"marker",meta:`${copy("Метка","Marker")} · ${String.fromCharCode(65+m.x)}${m.y+1}`}))].filter(({record:r})=>r.space===Scene.activeSpace&&sceneEnvironmentVisible(r));
   $("scene-inspector").innerHTML=`<p>${copy("Обозначения карты. Их последствия определяет ведущий.","Map annotations. The narrator resolves their consequences.")}</p>${rows.map(({record:r,kind,meta})=>`<article class="scene-rule-card"><strong>${esc(r.label||meta)}</strong><small>${esc(meta)} · ${r.hidden?copy("Только ведущему","Narrator only"):copy("Видно игрокам","Visible to players")}</small>${gm?`<button type="button" data-scene-remove-${kind}="${esc(r.id)}">${copy("Удалить","Remove")}</button>`:""}</article>`).join("")}`;
 }
+function manualAreaDraftActor(draft){
+  if(!draft||!manualTableActive()||draft.scope!==manualClockScope())return null;
+  const actor=Scene.actors.find(a=>a.id===draft.actorId),space=Scene.spaces.find(s=>s.id===draft.space);
+  if(!actor||!space||actor.space!==space.id||Scene.activeSpace!==space.id||!canControlSceneActor(actor)||activeSceneView()!=="gm"&&actor.hidden)return null;
+  const entry=manualTableAbilities(actor).find(row=>row.id===draft.entryId);
+  return entry?.area&&entry.text===draft.text?actor:null;
+}
+function manualAreaDraftPayload(draft,values){
+  const actor=manualAreaDraftActor(draft),space=Scene.spaces.find(s=>s.id===draft?.space);
+  if(!actor||!["cell","adjacent","square2","square3","square5","radius2","lineH","lineV"].includes(values.shape))return null;
+  const x=Number(values.x),y=Number(values.y);
+  if(!Number.isSafeInteger(x)||!Number.isSafeInteger(y)||x<0||y<0||x>=space.width||y>=space.height)return null;
+  const cells=Logic.areaCells({shape:values.shape,x,y,width:space.width,height:space.height});
+  return {kind:"area/create",area:{id:draft.id,space:space.id,cells,label:draft.name.slice(0,200),color:"#65c8d0",appearance:"custom",hidden:false}};
+}
+// Transient placement lives in the tool palette, never in Scene/targets.
+function clearManualAreaPreview(){
+  document.querySelectorAll('.manual-area-preview').forEach(node=>node.classList.remove('manual-area-preview'));
+}
+function renderManualAreaDraft(){
+  const panel=$("manual-table-area-tools");if(!panel)return;
+  const draft=panel.areaDraft,actor=manualAreaDraftActor(draft);
+  if(draft&&(!actor||Scene.objects.some(row=>row.id===draft.id))){panel.areaDraft=null;clearManualAreaPreview();}
+  const current=panel.areaDraft;
+  panel.querySelector('[data-area-name]').textContent=current?.name||manualTableCopy("Выберите способность в описании участника","Choose an ability in the actor reader");
+  panel.querySelector('[name="shape"]').disabled=!current||Boolean(current.pending);
+  const source=panel.querySelector('[name="source"]');if(source)source.disabled=!current||Boolean(current.pending);
+  panel.querySelector('[data-area-cancel]').disabled=!current;
+  panel.querySelector('[data-area-recheck]').hidden=!current?.pending;
+  panel.querySelector('[data-area-existing]').innerHTML=(Scene.objects||[]).filter(row=>row.space===Scene.activeSpace&&row.type==='manual-area'&&sceneEnvironmentVisible(row)&&Scene.actors.some(a=>a.id===row.ownerActorId&&canControlSceneActor(a))).map(row=>`<div><span>${esc(row.label)}</span><button type="button" data-manual-area-remove="${esc(row.id)}">${manualTableCopy("Убрать","Remove")}</button></div>`).join('');
+  const list=panel.querySelector('[data-area-list]');if(list){const count=panel.querySelector('[data-area-existing]').children.length;list.hidden=!count;list.querySelector('summary').textContent=manualTableCopy(`Поставленные области: ${count}`,`Placed areas: ${count}`);}
+  const trigger=$("manual-table-area-tool");if(trigger){trigger.hidden=!manualTableActive();trigger.setAttribute('aria-pressed',String(Boolean(current)));}
+  panel.hidden=!manualTableActive()||!usingNextSceneInterface()&&!current;
+  const category=$('scene-board-category-highlights');if(category)category.hidden=!manualTableActive();
+}
+async function recheckManualAreaDraft(panel){
+  const current=panel.areaDraft,output=panel.querySelector('output');if(!current?.pending||!manualAreaDraftActor(current))return;
+  try{
+    if(Sync?.state?.()?.sceneId)await Sync.refreshScene();
+    if(panel.areaDraft!==current||!manualAreaDraftActor(current)){renderManualAreaDraft();return;}
+    const queued=typeof networkV2QueueStatus==='function'?networkV2QueueStatus():{pending:0,failed:0};
+    if(queued.pending||queued.failed){output.textContent=manualTableCopy("Сначала завершите сохранение в разделе «Сеть».","Finish saving in Network first.");return;}
+    current.pending=false;output.textContent=manualTableCopy("Стол обновлён. Если область не появилась, поставьте её снова.","Table refreshed. If the area is absent, place it again.");renderManualAreaDraft();
+  }catch(error){output.textContent=manualTableCopy("Не удалось обновить стол. Повторите после восстановления связи.","Could not refresh the table. Retry after reconnecting.");}
+}
+function submitManualAreaDraft(panel,values){
+  const current=panel.areaDraft,payload=manualAreaDraftPayload(current,values);
+  if(current?.pending||!payload)return null;
+  const result=commitSceneEvents(manualTableCopy("Показана область способности","Ability area shown"),[{type:'table.command',actorId:current.actorId,payload}]);
+  if(result?.pending)current.pending=true;
+  return result;
+}
+function ensureManualAreaTools(){
+  let panel=$("manual-table-area-tools");if(panel)return panel;
+  const toolbar=document.querySelector('.scene-toolbar');if(!toolbar)return null;
+  const trigger=document.createElement('button');trigger.type='button';trigger.id='manual-table-area-tool';
+  trigger.className='manual-area-tool';trigger.innerHTML=window.DAWN_UI_ICONS?.html('areas')||'✦';trigger.title=manualTableCopy('Подсветка способности','Ability highlight');trigger.setAttribute('aria-label',trigger.title);
+  trigger.addEventListener('click',()=>{
+    const actor=Scene.actors.find(a=>a.id===Scene.selectedActor),entry=actor&&manualTableAbilities(actor).find(row=>row.area);
+    if(actor&&entry)openManualTableArea(actor,entry);
+    else toast(manualTableCopy('Выберите участника и способность в его описании.','Select an actor and an ability in its reader.'));
+  });
+  panel=document.createElement('section');panel.id='manual-table-area-tools';panel.className='scene-area-controls manual-area-tools';
+  panel.innerHTML='<strong data-area-name></strong><label><span data-area-source></span><select name="source"></select></label><label><span data-area-shape></span><select name="shape"></select></label><p data-area-note></p><details data-area-list><summary></summary><div data-area-existing></div></details><button type="button" data-area-cancel></button><button type="button" data-area-recheck hidden></button><output aria-live="polite"></output>';
+  panel.querySelector('[data-area-source]').textContent=manualTableCopy('Способность','Ability');
+  panel.querySelector('[data-area-shape]').textContent=manualTableCopy('Форма','Shape');
+  panel.querySelector('[data-area-note]').textContent=manualTableCopy('Наведите на поле → кликните для размещения. Escape — отмена. Это только обозначение.','Hover over the board → click to place. Escape cancels. Annotation only.');
+  panel.querySelector('[data-area-cancel]').textContent=manualTableCopy('Отмена размещения','Cancel placement');
+  panel.querySelector('[data-area-recheck]').textContent=manualTableCopy('Проверить сохранение','Check save');
+  const shapes=[['cell','Клетка','Cell'],['adjacent','Крест','Cross'],['square2','Квадрат 2×2','Square 2×2'],['square3','Квадрат 3×3','Square 3×3'],['square5','Квадрат 5×5','Square 5×5'],['radius2','Радиус 2','Radius 2'],['lineH','Горизонталь','Horizontal line'],['lineV','Вертикаль','Vertical line']];
+  panel.querySelector('[name="shape"]').innerHTML=shapes.map(([value,ru,en])=>`<option value="${value}">${manualTableCopy(ru,en)}</option>`).join('');
+  panel.addEventListener('change',event=>{
+    clearManualAreaPreview();if(event.target.name!=='source')return;
+    const actor=manualAreaDraftActor(panel.areaDraft),entry=actor&&manualTableAbilities(actor).find(row=>row.id===event.target.value);
+    if(actor&&entry?.area&&!panel.areaDraft.pending)openManualTableArea(actor,entry);
+  });
+  panel.addEventListener('click',event=>{
+    if(event.target.closest('[data-area-cancel]')){panel.areaDraft=null;clearManualAreaPreview();renderManualAreaDraft();return;}
+    if(event.target.closest('[data-area-recheck]')){recheckManualAreaDraft(panel);return;}
+    const button=event.target.closest('[data-manual-area-remove]');if(!button)return;
+    const area=Scene.objects.find(row=>row.id===button.dataset.manualAreaRemove&&row.type==='manual-area'),actor=Scene.actors.find(a=>a.id===area?.ownerActorId);
+    if(!manualTableActive()||!actor||!canControlSceneActor(actor)||!sceneEnvironmentVisible(area))return;
+    commitSceneEvents(manualTableCopy('Убрана область способности','Ability area removed'),[{type:'table.command',actorId:actor.id,payload:{kind:'area/remove',id:area.id}}]);renderManualAreaDraft();
+  });
+  toolbar.append(trigger,panel);window.DAWN_SCENE_BOARD_TOOLS?.enhance();
+  const board=$("scene-board");
+  const preview=event=>{
+    const draft=panel.areaDraft;if(!draft)return;
+    event.stopImmediatePropagation();clearManualAreaPreview();
+    if(draft.pending)return;
+    const cell=event.target.closest('[data-scene-cell]');if(!cell)return;
+    const [x,y]=cell.dataset.sceneCell.split(',').map(Number),payload=manualAreaDraftPayload(draft,{shape:panel.querySelector('[name="shape"]').value,x,y});
+    for(const key of payload?.area.cells||[])board.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`)?.classList.add('manual-area-preview');
+  };
+  board.addEventListener('mouseover',preview,true);
+  board.addEventListener('mouseleave',clearManualAreaPreview);
+  board.addEventListener('click',event=>{
+    if(!panel.areaDraft)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const cell=event.target.closest('[data-scene-cell]');if(!cell)return;
+    const [x,y]=cell.dataset.sceneCell.split(',').map(Number),draft=panel.areaDraft;
+    const result=submitManualAreaDraft(panel,{shape:panel.querySelector('[name="shape"]').value,x,y});
+    if(result?.pending){panel.querySelector('output').textContent=manualTableCopy('Отправлено; ожидаем принятия.','Sent; waiting for acceptance.');}
+    else if(result){panel.areaDraft=null;clearManualAreaPreview();}
+    else if(!manualAreaDraftActor(draft)){panel.areaDraft=null;clearManualAreaPreview();}
+    renderManualAreaDraft();
+  },true);
+  // Do not drag a token while placing an informational area.
+  for(const type of ['pointerdown','dragstart','contextmenu'])board.addEventListener(type,event=>{if(panel.areaDraft){event.preventDefault();event.stopImmediatePropagation();}},true);
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||!panel.areaDraft)return;
+    event.preventDefault();event.stopImmediatePropagation();panel.areaDraft=null;clearManualAreaPreview();renderManualAreaDraft();
+  },true);
+  toolbar.addEventListener('scene-board-category-change',event=>{
+    if(event.detail.id==='highlights')return;panel.areaDraft=null;clearManualAreaPreview();renderManualAreaDraft();
+  });
+  document.querySelector('.scene-toolbar')?.addEventListener('click',event=>{
+    const category=event.target.closest('.scene-board-tool-category');
+    if(!event.target.closest('[data-scene-tool]')&&(!category||category.id==='scene-board-category-highlights'))return;
+    panel.areaDraft=null;clearManualAreaPreview();renderManualAreaDraft();
+  },true);
+  return panel;
+}
+function openManualTableArea(actor,entry){
+  const draft={id:uid(),actorId:actor.id,entryId:entry.id,text:entry.text,name:entry.name,space:actor.space,scope:manualClockScope()};
+  if(!manualAreaDraftActor(draft))return false;
+  const panel=ensureManualAreaTools();if(!panel||panel.areaDraft?.pending)return false;
+  // Leave the previous brush before arming: a finished highlight must not
+  // silently fall back to painting terrain or targeting a token.
+  if(activeSceneTool()!=='select'){changeSceneTool('select');window.DAWN_SCENE_BOARD_TOOLS?.enhance();}
+  panel.areaDraft=draft;panel.querySelector('output').textContent='';
+  const source=panel.querySelector('[name="source"]');source.innerHTML=manualTableAbilities(actor).filter(row=>row.area).map(row=>`<option value="${esc(row.id)}">${esc(row.name)}</option>`).join('');source.value=entry.id;
+  window.DAWN_MANUAL_WORKSPACE?.closeReader?.();closeAllScenePanels();
+  window.DAWN_SCENE_BOARD_TOOLS?.enhance();window.DAWN_SCENE_BOARD_TOOLS?.select('highlights');
+  renderManualAreaDraft();return true;
+}
 function manualClockOwner(clock){
   if(!manualTableActive())return undefined;
   if(activeSceneView()==="gm")return null;
   const actor=Scene.actors.find(a=>a.id===(clock?clock.ownerActorId:Scene.selectedActor));
-  return actor&&canControlSceneActor(actor)?actor.id:undefined;
+  return actor&&!actor.hidden&&canControlSceneActor(actor)?actor.id:undefined;
 }
 function manualClockCommand(payload){
   if(!manualTableActive())return null;
@@ -60,14 +196,18 @@ function manualClockCommand(payload){
   return commitSceneEvents(manualTableCopy("Ручные часы","Manual clock"),[{type:"table.command",actorId,payload}]);
 }
 function manualClockScope(){return `${Sync?.state?.()?.sceneId||"local"}:${Scene.tablePolicy?.epoch||0}`}
+function manualClockVisibilityScope(){
+  return JSON.stringify([activeSceneView(),(Scene.sessionClocks||[]).filter(c=>c.manual).map(c=>{const owner=Scene.actors.find(a=>a.id===c.ownerActorId);return[c.id,c.ownerActorId,Boolean(owner?.hidden),Boolean(owner&&canControlSceneActor(owner))]})]);
+}
 function renderManualClocks(){
   const dialog=$("manual-table-clocks");if(!dialog?.open)return;
   if(!manualTableActive()||dialog.dataset.scope!==manualClockScope()){dialog.close();return}
-  const focused=document.activeElement,editing=focused?.dataset?.manualClockId;
-  if(editing){
+  const visibility=manualClockVisibilityScope(),focused=document.activeElement,editing=focused?.dataset?.manualClockId;
+  if(editing&&dialog.dataset.visibility===visibility){
     const current=Scene.sessionClocks?.find(c=>c.id===editing&&c.manual);
     if(current&&manualClockOwner(current)!==undefined){focused.max=String(current.size);return}
   }
+  dialog.dataset.visibility=visibility;
   const list=dialog.querySelector("[data-clock-list]");list.replaceChildren();
   for(const clock of (Scene.sessionClocks||[]).filter(c=>c.manual)){
     // A hidden participant's personal records must not leak through this reader.
@@ -186,6 +326,8 @@ function openManualActorReader(actorId){
   return window.DAWN_MANUAL_WORKSPACE.open(actor.id);
 }
 function renderManualTable(){
+  if(manualTableActive())ensureManualAreaTools();
+  renderManualAreaDraft();
   renderManualClocks();
   renderManualMapTools();
   document.body.dataset.tablePolicy=manualTableActive()?"manual":"rules";
@@ -198,9 +340,11 @@ function renderManualTable(){
     scopeId:Sync?.state?.()?.sceneId||"local",
     canRead:actor=>activeSceneView()==="gm"||!actor.hidden,
     commit:commitSceneEvents,readAbilities:manualTableAbilities,
+    beforeRead:()=>{for(const menu of document.querySelectorAll(".scene-chrome-menu[open]"))menu.open=false;closeAllScenePanels();},
     selectActor:actor=>{Scene.selectedActor=actor.id;persist();renderScene()},
     roll:openManualTableDice,
     openClocks:openManualTableClocks,
+    showArea:openManualTableArea,
     statuses:actor=>(actor.manualStatuses||[]).map(id=>{const effect=sceneEffectList().find(e=>e.id===id);return{id,name:effect?.name||id,icon:"effects",hint:effect?.text||""}}),
     statusHints:Boolean(Scene.tablePolicy?.processStatuses),
     toggleTechnique:(actor,entry,on)=>commitSceneEvents(manualTableCopy("Пометка Техники","Technique note"),[{type:"table.command",actorId:actor.id,payload:{kind:"technique",key:entry.id,enabled:on}}])

@@ -53,7 +53,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     if (!reading) return;
     reader.innerHTML = `<header><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${adapter.openSheet?button("sheet", text("sheet", "Лист"), "sheet", !actor):""}${button("close-reader", text("close", "Закрыть"), "close")}</header>${actor ? `<div class="scene-manual-statuses">${statuses(actor)}</div><div class="scene-manual-abilities">${abilities(actor).map((entry, index) => {
       const key = `${actor.id}:${entry.id || index}`, on = adapter.toggleTechnique ? Boolean(actor.manualTechniqueState?.[entry.id]) : techniqueFlags.get(key) || false;
-      return `<details data-manual-ability="${index}" ${expandProfile || expanded.has(String(index)) ? "open" : ""}><summary>${escape(entry.name)}${entry.meta ? `<small>${escape(entry.meta)}</small>` : ""}</summary><div class="scene-manual-ability-text">${escape(entry.text || entry.description || "")}</div>${adapter.statusHints && entry.hint ? `<p class="scene-manual-hint">${escape(entry.hint)}</p>` : ""}<div class="scene-manual-ability-tools">${entry.toggle ? button("technique-toggle", on ? text("marked", "Личная отметка ✓") : text("mark", "Личная отметка"), "effects", !state.control, `data-ability-index="${index}" aria-pressed="${on}"`) : ""}${entry.area && adapter.showArea ? button("show-area", text("area", "Показать область"), "areas", false, `data-ability-index="${index}"`) : ""}</div></details>`;
+      return `<details data-manual-ability="${index}" ${expandProfile || expanded.has(String(index)) ? "open" : ""}><summary>${escape(entry.name)}${entry.meta ? `<small>${escape(entry.meta)}</small>` : ""}</summary><div class="scene-manual-ability-text">${escape(entry.text || entry.description || "")}</div>${adapter.statusHints && entry.hint ? `<p class="scene-manual-hint">${escape(entry.hint)}</p>` : ""}<div class="scene-manual-ability-tools">${entry.toggle ? button("technique-toggle", on ? text("marked", "Личная отметка ✓") : text("mark", "Личная отметка"), "effects", !state.control, `data-ability-index="${index}" aria-pressed="${on}"`) : ""}${entry.area && adapter.showArea ? button("show-area", text("area", "Показать область"), "areas", !state.control, `data-ability-index="${index}"`) : ""}</div></details>`;
     }).join("") || `<p class="scene-manual-empty">${escape(text("noAbilities", "Способности этого участника не добавлены."))}</p>`}</div>` : ""}`;
   }
   function paint() {
@@ -76,7 +76,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       if (!selected || !adapter.selectActor) return false;
       readingActorId = selected.id; adapter.selectActor(selected); paint(); return true;
     }
-    if (action === "read" && actor) { reading = !reading; readingActorId = actor.id; paint(); return true; }
+    if (action === "read" && actor) { reading = !reading; if(reading)adapter.beforeRead?.();readingActorId = actor.id; paint(); return true; }
     if (action === "close-reader") { reading = false; paint(); return true; }
     if (action === "sheet" && actor && adapter.openSheet) { adapter.openSheet(actor); return true; }
     if (action === "dice" && adapter.roll) { adapter.roll({actorId:actor?.id || null}); return true; }
@@ -95,7 +95,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     if (actor && (action === "technique-toggle" || action === "show-area")) {
       const entry = abilities(actor)[Number(value)];
       if (!entry) return false;
-      if (action === "show-area" && entry.area && adapter.showArea) { adapter.showArea(actor, entry); return true; }
+      if (action === "show-area" && state.control && entry.area && adapter.showArea) { adapter.showArea(actor, entry); return true; }
       if (action === "technique-toggle" && entry.toggle && state.control) {
         const key = `${actor.id}:${entry.id || value}`, on = !(adapter.toggleTechnique ? actor.manualTechniqueState?.[entry.id] : techniqueFlags.get(key));
         techniqueFlags.set(key, on); adapter.toggleTechnique?.(actor, entry, on); paintReader(state); return true;
@@ -131,7 +131,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
   function open(actorId){
     if(!adapter||!isManual(adapter.scene))return false;
     const actor=model(adapter).actors.find(item=>item.id===actorId);if(!actor)return false;
-    reading=true;readingActorId=actor.id;paint();return true;
+    adapter.beforeRead?.();reading=true;readingActorId=actor.id;paint();return true;
   }
-  return Object.freeze({render, act, model, open});
+  return Object.freeze({ closeReader:()=>act("close-reader"),render, act, model, open});
 })();
