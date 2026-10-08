@@ -139,3 +139,40 @@ englishLabels=true;labelContext.renderManualToolLabels();assert.match(toolNodes.
 manualLabels=false;labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/performs Step/);assert.match(toolNodes.target.title,/next action/);assert.equal(toolNodes.marker.attrs['aria-label'],'Place a rule marker');
 manualLabels=true;labelContext.renderManualToolLabels();assert.doesNotMatch(toolNodes.select.title,/Step/);
 console.log('Manual tool labels: policy/language transitions describe storage-only movement and target marking passed.');
+
+// Run the production brush listeners and real area reducer. DOM is substituted;
+// the packet and atomic stored result are not a mirror implementation.
+{
+ const boardEvents={},docEvents={},winEvents={},cells=new Map();let scope='local:1',tool='area',packets=[],held=false;
+ const listen=(bag,type,fn)=>(bag[type]??=[]).push(fn);
+ const board={addEventListener:(type,fn)=>listen(boardEvents,type,fn),contains:n=>cells.has(n.key),querySelector:selector=>cells.get(selector.match(/="([^"]+)"/)[1])};
+ for(let y=0;y<7;y++)for(let x=0;x<7;x++){const key=`${x},${y}`;cells.set(key,{key,dataset:{sceneCell:key},closest(){return this},classList:{add(){},remove(){}}});}
+ const bc={window:{addEventListener:(type,fn)=>listen(winEvents,type,fn),DAWN_TABLE_POLICY:Policy,DAWN_PRESENTATION_MODEL:c.window.DAWN_PRESENTATION_MODEL},document:{addEventListener:(type,fn)=>listen(docEvents,type,fn)},performance:{now:()=>100},CSS:{escape:String},Scene:plain(normal.blankScene()),Logic:c.Logic,manualTableActive:()=>true,activeSceneView:()=> 'gm',activeSceneTool:()=>tool,usingNextSceneInterface:()=>true,sceneHasLocalPendingSelection:()=>false,manualClockScope:()=>scope,manualAreaCameraGesture:()=>held,clearManualAreaPreview(){},manualTableCopy:ru=>ru,toast(){},uid:()=>`brush-${packets.length}`,sceneObjectDisplayName:()=> 'Area'};
+ bc.$=id=>id==='scene-board'?board:id==='manual-table-area-tools'?null:fields[id];bc.activeSceneSpace=()=>bc.Scene.spaces[0];
+ bc.commitSceneEvents=(label,events)=>{const result=Engine.dispatchMany(bc.Scene,events);bc.Scene=plain(result.scene);packets.push(events);return result;};
+ vm.createContext(bc);vm.runInContext(read('scene-presentation-model.js'),bc);
+ vm.runInContext(integration.slice(integration.indexOf('function placeManualMapObject'),integration.indexOf('function renderManualMapTools')),bc);
+ vm.runInContext(integration.slice(integration.indexOf('function installManualTerrainBrush'),integration.indexOf('\nfunction ',integration.indexOf('function installManualTerrainBrush')+1)),bc);
+ bc.installManualTerrainBrush();
+ const fire=(bag,type,key='0,0',extra={})=>{const event={target:cells.get(key)||{},button:0,pointerId:1,preventDefault(){this.prevented=true},stopImmediatePropagation(){this.stopped=true},...extra};for(const fn of bag[type]||[])fn(event);return event;};
+ fields['scene-area-shape'].value='cell';
+ const before=JSON.stringify(bc.Scene);fire(boardEvents,'pointerdown');fire(boardEvents,'pointermove','3,0');
+ assert.equal(JSON.stringify(bc.Scene),before,'preview never writes the scene');fire(boardEvents,'pointerup','3,0');
+ assert.equal(packets.length,1);assert.equal(packets[0].length,1);assert.deepEqual([...bc.Scene.objects[0].cells],['0,0','1,0','2,0','3,0']);
+ assert.ok(fire(boardEvents,'click','3,0').stopped,'compatibility click cannot create a second area');
+ for(const cancel of ['pointercancel','blur','Escape','scope','resize','version','outside','pointer']){
+   fire(boardEvents,'pointerdown');fire(boardEvents,'pointermove','2,2');
+   if(cancel==='pointercancel')fire(docEvents,'pointercancel');
+   if(cancel==='blur')fire(winEvents,'blur');
+   if(cancel==='Escape')fire(docEvents,'keydown','0,0',{key:'Escape'});
+   if(cancel==='scope'){scope='new';bc.installManualTerrainBrush();scope='local:1';}
+   if(cancel==='resize'){bc.Scene.spaces[0].width++;bc.installManualTerrainBrush();bc.Scene.spaces[0].width--;}
+   if(cancel==='version'){bc.Scene.version++;bc.installManualTerrainBrush();}
+   if(cancel==='outside')fire(docEvents,'pointerup','outside');
+   fire(boardEvents,'pointerup','2,2',cancel==='pointer'?{pointerId:2}:{});
+   assert.equal(packets.length,1,`${cancel} cancels without a write`);
+ }
+ held=true;assert.ok(!fire(boardEvents,'pointerdown').prevented,'Space pan passes through');held=false;
+ fields['scene-area-shape'].value='square2';
+}
+console.log('Manual terrain brush: interpolated drag produces one actual area packet; preview, cancelled/outside/stale/mismatched gestures and pan produce none.');

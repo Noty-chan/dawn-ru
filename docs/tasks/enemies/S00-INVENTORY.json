@@ -1631,6 +1631,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
@@ -3498,6 +3499,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
@@ -4262,6 +4264,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",
@@ -9211,7 +9214,8 @@
             "apps/companion/tests/lionwing-passive-adapters.mjs",
             "apps/companion/tests/lionwing-table-data.mjs",
             "apps/companion/tests/qa.mjs",
-            "apps/companion/tests/scene-engine.mjs"
+            "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/table-manual-map-tools.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -10957,6 +10961,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-viewport.mjs",

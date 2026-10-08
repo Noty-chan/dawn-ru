@@ -30,3 +30,30 @@ const oldStart=a.lane.start(uid(200),a.user);await a.lane.start(uid(201),a.user)
 assert.equal([...bus].filter(ch=>ch.user===a.user&&ch.topic.startsWith('dawn-present:'+uid(200))).length,0);
 a.client.removeChannel=original;await a.lane.stop();for(const c of clients.slice(1))await c.lane.stop();
 console.log('Private presentations production transport:5 rooms x5 clients x300s, trusted author/colors, rate/capacity/epoch, immutable Scene and delayed teardown passed');
+
+// Actual lifecycle: a transient bootstrap failure retains only desired identity,
+// never old channels/gestures. Poll retries are bounded and single-flight.
+{
+ let calls=0,error={code:'DAWN_REQUEST_TIMEOUT'},resolveRpc;
+ const active=new Set(),scene={tablePolicy:{epoch:1},spaces:[{id:'main',width:8,height:8}]};
+ const client={rpc:async()=>{calls++;if(resolveRpc)return new Promise(resolve=>resolveRpc=resolve);return error?{error}:{data:[{user_id:uid(1),display_name:'One',color_slot:0}]};},removeChannel:async ch=>active.delete(ch),channel(){const ch={on(){return this},subscribe(fn){active.add(this);fn('SUBSCRIBED');return this},send:async()=> 'ok'};return ch;}};
+ const lane=root.window.DAWN_PRESENTATION_TRANSPORT.create({client,getScene:()=>scene,emit(){},status(){},now:()=>time});
+ assert.equal(await lane.start(uid(101),uid(1)),false);assert.equal(calls,1);
+ await lane.refresh();assert.equal(calls,1,'backoff prevents immediate retry');
+ time+=30000;error=null;assert.equal(await lane.refresh(),true);assert.equal(lane.isReady(),true);
+ error={code:'DAWN_REQUEST_TIMEOUT'};assert.equal(await lane.refresh(),false);assert.equal(active.size,0);
+ time+=30000;error=null;await lane.refresh();assert.equal(lane.isReady(),true);
+ error={code:'42501'};await lane.refresh();const deniedCalls=calls;time+=30000;await lane.refresh();assert.equal(calls,deniedCalls,'denial is not retried');
+ error={code:'DAWN_REQUEST_TIMEOUT'};await lane.start(uid(101),uid(1));
+ for(let i=0;i<10;i++){time+=30000;await lane.refresh();}
+ assert.equal(calls-deniedCalls,4,'at most four roster attempts per disconnected lifecycle');
+ await lane.stop();const stoppedCalls=calls;error=null;time+=30000;await lane.refresh();assert.equal(calls,stoppedCalls,'leave cannot revive desired identity');
+}
+console.log('Presentation recovery: transient bootstrap/poll retry, bounded backoff, denial and leave guards passed');
+{
+ let calls=0;const active=new Set(),scene={tablePolicy:{epoch:1},spaces:[{id:'main',width:8,height:8}]};
+ const client={rpc:async()=>{calls++;return{data:[{user_id:uid(1),display_name:'One',color_slot:0}]};},removeChannel:async ch=>active.delete(ch),channel(){const ch={on(){return this},subscribe(fn){active.add(this);fn('CHANNEL_ERROR');return this}};return ch;}};
+ const lane=root.window.DAWN_PRESENTATION_TRANSPORT.create({client,getScene:()=>scene,emit(){},status(){},now:()=>time});
+ await lane.start(uid(101),uid(1));for(let i=0;i<10;i++){time+=30000;await lane.refresh();}
+ assert.equal(calls,4,'subscription failures share the bounded retry budget');assert.equal(active.size,0);await lane.stop();
+}

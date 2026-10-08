@@ -3,14 +3,14 @@
 // Connects the shared manual policy to the existing single Scene writer.
 function manualTableActive(){return Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene))}
 function manualTableCopy(ru,en){return isEnglishPreview()?en:ru}
-function placeManualMapObject(tool,{x,y}){
+function placeManualMapObject(tool,{x,y,cells:paintedCells,settings}){
   if(!manualTableActive()||activeSceneView()!=="gm")return null;
   if(window.DAWN_TABLE_POLICY.pendingWork(Scene)||sceneHasLocalPendingSelection())return toast(manualTableCopy("Сначала завершите ожидающее действие.","Finish the pending workflow first."));
   const space=activeSceneSpace();let payload;
   if(tool==="area"){
-    const appearance=$("scene-area-type").value;if(!["terrain","difficult","high","low","custom"].includes(appearance))return null;
-    const cells=Logic.areaCells({shape:$("scene-area-shape").value,x,y,width:space.width,height:space.height});
-    payload={kind:"area/create",area:{id:uid(),space:space.id,cells,appearance,label:$("scene-area-label").value.trim()||sceneObjectDisplayName({type:"manual-area",appearance}),color:$("scene-manual-area-color").value,hidden:$("scene-manual-area-hidden").checked}};
+    const appearance=settings?.appearance??$("scene-area-type").value;if(!["terrain","difficult","high","low","custom"].includes(appearance))return null;
+    const cells=paintedCells??Logic.areaCells({shape:$("scene-area-shape").value,x,y,width:space.width,height:space.height});
+    payload={kind:"area/create",area:{id:uid(),space:space.id,cells,appearance,label:(settings?.label??$("scene-area-label").value).trim()||sceneObjectDisplayName({type:"manual-area",appearance}),color:settings?.color??$("scene-manual-area-color").value,hidden:settings?.hidden??$("scene-manual-area-hidden").checked}};
   }else if(tool==="wall"){
     const [dx,dy]=({north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]})[$("scene-wall-direction").value]||[1,0],a=`${x},${y}`,b=`${x+dx},${y+dy}`;
     if(x+dx<0||y+dy<0||x+dx>=space.width||y+dy>=space.height)return toast(manualTableCopy("Стена проводится между клетками поля.","Place the wall between board cells."));
@@ -39,6 +39,52 @@ function renderManualMapTools(){
     if(!$(id)){const label=document.createElement("label");label.className="manual-map-setting";label.innerHTML=`<input id="${id}" type="checkbox"><span></span>`;controls.append(label)}
     for(const label of controls.querySelectorAll(".manual-map-setting")){label.hidden=!manual;label.querySelector("span").textContent=label.querySelector('[type="color"]')?manualTableCopy("Цвет","Color"):manualTableCopy("Только ведущему","Narrator only")}
   }
+}
+// One brush gesture is one typed area, one server command and one Undo step.
+function installManualTerrainBrush(){
+  const board=$('scene-board');if(!board)return;if(board.manualBrushInstalled){board.manualBrushRefresh?.();return;}
+  board.manualBrushInstalled=true;let draft=null,suppressUntil=0;
+  const signature=()=>`${manualClockScope()}:${Scene.version}:${Scene.activeSpace}:${activeSceneSpace()?.width}:${activeSceneSpace()?.height}:${activeSceneView()}:${activeSceneTool()}`;
+  const reset=()=>{draft=null;clearManualAreaPreview();};
+  const cancel=()=>{if(draft)suppressUntil=performance.now()+250;reset();};
+  const usable=()=>manualTableActive()&&activeSceneView()==='gm'&&usingNextSceneInterface()&&activeSceneTool()==='area'&&!$('manual-table-area-tools')?.areaDraft&&!window.DAWN_TABLE_POLICY.pendingWork(Scene)&&!sceneHasLocalPendingSelection()&&!window.DAWN_SCENE_PRESENTATIONS?.isActive?.();
+  const point=event=>{const cell=event.target.closest?.('[data-scene-cell]');if(!cell||!board.contains(cell))return null;const[x,y]=cell.dataset.sceneCell.split(',').map(Number);return{x,y};};
+  const valid=()=>draft&&draft.signature===signature()&&usable();
+  board.manualBrushRefresh=()=>{if(draft&&!valid())cancel();};
+  const extend=p=>{
+    let anchors;try{anchors=window.DAWN_PRESENTATION_MODEL.geometry('line',draft.last,p,draft.space);}catch{cancel();return false;}
+    const cells=new Set(draft.cells);
+    for(const key of anchors){const[x,y]=key.split(',').map(Number);for(const cell of Logic.areaCells({shape:draft.shape,x,y,width:draft.space.width,height:draft.space.height}))cells.add(cell);}
+    if(cells.size>128){cancel();toast(manualTableCopy('Один мазок — не больше 128 клеток.','A brush stroke may contain up to 128 cells.'));return false;}
+    draft.cells=cells;draft.last=p;clearManualAreaPreview();
+    for(const key of cells)board.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`)?.classList.add('manual-area-preview');return true;
+  };
+  board.addEventListener('pointerdown',event=>{
+    if(event.button!==0||manualAreaCameraGesture(event)||!usable())return;
+    const p=point(event);if(!p)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const space=activeSceneSpace();draft={signature:signature(),pointerId:event.pointerId,space:{...space},last:p,cells:new Set(),shape:$('scene-area-shape').value,settings:{appearance:$('scene-area-type').value,label:$('scene-area-label').value,color:$('scene-manual-area-color').value,hidden:$('scene-manual-area-hidden').checked}};
+    extend(p);
+  },true);
+  board.addEventListener('pointermove',event=>{
+    if(!draft)return;if(!valid()||manualAreaCameraGesture(event)){cancel();return;}
+    if(event.pointerId!==draft.pointerId)return;
+    event.stopImmediatePropagation();const p=point(event);if(p)extend(p);
+  },true);
+  board.addEventListener('mouseover',event=>{if(draft)event.stopImmediatePropagation();},true);
+  board.addEventListener('pointerup',event=>{
+    if(!draft)return;event.preventDefault();event.stopImmediatePropagation();
+    if(event.pointerId!==draft.pointerId||!valid()||manualAreaCameraGesture(event)||!point(event)){cancel();return;}
+    if(!extend(point(event)))return;
+    const finished=draft;reset();suppressUntil=performance.now()+250;
+    placeManualMapObject('area',{...finished.last,cells:[...finished.cells],settings:finished.settings});
+  },true);
+  board.addEventListener('click',event=>{if(performance.now()<suppressUntil){event.preventDefault();event.stopImmediatePropagation();}},true);
+  document.addEventListener('pointerup',event=>{if(draft&&!board.contains(event.target))cancel();},true);
+  document.addEventListener('pointercancel',cancel,true);
+  document.addEventListener('keydown',event=>{if(draft&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();cancel();}},true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancel();});
+  window.addEventListener('blur',cancel);
 }
 function renderManualEnvironmentInspector(){
   const gm=activeSceneView()==="gm",copy=manualTableCopy;
@@ -420,6 +466,7 @@ function renderManualToolLabels(){
   }
 }
 function renderManualTable(){
+  installManualTerrainBrush();
   renderManualToolLabels();
   window.DAWN_SCENE_PRESENTATIONS?.refresh?.();
   if(manualTableActive())ensureManualAreaTools();
