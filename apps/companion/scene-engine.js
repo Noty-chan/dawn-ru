@@ -31,8 +31,14 @@ function projectScene(scene, viewer = {}) {
     const visibleArtIds = new Set(projected.artworks.map(art => art.id));
     projected.backgroundArt = visibleArtIds.has(projected.backgroundArt) ? projected.backgroundArt : null;
     projected.featuredArt = visibleArtIds.has(projected.featuredArt) ? projected.featuredArt : null;
+    const hiddenIds=new Set();
+    for(const key of ["actors","objects","walls","markers","sessionClocks","artworks"]){const kept=new Set((projected[key]||[]).map(row=>row.id));for(const row of scene[key]||[])if(!kept.has(row.id))hiddenIds.add(row.id);}
+    for(const [key,row] of Object.entries(scene.lionwing?.entities||{}))if(row.visibility==="narrator"||row.visibility==="owner"&&!ownActorIds.has(row.ownerActorId))hiddenIds.add(row.id||key);
+    const refersToHidden=value=>typeof value==="string"?hiddenIds.has(value):value&&typeof value==="object"?Object.entries(value).some(([key,item])=>hiddenIds.has(key)||refersToHidden(item)):false;
+    if(projected.lionwing){delete projected.lionwing.entityReceipts;delete projected.lionwing.boundaryReceipts;for(const key of ["auras","subscriptions","selections"])if(Array.isArray(projected.lionwing[key]))projected.lionwing[key]=projected.lionwing[key].filter(row=>!refersToHidden(row));}
     projected.log = (projected.log || []).filter(event => event.visibility !== "gm" && event.payload?.visibility !== "gm" && (event.visibility !== "owner" && event.payload?.visibility !== "owner" || ownActorIds.has(event.payload?.ownerActorId || event.actorId)));
     projected.rollFeed = (projected.rollFeed || []).filter(roll => roll.visibility !== "gm").map(roll => ({ ...roll, targetIds: (roll.targetIds || []).filter(id => visibleActorIds.has(id)), dice: roll.dice ? { ...roll.dice, targetIds: (roll.dice.targetIds || []).filter(id => visibleActorIds.has(id)) } : roll.dice }));
+    projected.log=projected.log.filter(row=>!refersToHidden(row));projected.rollFeed=projected.rollFeed.filter(row=>!refersToHidden(row));
     if (projected.pendingAction) {
       if (!visibleActorIds.has(projected.pendingAction.actorId)) projected.pendingAction = null;
       else {

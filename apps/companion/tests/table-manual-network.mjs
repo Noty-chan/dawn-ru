@@ -45,3 +45,19 @@ const oldRoll=materialize(s,{kind:"public-roll",actorId:"mine",payload:{formula:
 s=Engine.dispatchMany(s,materialize(s,asIntent(s,"mine",{kind:"area/remove",id:"myarea"}))).scene;
 s=Engine.dispatchMany(s,materialize(s,asIntent(s,"mine",{kind:"clock/remove",id:"myclock"}))).scene;assert.equal(s.objects.length,0);assert.equal(s.sessionClocks.length,0);
 console.log("Manual table network: real intent classification/authority reducer, ownership, epoch, old-client rejection, storage rolls, actor labels, clocks and informational areas passed");
+
+{
+// The result panel can correlate acceptance without accessing private receipts.
+const rollStart=fixture(),rollEvent=command('mine',{kind:'roll',roll:{formula:'2D6',rolls:[4,6],successes:3,count:2}},'manual-roll-correlation');
+const rollIntent=Network.intentFromEvents(rollStart,[rollEvent],'Manual roll');assert.equal(rollIntent.eventId,rollEvent.id);
+const rollMaterialized=materialize(rollStart,rollIntent);assert.equal(rollMaterialized[0].id,rollEvent.id);
+const rollAccepted=Engine.dispatchMany(rollStart,rollMaterialized).scene;
+const rollReplay=Engine.dispatchMany(rollAccepted,materialize(rollAccepted,rollIntent)).scene;
+assert.equal(rollReplay.version,rollAccepted.version);assert.equal(rollReplay.rollFeed.length,1);
+assert.equal(Engine.projectScene(rollAccepted,{role:'player',actorIds:['mine']}).rollFeed[0].id,rollEvent.id);
+const changed=plain(rollIntent);changed.request.roll.rolls=[1,1];assert.throws(()=>materialize(rollAccepted,changed),e=>e.code==='SCENE_EVENT_ID_CONFLICT');
+assert.throws(()=>materialize(rollAccepted,{...rollIntent,actorId:'other'},'p2'),e=>e.code==='SCENE_EVENT_ID_CONFLICT');
+for(const eventId of [null,'',12,{}])assert.throws(()=>materialize(rollStart,{...rollIntent,eventId}));
+const legacy=plain(rollIntent);delete legacy.eventId;assert.equal(typeof materialize(rollStart,legacy)[0].id,'string');
+
+}

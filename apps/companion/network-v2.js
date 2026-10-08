@@ -183,7 +183,7 @@
       if(raw.length!==1||raw[0].type!=="table.command"||!tablePolicy?.isManual(scene))throw new Error("Ручная команда требует ручной политики стола");
       global.DAWN_SCENE_ENGINE?.eventPacketContract?.validate(raw);
       tablePolicy.dispatchMany(scene,raw,{expectedVersion:scene.version});
-      return{kind:"table",actorId:raw[0].actorId||null,label:String(label).slice(0,160),policyEpoch:tablePolicy.normalizePolicy(scene.tablePolicy).epoch,request:clone(raw[0].payload)};
+      return{kind:"table",actorId:raw[0].actorId||null,label:String(label).slice(0,160),policyEpoch:tablePolicy.normalizePolicy(scene.tablePolicy).epoch,...(raw[0].id?{eventId:raw[0].id}:{}),request:clone(raw[0].payload)};
     }
     if(tablePolicy?.isManual(scene)){
       if(raw.length===1&&raw[0].type==="roll.public")return{kind:"table",actorId:raw[0].actorId||null,label:String(label).slice(0,160),policyEpoch:tablePolicy.normalizePolicy(scene.tablePolicy).epoch,request:{kind:"roll",roll:safeObject(raw[0].payload)}};
@@ -280,7 +280,8 @@
         if(!target?.manual||target.ownerActorId!==owner.id)throw new Error("Игрок не владеет этой ручной записью");
       }
       if(request.kind==="area/create"&&request.area?.hidden)throw new Error("Игрок не может создать скрытую область");
-      const event={id:makeId(),type:"table.command",actorId:owner.id,payload:request};
+      if(intent.eventId!==undefined&&(typeof intent.eventId!=="string"||!intent.eventId.trim()))throw new Error("Некорректный ID ручного события");
+      const event={id:intent.eventId===undefined?makeId():intent.eventId,type:"table.command",actorId:owner.id,payload:request};
       tablePolicy.dispatchMany(scene,[event],{expectedVersion:scene.version});
       return[event];
     }

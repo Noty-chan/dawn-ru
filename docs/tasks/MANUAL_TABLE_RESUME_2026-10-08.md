@@ -51,3 +51,7 @@ Draft PR: https://github.com/Noty-chan/dawn-ru/pull/11, base codex/manual-table-
 Browser Edge 1440×1000, отдельный localhost8785: обычные клики Stress 3→2→0→3, warning, отсутствие ±; create3×3, перенос main→3×3; hide prestart→initiative false, ручной checkboxtrue; GM→Player tokens0, initiative card остаётся disabled. Проверены реальные локальные DOM/данные; это НЕ сетевой end-to-end. ignored screenshots: `output/stress-diamonds-detail-20261008.png`, `output/manual-stress-diamonds-20261008.png`, `output/manual-hidden-initiative-20261008.png` (последний до переключения Player). QA page pass16 скрывает только dev update-banner, который возникал из-за искусственных cache-busters и мешал кликам; production banner не менялся.
 
 SQL `202610080001_manual_table_public_records.sql` по-прежнему **не применён** к live проекту. В обновлённом draft минимальная публичная инициатива hidden известного участника исключает private stats; PGlite проверил backfill/repeat и repeated projection. Новые сетевые возможности не объявлять опубликованными до применения миграции и RLS/Realtime проверки.
+
+## Следующий проход ревью
+
+См. [исправления, доказательства и текущие ограничения](MANUAL_TABLE_REVIEW_2026-10-08.md). Этот документ обновляет статус предыдущего подхвата; main ещё не слит.

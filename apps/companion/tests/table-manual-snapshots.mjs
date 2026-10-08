@@ -56,3 +56,27 @@ network.setConfirmedScene(removed);context.Scene=clone(removed);queued=[];contex
 vm.runInContext(sync.slice(sync.indexOf('async function flushNetworkV2Authority('),sync.indexOf('async function commitNetworkV2Tick(')),context);
 network.setConfirmedScene(before);const tampered=clone(before);tampered.lionwing={choices:[{id:'injected'}]};await assert.rejects(context.flushNetworkV2Authority([{kind:'snapshot',baseScene:before,scene:tampered}]),/замороженную механику/);
 console.log('Manual snapshots: frozen runtime, policy/undo, receipts preserved, explicit backup limits, direct frozen Entities and actual network queue/flush guards passed; DOM/transport/normalization mocked');
+
+// Remote joins are metadata additions, never a fabricated Undo anchor.
+{
+context.Scene=clone(before);context.Scene.undo=[];
+vm.runInContext(sync.slice(sync.indexOf('function snapshotCommandCandidate('),sync.indexOf('async function prepareRemoteHeroCommand(')),context);
+const event={id:'join-audit',at:'now',type:'command.join-hero',actorId:null,payload:{characterId:'new-character'}};
+const prepared=context.snapshotCommandCandidate('New participant',event,scene=>{scene.actors.push({...clone(scene.actors[0]),id:'new-hero',characterId:'new-character',ownerId:'p2'});});
+assert.equal(prepared.candidate.actors.length,before.actors.length+1);assert.equal(prepared.events[0].type,'legacy.note');
+assert.equal(policy.validateSnapshot(context.Scene,prepared.candidate),true,'admission guard accepts the bounded join audit');
+assert.throws(()=>context.snapshotCommandCandidate('Invalid update',event,scene=>{scene.actors[0].hp=999;}),/боевое состояние/);
+}
+
+// A metadata-only remote Undo must not invent a kernel receipt ledger.
+{
+context.Scene=clone(before);if(context.Scene.lionwing)delete context.Scene.lionwing.receipts;
+const original=clone(context.Scene);original.undo=[];
+context.Scene.actors.push({...clone(original.actors[0]),id:'remote-added'});
+context.Scene.undo=[{id:'join-step',label:'Join',state:original}];
+context.remoteCommandEvent=(type,command,payload)=>({id:'undo-audit',type,payload,at:'now'});
+vm.runInContext(sync.slice(sync.indexOf('function prepareUndoCommand('),sync.indexOf('function prepareEventCommand(')),context);
+const undo=context.prepareUndoCommand({id:'request',actor_id:'p2'});
+assert.equal(undo.candidate.lionwing?.receipts,undefined);
+assert.equal(policy.validateSnapshot(context.Scene,undo.candidate,{history:true}),true);
+}

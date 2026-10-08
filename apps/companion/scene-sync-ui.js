@@ -57,7 +57,7 @@ function remoteCommandEvent(type,command,payload={}){
   return{id:uid(),type,actorId:null,payload:{commandId:command.id,commandActorId:command.actor_id,...payload},at:new Date().toISOString()};
 }
 function snapshotCommandCandidate(label,event,mutator){
-  const before=sceneSnapshot(),candidate=normalizeScene(before);mutator(candidate);validateTableEdit(before,candidate);window.DAWN_TABLE_POLICY?.validateSnapshot(before,candidate,{history:true});candidate.version=Number(before.version||0)+1;candidate.undo.unshift({id:uid(),label,state:before});candidate.undo=candidate.undo.slice(0,20);candidate.log.unshift({id:event.id,at:event.at,text:label,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label};
+  const before=sceneSnapshot(),candidate=normalizeScene(before);mutator(candidate);validateTableEdit(before,candidate);if(window.DAWN_TABLE_POLICY?.isManual(before)){if((before.actors||[]).some(actor=>actor.hidden&&actor.characterId===event.payload?.characterId))label="Обновлён герой игрока";event={id:event.id,at:event.at,type:"legacy.note",actorId:null,visibility:"public",text:label,payload:{label}};}candidate.version=Number(before.version||0)+1;candidate.undo.unshift({id:uid(),label,state:before});candidate.undo=candidate.undo.slice(0,20);candidate.log.unshift({id:event.id,at:event.at,text:label,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label};
 }
 async function prepareRemoteHeroCommand(command){
   const characterId=command.payload?.characterId;if(typeof characterId!=="string")throw new Error("В команде нет ссылки на лист героя");
@@ -69,7 +69,7 @@ async function prepareRemoteHeroCommand(command){
 function prepareRuntimeCommand(command){if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))throw new Error("Точные исправления LionWing доступны Нарратору");const {actorId,key,value}=command.payload||{},actor=Scene.actors.find(item=>item.id===actorId),allowed=new Set(["hp","wounds","stress","focus","influence","ap"]);if(!actor||actor.ownerId!==command.actor_id)throw new Error("Игрок не владеет этим героем");if(!allowed.has(key)||!Number.isFinite(Number(value)))throw new Error("Некорректное изменение ресурса");const label=`${actor.name}: изменён ресурс ${key}`,event=remoteCommandEvent("command.update-runtime",command,{actorId,key,value:Number(value)});return snapshotCommandCandidate(label,event,scene=>{const target=scene.actors.find(item=>item.id===actorId),maximum={hp:9999,wounds:99,stress:stressMaximumFor(target),focus:9999,influence:999,ap:99}[key];target[key]=clamp(value,0,maximum)})}
 function prepareTargetsCommand(command){const ids=Array.isArray(command.payload?.targetIds)?command.payload.targetIds:[],allowed=new Set(Scene.actors.filter(actor=>!actor.knockedOut).map(actor=>actor.id)),targetIds=ids.filter(id=>typeof id==="string"&&allowed.has(id)).slice(0,40),event=remoteCommandEvent("command.set-targets",command,{targetIds});return snapshotCommandCandidate("Нарратор принял цели игрока",event,scene=>{scene.targetIds=targetIds})}
 function applyTransientTargetsCommand(command){const ids=Array.isArray(command.payload?.targetIds)?command.payload.targetIds:[],allowed=new Set(Scene.actors.filter(actor=>!actor.knockedOut).map(actor=>actor.id));Scene.targetIds=[...new Set(ids.filter(id=>typeof id==="string"&&allowed.has(id)))].slice(0,40);persist();if(store.mode==="play")renderScene();return Scene.targetIds}
-function prepareUndoCommand(command){const step=Scene.undo?.[0];if(!step)throw new Error("В журнале нет обратимого действия");const before=sceneSnapshot(),event=remoteCommandEvent("command.undo",command,{stepId:step.id,label:step.label}),candidate=normalizeScene(step.state);if(window.DAWN_TABLE_POLICY?.isManual(before)){candidate.lionwing||={};candidate.lionwing.receipts=JSON.parse(JSON.stringify(before.lionwing?.receipts||[]));if(before.eventReceipts)candidate.eventReceipts=JSON.parse(JSON.stringify(before.eventReceipts));}candidate.version=Number(before.version||0)+1;candidate.undo=(Scene.undo||[]).slice(1);candidate.redo=[{id:uid(),label:step.label,state:before},...(Scene.redo||[])].slice(0,20);candidate.log.unshift({id:event.id,at:event.at,text:`По запросу игрока отменено: ${step.label}`,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label:`scene.undo:${step.label}`}}
+function prepareUndoCommand(command){const step=Scene.undo?.[0];if(!step)throw new Error("В журнале нет обратимого действия");const before=sceneSnapshot(),event=remoteCommandEvent("command.undo",command,{stepId:step.id,label:step.label}),candidate=normalizeScene(step.state);if(window.DAWN_TABLE_POLICY?.isManual(before)){if(before.lionwing?.receipts){candidate.lionwing||={};candidate.lionwing.receipts=JSON.parse(JSON.stringify(before.lionwing.receipts));}if(before.eventReceipts)candidate.eventReceipts=JSON.parse(JSON.stringify(before.eventReceipts));}candidate.version=Number(before.version||0)+1;candidate.undo=(Scene.undo||[]).slice(1);candidate.redo=[{id:uid(),label:step.label,state:before},...(Scene.redo||[])].slice(0,20);candidate.log.unshift({id:event.id,at:event.at,text:`По запросу игрока отменено: ${step.label}`,type:event.type,actorId:null,payload:event.payload,visibility:"public"});candidate.log=candidate.log.slice(0,200);return{candidate,events:[event],label:`scene.undo:${step.label}`}}
 function prepareEventCommand(command){const events=canonicalPlayerEvents(command),before=sceneSnapshot(),expectedVersion=Number(Scene.version||0),result=SceneEngine.dispatchMany(Scene,events,{expectedVersion}),candidate=normalizeScene(result.scene);candidate.undo.unshift({id:uid(),label:commandSummary(command),state:before});candidate.undo=candidate.undo.slice(0,20);return{candidate,events:result.events,label:commandSummary(command),effects:result.events}}
 async function acceptPreparedRemoteCommand(command,prepared){
   if(window.DAWN_TABLE_POLICY?.isManual(Scene)){if(!Sync.state()?.canNarrate)throw new Error("Сцену изменяет Нарратор");window.DAWN_TABLE_POLICY.validateSnapshot(Scene,prepared.candidate,{history:command.command_type==="request_undo"});}
@@ -124,7 +124,7 @@ function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
     send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
-    onError:(error,row,{retrying=true}={})=>{if(!retrying)clearPendingNetworkPlacement(row);toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
+    onError:(error,row,{retrying=true}={})=>{if(!retrying){clearPendingNetworkPlacement(row);if(typeof rejectManualToolsRollIntent==="function")rejectManualToolsRollIntent(row);}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
@@ -134,6 +134,7 @@ function ensureNetworkV2Runtime(){
       toast(retrying?`Сетевой такт не сохранён, будет повторён: ${message}`:`Сетевой такт не сохранён: ${message}. Исправьте причину и повторите действие.`);
       if(!retrying)try{await NetworkV2.withTimeout(Sync.refreshScene(),"обновления Сцены",5000)}catch(refreshError){console.warn("DAWN canonical Scene refresh after rejected tick failed",refreshError)}
       if(typeof renderSync==="function")renderSync();
+      if(typeof reconcileManualToolsRoll==="function")reconcileManualToolsRoll();
     },
   });
   return{authority:networkV2Authority,outbox:networkV2Outbox};
@@ -167,7 +168,7 @@ function submitNetworkV2Events(label,events){
   const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
   previewNetworkPlacement(row,events,intent.actorId);
   if(!pendingNetworkPlacements.has(intent.actorId))toast("Действие отправлено за общий стол");
-  return{queued:true,pending:true,events:[]};
+  return{queued:true,pending:true,clientIntentId:row.clientIntentId,events:[]};
 }
 function submitNetworkV2Intent(intent){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
@@ -227,7 +228,7 @@ async function flushNetworkV2Authority(items){
       if(command)commandIds.push(String(command.id));
     }catch(error){
       if(item.command){rejectedCommandIds.push(String(item.command.id));toast(`Действие игрока отклонено: ${friendlySyncError(error,"ошибка проверки правил")}`)}
-      else toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);
+      else {if(typeof rejectManualToolsRollEvents==="function")rejectManualToolsRollEvents(item.events);toast(`Изменение Нарратора отклонено: ${error?.message||"ошибка правил"}`);}
     }
   }
   const localUndoEntry=localUndoState

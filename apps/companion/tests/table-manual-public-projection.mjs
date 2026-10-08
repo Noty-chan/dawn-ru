@@ -10,6 +10,14 @@ try{
   const state={version:9,actors:[{id:'visible',hidden:false},{id:'secret',hidden:true}],sessionClocks:[{id:'public',manual:true,ownerActorId:null,name:'Public'},{id:'owned',manual:true,ownerActorId:'visible',name:'Visible'},{id:'private-clock',manual:true,ownerActorId:'secret',name:'Hidden ritual plan'},{id:'orphan',manual:true,ownerActorId:'missing',name:'Missing owner'},{id:'legacy',name:'Legacy'}],manualTable:{actorId:'secret',round:2},eventReceipts:[{secret:'receipt'}],log:[{id:'private-event',type:'table.command',payload:{kind:'clock/set',id:'private-clock',value:4}},{id:'public-event',type:'table.command',payload:{kind:'clock/set',id:'public',value:2}}]};
   state.walls=[{id:'wall-public'},{id:'wall-hidden',manual:true,hidden:true},{id:'wall-owned',manual:true,ownerActorId:'secret'}];
   state.markers=[{id:'marker-public',kind:'mark'},{id:'marker-hidden',manual:true,kind:'custom',hidden:true},{id:'marker-orphan',manual:true,ownerActorId:'missing'}];
+  state.objects=[{id:'private-area',manual:true,type:'manual-area',hidden:true,cells:['1,1'],label:'PRIVATE_MAP_LABEL'}];
+  state.log.push({id:'private-map-event',payload:{objectId:'private-area',label:'PRIVATE_MAP_LABEL'}});
+  state.lionwing={boundaryReceipts:[{ownerActorId:'secret',sourceDigest:'PRIVATE_BOUNDARY'}],entityReceipts:[{after:{private:'PRIVATE_ENTITY_RECEIPT'}}],
+    entities:{private:{id:'private-entity',visibility:'narrator'},linked:{id:'linked',visibility:'public',backing:{objectId:'private-area'}}},
+    auras:[{id:'private-aura',ownerActorId:'secret'}],subscriptions:[{id:'private-sub',entityId:'private-entity'}]};
+  state.actors[0].lionwing={inventory:{schema:1,actorId:'visible',definitions:{pub:{id:'pub',active:true,visibility:'public'},secret:{id:'PRIVATE_ITEM',active:true,visibility:'narrator'}},
+    records:{pub:{definitionId:'pub',visibility:'public',value:2},secret:{definitionId:'secret',visibility:'public',label:'PRIVATE_INVENTORY',value:37}},journal:[{before:'PRIVATE_JOURNAL'}],reservations:{secret:{value:'PRIVATE_RESERVATION'}}}};
+  state.actors[0].inventory={pub:2,secret:37};
   await db.query('insert into public.scenes values($1,$2,$3::jsonb)',['test',9,JSON.stringify(state)]);
   await db.exec("insert into public.scene_public_snapshots select id,version,public.public_scene_projection(state),now() from public.scenes;");
   const before=(await db.query('select state from public.scene_public_snapshots')).rows[0].state;
@@ -20,6 +28,11 @@ try{
   assert.deepEqual(projected.sessionClocks.map(c=>c.id),['public','owned','legacy']);
   assert.deepEqual(projected.walls.map(w=>w.id),['wall-public']);
   assert.deepEqual(projected.markers.map(m=>m.id),['marker-public']);
+  assert.equal(projected.lionwing.boundaryReceipts,undefined);assert.equal(projected.lionwing.entityReceipts,undefined);
+  assert.deepEqual(projected.lionwing.entities,{});assert.deepEqual(projected.lionwing.auras,[]);assert.deepEqual(projected.lionwing.subscriptions,[]);
+  assert.deepEqual(Object.keys(projected.actors[0].lionwing.inventory.definitions),['pub']);assert.deepEqual(Object.keys(projected.actors[0].lionwing.inventory.records),['pub']);
+  assert.equal(projected.actors[0].lionwing.inventory.journal,undefined);assert.equal(projected.actors[0].lionwing.inventory.reservations,undefined);assert.deepEqual(projected.actors[0].inventory,{pub:2});
+  assert.ok(!JSON.stringify(projected).includes('PRIVATE_'),'raw public JSON contains no private receipt, inventory or map metadata');
   assert.equal(projected.manualTable.actorId,null);assert.equal(projected.manualTable.round,2);
   assert.equal(projected.eventReceipts,undefined);
   assert.deepEqual(projected.log.map(e=>e.id),['public-event'],'old public event referencing private clock is removed');

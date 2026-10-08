@@ -16,6 +16,13 @@ const plain=v=>JSON.parse(JSON.stringify(v));
 assert.equal(context.blankScene().tablePolicy.mode,"manual","new scene opts into manual");
 assert.equal(context.sceneCore({}).tablePolicy.mode,"rules","old save remains rules");
 const scene=plain(context.blankScene());
+assert.deepEqual(scene.eventReceipts,[],'a fresh table has the same empty ledger as its normalized snapshot');
+assert.equal(context.window.DAWN_TABLE_POLICY.validateSnapshot(scene,context.sceneCore(scene)),true,'first metadata edit on a fresh manual table is accepted');
+const full=plain(scene);full.actors=Array.from({length:120},(_,i)=>({id:`existing-${i}`}));
+const tooMany=plain(full);tooMany.actors.push({id:'extra'});
+assert.throws(()=>context.window.DAWN_TABLE_POLICY.validateSnapshot(full,tooMany),e=>e.code==='TABLE_CAPACITY','metadata adds must reject before normalization silently drops actors');
+const duplicate=plain(scene);duplicate.actors=[{id:'same'},{id:'same'}];
+assert.throws(()=>context.window.DAWN_TABLE_POLICY.validateSnapshot(scene,duplicate),e=>e.code==='TABLE_COMMAND_INVALID');
 scene.tablePolicy={mode:"manual",processStatuses:true,epoch:4};scene.manualTable={actorId:"a",round:8};
 scene.actors=[{id:"a",kind:"enemy",profileId:"lionwing.npc.bodyguards",rulesEdition:"lionwing",space:"main",name:"A",x:1,y:1,hp:0,maxHp:11,focus:7,ap:2,baseAp:3,knockedOut:false,compoundId:"pair",effects:["snare"],manualStatuses:["effect.snare"],manualTechniqueState:{"rule.test":true},manualMovementTrace:{eventId:"move",from:{space:"main",x:0,y:0},to:{space:"main",x:1,y:1}},ruleState:{bodyguardsBrace:{zoneIds:["b"]}}},
 {id:"b",kind:"enemy",profileId:"lionwing.npc.viper",rulesEdition:"lionwing",space:"main",name:"B",x:5,y:5,hp:0,maxHp:12,knockedOut:false,compoundId:"pair",effects:[]}];
@@ -30,9 +37,13 @@ assert.equal(once.objects[0].type,"manual-area","informational area does not bec
 assert.equal(once.objects[0].manual,true);assert.equal(once.objects[0].ownerActorId,"a");assert.equal(once.objects[0].hidden,true);
 assert.equal(once.sessionClocks[0].manual,true,"next clock/set can recognize a reloaded manual clock");
 assert.equal(once.sessionClocks[0].ownerActorId,"a","owner permission survives reload");
+const longClock=plain(scene);longClock.sessionClocks[0].id='c'.repeat(160);longClock.sessionClocks[0].name='N'.repeat(160);
+const longReload=plain(context.normalizeScene(longClock));assert.equal(longReload.sessionClocks[0].id,longClock.sessionClocks[0].id);assert.equal(longReload.sessionClocks[0].name,longClock.sessionClocks[0].name);assert.equal(longReload.sessionClocks[0].manual,true);assert.equal(longReload.sessionClocks[0].ownerActorId,'a');
+
 assert.equal(once.sessionClocks[0].kind,"counter");assert.equal(once.sessionClocks[0].size,2000);assert.equal(once.sessionClocks[0].value,7);
 assert.deepEqual(twice,once,"reload is idempotent");assert.deepEqual(once.tablePolicy,scene.tablePolicy);assert.deepEqual(once.manualTable,scene.manualTable);
 for(const field of ["manualStatuses","manualTechniqueState","manualMovementTrace","hp","focus","ap","knockedOut","x","y"])assert.deepEqual(once.actors[0][field],scene.actors[0][field],field);
+assert.equal(once.actors[0].focus,7,'manual NPC Focus is preserved rather than reset as a rule default');
 assert.equal(once.actors[1].x,5,"compound positions stay independent");assert.equal(once.actors[1].knockedOut,false,"HP zero does not derive KO");assert.deepEqual(once.actors[1].effects,[],"compound does not spread status");
 assert.deepEqual(once.actors[0].ruleState.bodyguardsBrace,{zoneIds:["b"]});
 context.Scene=once;context.S={id:"hero"};context.pendingCoreActorId=null;let writes=0;context.persist=()=>writes++;
@@ -53,3 +64,18 @@ assert.equal(changed.sessionClocks[0].value,8,'actual clock command works after 
 assert.equal(changed.objects.length,0,'actual informational removal works after reload');
 assert.equal(changed.actors[0].hp,twice.actors[0].hp,'manual area removal does not execute mechanics');
 console.log("manual persistence/read contracts passed");
+
+// Execute the visible manual crowd button against real normalization and guards.
+{
+const fresh=context.normalizeScene(context.blankScene()),nodes=new Map();let serial=0;
+context.Scene=fresh;context.uid=()=>`crowd-${++serial}`;context.$=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id)};
+context.quickCrowdSettings=()=>({name:'Manual crowd',count:3,styleId:'mob',style:{symbol:'M',color:'#112233'},team:'enemy'});
+context.activeSceneSpace=()=>context.Scene.spaces[0];context.toast=()=>null;context.renderScene=()=>{};context.setScenePanel=()=>{};
+context.commitSceneEvents=()=>{throw Error('manual crowd must not dispatch actor.spawn mechanics')};
+context.commitScene=(label,mutator)=>{const before=context.sceneCore(context.Scene);mutator(context.Scene);context.window.DAWN_TABLE_POLICY.validateSnapshot(before,context.Scene);context.Scene=context.normalizeScene(context.Scene);return {ok:true}};
+const events=read('app-scene-events.js'),start=events.indexOf('$("scene-add-crowd-auto").onclick'),end=events.indexOf('$("scene-add-crowd-brush").onclick',start);
+vm.runInContext(events.slice(start,end),context);context.$('scene-add-crowd-auto').onclick();
+assert.equal(context.Scene.actors.length,3);assert.equal(new Set(context.Scene.actors.map(a=>a.id)).size,3);
+assert.ok(context.Scene.actors.every(a=>a.kind==='crowd'&&a.hp===1&&a.maxHp===1&&a.ap===0));
+assert.equal(context.Scene.tablePolicy.mode,'manual');assert.equal(context.Scene.turnSerial,0);
+}

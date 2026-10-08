@@ -41,8 +41,10 @@ function renderPlay(){
 }
 
 let pendingAllIn=null;
+let pendingManualToolsRoll=null;
 function resetToolsRollResult(){
   pendingAllIn=null;
+  pendingManualToolsRoll=null;
   const result=$("dice-result"),risks=$("freeplay-risk-actions");
   if(result){result.className="dice-result";result.innerHTML=""}
   if(risks)risks.innerHTML="";
@@ -50,6 +52,28 @@ function resetToolsRollResult(){
 }
 function toolsSyncContext(){const state=Sync?.state?.()||{};return{shared:Boolean(state.sceneId),canEdit:!state.sceneId||Boolean(state.canNarrate),status:state.status||"offline",role:state.role||"",displayName:state.displayName||S.player||"Нарратор"}}
 function toolsManualMode(){return Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene))}
+function manualToolsRollScope(){return JSON.stringify([toolsSyncContext().sceneId||(typeof Sync!=="undefined"?Sync?.state?.().sceneId:null)||null,Scene.tablePolicy?.epoch||0,S.id]);}
+function showManualToolsRoll(roll){
+  const output=$("dice-result");output.className="dice-result";
+  output.innerHTML=`<strong>${esc(roll.formula)} · ${Number(roll.successes)||0} ${isEnglishPreview()?"Successes":"Успехов"}</strong><p>${(roll.rolls||[]).map(value=>esc(value)).join(" · ")}</p>`;
+}
+function reconcileManualToolsRoll(command){
+  const pending=pendingManualToolsRoll;if(!pending)return;
+  if(!toolsManualMode()||pending.scope!==manualToolsRollScope()||!toolsSyncContext().canEdit&&!canControlSceneActor(toolsHeroActor())){pendingManualToolsRoll=null;$("dice-result").textContent="";return;}
+  const accepted=(Scene.rollFeed||[]).find(row=>row.id===pending.eventId&&row.manual);
+  if(accepted){pendingManualToolsRoll=null;showManualToolsRoll(accepted);return;}
+  const commandIntent=command?.client_intent_id||command?.payload?.clientIntentId;
+  const rejected=command?.status==="rejected"&&pending.clientIntentId&&commandIntent===pending.clientIntentId;
+  const authorityFailed=typeof networkV2Authority!=="undefined"&&networkV2Authority?.failed?.some(item=>item.events?.some(event=>event.id===pending.eventId));
+  if(rejected||authorityFailed){pending.failed=true;$("dice-result").textContent=isEnglishPreview()?"The table did not accept this roll. Check the connection or permissions before rolling again.":"Стол не принял бросок. Проверьте связь или права перед повторным броском.";}
+}
+function rejectManualToolsRollEvents(events){
+  if(!pendingManualToolsRoll||!events?.some(event=>event.id===pendingManualToolsRoll.eventId))return;
+  pendingManualToolsRoll.failed=true;$("dice-result").textContent=isEnglishPreview()?"The table did not accept this roll.":"Стол не принял бросок.";
+}
+function rejectManualToolsRollIntent(row){
+  if(pendingManualToolsRoll?.clientIntentId===row?.clientIntentId)reconcileManualToolsRoll({status:"rejected",client_intent_id:row.clientIntentId});
+}
 function manualToolsPoolStatus(request){
   const sources=(request.hooks||[]).filter(source=>source.type==="advantage"&&/^freeplay\.(skill|ability|bond):/.test(source.ruleId));
   return{available:true,count:Math.min(200,Math.max(1,request.baseCount+request.advantage-request.hindrance+sources.reduce((total,source)=>total+Number(source.amount||0),0))),sources};
@@ -70,7 +94,7 @@ function renderManualToolsDirector(){
   $("dice-tool-kind").textContent=en?"MANUAL ROLL":"РУЧНОЙ БРОСОК";
   $("dice-tool-title").textContent=en?"Build a pool":"Соберите пул";
   $("roll-dice").textContent=en?"Roll dice":"Бросить кубы";$("roll-dice").disabled=false;
-  renderOutcomeGuide();renderToolsSyncState();
+  renderOutcomeGuide();renderToolsSyncState();reconcileManualToolsRoll();
 }
 function rollManualToolsDice(){
   if(!toolsManualMode()||!requireChallengeTarget($("dice-target")))return null;
@@ -78,11 +102,11 @@ function rollManualToolsDice(){
   if(!sync.canEdit&&(!actor||!canControlSceneActor(actor)))return toast(isEnglishPreview()?"Publish your hero to roll at this table.":"Опубликуйте своего героя, чтобы бросать за этим столом.");
   const request=toolsDiceRequest(),pool=manualToolsPoolStatus(request),target=freeplayTarget(),roll=Logic.rollXd6({count:pool.count}),outcomeId=Logic.challengeOutcome({successes:roll.successes,target}).id,outcome=toolsCopy()[({failure:"failure",minimal:"minimal",extreme:"extreme"})[outcomeId]];
   const payload={kind:"roll",roll:{formula:`${pool.count}D6`,rolls:roll.rolls,successes:roll.successes,crits:roll.crits,count:pool.count,target,outcome,scope:"challenge",attribute:request.attribute||undefined}};
-  const result=commitSceneEvents(isEnglishPreview()?"Manual roll":"Ручной бросок",[{type:"table.command",actorId:actor?.id||null,payload}]);
+  const eventId=uid(),result=commitSceneEvents(isEnglishPreview()?"Manual roll":"Ручной бросок",[{id:eventId,type:"table.command",actorId:actor?.id||null,payload}]);
   if(!result)return null;
   pendingAllIn=null;const output=$("dice-result");output.className="dice-result";
-  if(result.pending){output.textContent=isEnglishPreview()?"Roll sent. Waiting for the table to confirm.":"Бросок отправлен. Ожидаем подтверждения стола.";return result;}
-  output.innerHTML=`<strong>${pool.count}D6 · ${roll.successes} ${isEnglishPreview()?"Successes":"Успехов"}</strong><p>${roll.rolls.join(" · ")}</p>`;
+  if(result.pending){pendingManualToolsRoll={eventId,clientIntentId:result.clientIntentId||null,scope:manualToolsRollScope()};output.textContent=isEnglishPreview()?"Roll sent. Waiting for the table to confirm.":"Бросок отправлен. Ожидаем подтверждения стола.";return result;}
+  pendingManualToolsRoll=null;showManualToolsRoll(payload.roll);
   S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"}),actor:S.name||toolsCopy().unnamed,formula:payload.roll.formula,rolls:roll.rolls,count:pool.count,successes:roll.successes,crits:roll.crits,outcome,target,allIn:false,payment:""});
   S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persistAfterPaint();renderDiceHistory();return result;
 }
@@ -471,7 +495,7 @@ function toolsStressCorrectionReason(owner){
 function setToolsStressTracker(id,value){
   const owner=toolsStressOwners().find(item=>item.id===id);if(!owner)return false;
   const reason=toolsStressCorrectionReason(owner);if(reason){toast(reason);return false;}
-  const chosen=clamp(value,0,owner.maxStress),next=owner.stress===chosen?Math.max(0,chosen-1):chosen,label=`${owner.name}: ${isEnglishPreview()?"Stress":"Стресс"} → ${next}`;
+  const chosen=clamp(value,0,owner.maxStress),filled=toolsManualMode()?owner.stress>=chosen:owner.stress===chosen,next=filled?Math.max(0,chosen-1):chosen,label=`${owner.name}: ${isEnglishPreview()?"Stress":"Стресс"} → ${next}`;
   if(owner.actor){
     if(toolsManualMode()){if(!commitSceneEvents(label,[{type:"table.command",actorId:owner.actor.id,payload:{kind:"resource",values:{stress:next}}}]))return false;}
     else if(Scene.rulesEdition==="lionwing"){if(!lwSubmit(owner.actor.id,{kind:"correct",resource:"stress",amount:next},label))return false;}
@@ -481,6 +505,8 @@ function setToolsStressTracker(id,value){
 }
 function renderStressTrackers(){
   const root=$("stress-trackers"),heroes=toolsStressOwners();
+  const help=document.querySelector('[data-i18n="tools.stress.help"]');
+  if(help)help.textContent=toolsManualMode()?(isEnglishPreview()?"Record Stress manually. At maximum, the Narrator decides the consequences.":"Записывайте Стресс вручную. На максимуме последствия определяет Нарратор."):(typeof t==="function"?t("tools.stress.help"):isEnglishPreview()?"When the Stress track fills, a hero is taken out.":"При заполнении шкалы Стресса герой выводится из строя.");
   const segment=(hero,index)=>!toolsStressCorrectionReason(hero)
     ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: ${isEnglishPreview()?"Stress":"Стресс"} ${index}`)}"></button>`
     :`<span class="${index<=hero.stress?"on":""}"></span>`;

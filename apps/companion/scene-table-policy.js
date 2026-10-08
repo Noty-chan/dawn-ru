@@ -16,6 +16,11 @@
       epoch: Number.isSafeInteger(raw?.epoch) && raw.epoch >= 0 ? raw.epoch : 0 };
   }
   const isManual = scene => normalizePolicy(scene?.tablePolicy).mode === "manual";
+  function resourceMaximum(target,key){
+    if(key==="stress")return 3+Number(Array.isArray(target?.gifts)&&target.gifts.includes("rebel.supernatural-deafness"));
+    if(key==="wounds")return target?.rulesEdition==="lionwing"||String(target?.profileId||"").startsWith("lionwing.")?3:99;
+    return key==="influence"?999:key==="armor"?99:9999;
+  }
   const AREA_APPEARANCES = ["custom","terrain","difficult","high","low"];
   function capacity(scene, key) { if ((scene[key] || []).length >= 240) fail("На поле уже 240 объектов этого вида. Удалите лишние перед созданием новых.","TABLE_CAPACITY"); }
   function uniqueObjectId(scene,id) {safeId(id);if([...(scene.actors||[]),...(scene.objects||[]),...(scene.markers||[]),...(scene.walls||[])].some(row=>row.id===id))fail("ID объекта уже занят.");}
@@ -111,6 +116,7 @@
       if (!Object.keys(p.values).length) fail("Не указаны ресурсы.");
       for (const value of Object.values(p.values)) if (!Number.isSafeInteger(value) || value < 0 || value > 1000000) fail("Ресурс должен быть конечным неотрицательным целым числом.");
       const target = requiredActor(scene, event.actorId), result = { ...target, ...p.values };
+      for(const [key,value] of Object.entries(p.values))if(value>resourceMaximum(target,key))fail("Значение ресурса превышает допустимый максимум.");
       if (Number(result.hp || 0) > Number(result.maxHp || 0)) fail("Здоровье превышает максимум: явно исправьте оба поля.");
       Object.assign(target, p.values);
     } else if (p.kind === "status") {
@@ -247,6 +253,8 @@
     if(!isManual(before)&&!isManual(after))return true;
     if(!isManual(before)||!isManual(after)||JSON.stringify(normalizePolicy(before.tablePolicy))!==JSON.stringify(normalizePolicy(after.tablePolicy)))fail("Снимок и отмена не могут менять Ведение стола.","TABLE_SNAPSHOT_POLICY");
     if(options.restore===true){if(pendingWork(before)||pendingWork(after))fail("Сначала завершите ожидающее действие.","TABLE_PENDING_WORK");return true;}
+    if((after.actors||[]).length>120)fail("На столе уже слишком много участников. Лимит — 120; освободите место перед добавлением.","TABLE_CAPACITY");
+    if(new Set((after.actors||[]).map(row=>row.id)).size!==(after.actors||[]).length)fail("ID участника уже занят.","TABLE_COMMAND_INVALID");
     const history=options.history===true,same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
     for(const key of ["eventReceipts"])if(!same(before[key],after[key]))fail("Снимок не может сбрасывать журнал принятых команд.","TABLE_SNAPSHOT_RUNTIME");
     if(!same(before.lionwing?.receipts,after.lionwing?.receipts))fail("Снимок не может сбрасывать журнал принятых команд.","TABLE_SNAPSHOT_RUNTIME");
@@ -316,5 +324,5 @@
     }
     return global.DAWN_TABLE_POLICY;
   }
-  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceFields: RESOURCE_FIELDS };
+  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceMaximum, resourceFields: RESOURCE_FIELDS };
 })(typeof window === "object" ? window : globalThis);

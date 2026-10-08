@@ -85,3 +85,9 @@ assert.deepEqual(Object.keys(projected.manualInitiative[0]).sort(),['hidden','id
 assert.equal(projected.manualTable.actorId,known.actors[1].id);
 const twice=engine.projectScene(projected,{role:'player'});assert.deepEqual(plain(twice.manualInitiative),plain(projected.manualInitiative));assert.equal(twice.manualTable.actorId,projected.manualTable.actorId);
 known.actors[1].manualInitiativeVisible=false;assert.equal(engine.projectScene(known,{role:'player'}).manualInitiative.length,0);
+
+{
+const bounded=fixture();bounded.tablePolicy={mode:'manual',epoch:0};
+for(const [key,value] of [['stress',4],['influence',1000],['hp',10000],['armor',100],['wounds',4]])reject(bounded,[event('h',{kind:'resource',values:{[key]:value}})],'TABLE_COMMAND_INVALID');
+const extended=plain(bounded);extended.actors[0].gifts=['rebel.supernatural-deafness'];assert.equal(run(extended,'h',{kind:'resource',values:{stress:4}}).actors[0].stress,4);
+}
