@@ -217,13 +217,34 @@ function manualClockCommand(payload){
   if(payload.kind!=="clock/create"&&!clock)return null;
   const actorId=manualClockOwner(clock);
   if(actorId===undefined)return null;
-  return commitSceneEvents(manualTableCopy("Ручные часы","Manual clock"),[{type:"table.command",actorId,payload}]);
+  const event={id:uid(),type:"table.command",actorId,payload};
+  const result=commitSceneEvents(manualTableCopy("Ручные часы","Manual clock"),[event]);
+  return result?{...result,manualEventIds:[event.id]}:null;
 }
 function manualClockScope(){return `${Sync?.state?.()?.sceneId||"local"}:${Scene.tablePolicy?.epoch||0}`}
+function reconcileManualClockNumbers(command,events=[]){
+  const dialog=$("manual-table-clocks"),root=$("scene-inspector"),scope=manualClockScope();
+  const inputs=[...(dialog?.open&&dialog.dataset.scope===scope?dialog.querySelectorAll('[data-manual-clock-id]'):[]),...(root?.manualActorScope===scope?root.querySelectorAll('[data-manual-resource]'):[])];
+  const intentId=command?.payload?.clientIntentId||command?.clientIntentId,ids=new Set(events.map(event=>event.id));
+  for(const input of inputs){
+    const receipt=input.manualSubmission;
+    if(receipt&&((command?.status==='rejected'&&intentId&&receipt.clientIntentId===intentId)||(receipt.manualEventIds||[]).some(id=>ids.has(id)))){delete input.manualSubmitted;delete input.manualSubmission;}
+  }
+}
 function manualClockVisibilityScope(){
   return JSON.stringify([activeSceneView(),(Scene.sessionClocks||[]).filter(c=>c.manual).map(c=>{const owner=Scene.actors.find(a=>a.id===c.ownerActorId);return[c.id,c.ownerActorId,Boolean(owner?.hidden),Boolean(owner&&canControlSceneActor(owner))]})]);
 }
+let paintingManualClocks=false;
 function renderManualClocks(){
+  const dialog=$("manual-table-clocks");if(!dialog?.open)return;
+  const active=document.activeElement,clock=Scene.sessionClocks?.find(row=>row.id===active?.dataset?.manualClockId&&row.manual);
+  const keep=dialog.dataset.scope===manualClockScope()&&dialog.manualClockRole===activeSceneView()&&clock&&dialog.contains(active)&&manualClockOwner(clock)!==undefined;
+  const draft=keep?{id:clock.id,value:active.value,submitted:active.manualSubmitted,receipt:active.manualSubmission}:null;
+  dialog.manualClockRole=activeSceneView();paintingManualClocks=true;
+  try{drawManualClocks();}finally{paintingManualClocks=false;}
+  if(draft&&dialog.open){const input=Array.from(dialog.querySelectorAll('[data-manual-clock-id]')).find(node=>node.dataset.manualClockId===draft.id);if(input&&!input.disabled){input.value=draft.value;if(draft.submitted===draft.value){input.manualSubmitted=draft.submitted;input.manualSubmission=draft.receipt;}input.focus({preventScroll:true});}}
+}
+function drawManualClocks(){
   const dialog=$("manual-table-clocks");if(!dialog?.open)return;
   if(!manualTableActive()||dialog.dataset.scope!==manualClockScope()){dialog.close();return}
   const visibility=manualClockVisibilityScope(),focused=document.activeElement,editing=focused?.dataset?.manualClockId;
@@ -243,7 +264,17 @@ function renderManualClocks(){
     input.dataset.manualClockId=clock.id;
     input.setAttribute("aria-label",`${clock.name}: ${manualTableCopy("значение","value")}`);input.disabled=manualClockOwner(clock)===undefined;
     maximum.textContent=`/ ${clock.size}`;label.append(name,input,maximum);
-    const save=()=>{const value=Number(input.value),current=Scene.sessionClocks?.find(c=>c.id===clock.id);if(input.checkValidity()&&current&&value!==current.value)manualClockCommand({kind:"clock/set",id:clock.id,value});renderManualClocks()};
+    const save=()=>{
+      if(paintingManualClocks||!dialog.contains(input)||dialog.dataset.scope!==manualClockScope()||dialog.dataset.visibility!==manualClockVisibilityScope()||manualClockOwner(clock)===undefined)return;
+      const value=Number(input.value),current=Scene.sessionClocks?.find(c=>c.id===clock.id);
+      if(input.value.trim()&&input.checkValidity()&&current&&value!==current.value&&input.manualSubmitted!==input.value){
+        const draft=input.value;input.manualSubmitted=draft;
+        const result=manualClockCommand({kind:"clock/set",id:clock.id,value});
+        if(result)input.manualSubmission=result;else{delete input.manualSubmitted;delete input.manualSubmission;}
+      }
+      // The canonical writer/render updates the dialog when it settles. A
+      // blur must not rebuild the controls and steal the next Tab target.
+    };
     input.addEventListener("change",save);
     input.addEventListener("blur",save);
     input.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();save()}});
@@ -304,14 +335,26 @@ function manualTableAbilities(actor){
   if(activeSceneView()!=="gm"&&!canControlSceneActor(actor))return [{id:"access",name:manualTableCopy("Профиль участника","Participant profile"),text:manualTableCopy("Способности этого участника доступны Нарратору.","This participant's abilities are available to the Narrator.")}];
   return window.DAWN_MANUAL_READER_DATA.entries(actor,{english:isEnglishPreview(),enemyProfile,defense:antagonistDefense,techniqueEntries:a=>window.DAWN_LIONWING_TECHNIQUE_SURFACE?.entries?.(a)||[],wordById,t});
 }
+let paintingManualInspector=false;
 function renderManualActorInspector(actor){
+  const root=$("scene-inspector");if(!root)return;
+  const active=document.activeElement,scope=manualClockScope();
+  const editable=actor&&canControlSceneActor(actor),same=root.manualActorScope===scope&&root.manualActorId===actor?.id;
+  const draft=same&&editable&&root.contains(active)&&active?.matches?.('[data-manual-resource]')?{key:active.dataset.manualResource,value:active.value,submitted:active.manualSubmitted,receipt:active.manualSubmission}:null;
+  root.manualActorScope=scope;root.manualActorId=actor?.id;
+  paintingManualInspector=true;
+  try{drawManualActorInspector(actor);}finally{paintingManualInspector=false;}
+  if(draft){const input=root.querySelector(`[data-manual-resource="${draft.key}"]`);if(input&&!input.disabled){input.value=draft.value;if(draft.submitted===draft.value){input.manualSubmitted=draft.submitted;input.manualSubmission=draft.receipt;}input.focus({preventScroll:true});}}
+}
+function drawManualActorInspector(actor){
   const root=$("scene-inspector");if(!root)return;
   if(actor?.hidden&&activeSceneView()!=="gm")actor=null;
   if(!actor){root.innerHTML=`<p>${manualTableCopy("Выберите участника на поле.","Select a participant on the board.")}</p>`;return;}
   const allowed=canControlSceneActor(actor),fields=[["hp","Здоровье","Health"],["maxHp","Максимум ЗД","Maximum HP"],["focus","Фокус","Focus"],["influence","Влияние","Influence"],["stress","Стресс","Stress"]];
-  root.innerHTML=`<section class="manual-actor-settings"><h3>${esc(actor.name)}</h3><p>${manualTableCopy("Значения записываются вручную. Последствия определяет Нарратор.","Values are recorded manually. The Narrator decides the consequences.")}</p><div class="scene-stat-grid">${fields.map(([key,ru,en])=>`<label>${manualTableCopy(ru,en)}<input type="number" min="0" max="${window.DAWN_TABLE_POLICY?.resourceMaximum?.(actor,key)??9999}" step="1" data-manual-resource="${key}" data-manual-actor="${esc(actor.id)}" value="${Number(actor[key])||0}" ${allowed?"":"disabled"}></label>`).join("")}</div>${allowed&&Scene.spaces.length>1?`<label>${manualTableCopy("Поле участника","Participant board")}<select data-manual-actor-space="${esc(actor.id)}">${Scene.spaces.map(space=>`<option value="${esc(space.id)}" ${space.id===actor.space?"selected":""}>${esc(space.name)} · ${space.width}×${space.height}</option>`).join("")}</select></label>`:""}${activeSceneView()==="gm"?`<label>${manualTableCopy("Имя","Name")}<input data-scene-actor-name="${esc(actor.id)}" value="${esc(actor.name)}"></label><label>${manualTableCopy("Цвет токена","Token color")}<input type="color" data-scene-token-color="${esc(actor.id)}" value="${esc(actor.tokenColor)}"></label><label class="switch"><input type="checkbox" data-manual-actor-hidden="${esc(actor.id)}" ${actor.hidden?"checked":""}><span>${manualTableCopy("Скрыть токен на поле","Hide token on board")}</span></label><label class="switch"><input type="checkbox" data-manual-initiative-visible="${esc(actor.id)}" ${actor.manualInitiativeVisible??!actor.hidden?"checked":""}><span>${manualTableCopy("Показывать в инициативе","Show in initiative")}</span></label><button type="button" class="danger-quiet" data-scene-remove-actor="${esc(actor.id)}">${manualTableCopy("Убрать участника со стола","Remove participant from table")}</button>`:""}</section>`;
+  root.innerHTML=`<section class="manual-actor-settings"><h3>${esc(actor.name)}</h3><p>${manualTableCopy("Значения записываются вручную. Последствия определяет Нарратор.","Values are recorded manually. The Narrator decides the consequences.")}</p><div class="scene-stat-grid">${fields.map(([key,ru,en])=>`<label>${manualTableCopy(ru,en)}<input type="number" min="0" max="${window.DAWN_TABLE_POLICY?.resourceMaximum?.(actor,key)??9999}" step="1" data-manual-resource="${key}" data-manual-value="${Number(actor[key])||0}" data-manual-actor="${esc(actor.id)}" value="${Number(actor[key])||0}" ${allowed?"":"disabled"}></label>`).join("")}</div>${allowed&&Scene.spaces.length>1?`<label>${manualTableCopy("Поле участника","Participant board")}<select data-manual-actor-space="${esc(actor.id)}">${Scene.spaces.map(space=>`<option value="${esc(space.id)}" ${space.id===actor.space?"selected":""}>${esc(space.name)} · ${space.width}×${space.height}</option>`).join("")}</select></label>`:""}${activeSceneView()==="gm"?`<label>${manualTableCopy("Имя","Name")}<input data-scene-actor-name="${esc(actor.id)}" value="${esc(actor.name)}"></label><label>${manualTableCopy("Цвет токена","Token color")}<input type="color" data-scene-token-color="${esc(actor.id)}" value="${esc(actor.tokenColor)}"></label><label class="switch"><input type="checkbox" data-manual-actor-hidden="${esc(actor.id)}" ${actor.hidden?"checked":""}><span>${manualTableCopy("Скрыть токен на поле","Hide token on board")}</span></label><label class="switch"><input type="checkbox" data-manual-initiative-visible="${esc(actor.id)}" ${actor.manualInitiativeVisible??!actor.hidden?"checked":""}><span>${manualTableCopy("Показывать в инициативе","Show in initiative")}</span></label><button type="button" class="danger-quiet" data-scene-remove-actor="${esc(actor.id)}">${manualTableCopy("Убрать участника со стола","Remove participant from table")}</button>`:""}</section>`;
 }
 document.addEventListener("change",event=>{
+  if(paintingManualInspector&&$("scene-inspector")?.contains(event.target))return;
   const destination=event.target.closest?.("[data-manual-actor-space]");
   if(destination&&manualTableActive()){
     const actor=Scene.actors.find(a=>a.id===destination.dataset.manualActorSpace),space=Scene.spaces.find(s=>s.id===destination.value);
@@ -338,11 +381,20 @@ document.addEventListener("change",event=>{
     if(!manualTableActive()||activeSceneView()!=="gm"){renderScene();return;}
     commitSceneEvents(manualTableCopy("Подсказки статусов","Status hints"),[{type:"table.command",actorId:null,payload:{kind:"policy",mode:"manual",processStatuses:Boolean(event.target.checked)}}]);return;
   }
-  const input=event.target.closest?.("[data-manual-resource][data-manual-actor]");if(!input||!manualTableActive())return;
-  const actor=Scene.actors.find(a=>a.id===input.dataset.manualActor),value=Number(input.value);
-  if(!actor||!canControlSceneActor(actor)||!input.value.trim()||!Number.isSafeInteger(value)||value<0||value>9999){renderScene();return;}
-  setNarratorActorValue(actor,input.dataset.manualResource,value);
+  const input=event.target.closest?.("[data-manual-resource][data-manual-actor]");if(input)submitManualInspectorResource(input);
 });
+function submitManualInspectorResource(input){
+  const root=$("scene-inspector");
+  if(paintingManualInspector||!manualTableActive()||!root?.contains(input)||root.manualActorScope!==manualClockScope())return;
+  const actor=Scene.actors.find(a=>a.id===input.dataset.manualActor),key=input.dataset.manualResource,value=Number(input.value);
+  if(!actor||actor.id!==root.manualActorId||!canControlSceneActor(actor)||!['hp','maxHp','focus','influence','stress'].includes(key)||!input.value.trim()||!Number.isSafeInteger(value)||value<0||value>(window.DAWN_TABLE_POLICY?.resourceMaximum?.(actor,key)??9999)){renderScene();return;}
+  if(input.value===input.manualSubmitted||value===actor[key])return;
+  const draft=input.value,writeScope=manualClockScope();input.manualSubmitted=draft;
+  const result=submitManualNumber(actor,{kind:'resource',values:{[key]:value}},manualTableCopy('Ручная правка ресурса','Manual resource edit'));
+  const replacement=root.manualActorScope===writeScope&&root.manualActorId===actor.id?root.querySelector(`[data-manual-resource="${key}"]`):null;
+  for(const node of new Set([input,replacement].filter(Boolean))){if(node.value!==draft)continue;if(result){node.manualSubmitted=draft;node.manualSubmission=result;}else{delete node.manualSubmitted;delete node.manualSubmission;}}
+}
+document.addEventListener('focusout',event=>{const input=event.target.closest?.('[data-manual-resource][data-manual-actor]');if(input)submitManualInspectorResource(input);});
 function openManualActorReader(actorId){
   if(!manualTableActive())return false;
   const actor=Scene.actors.find(a=>a.id===actorId);if(!actor||activeSceneView()!=="gm"&&actor.hidden)return false;
@@ -396,9 +448,15 @@ function renderManualTable(){
     showArea:openManualTableArea,
     statuses:actor=>(actor.manualStatuses||[]).map(id=>{const effect=sceneEffectList().find(e=>e.id===id);return{id,name:effect?.name||id,icon:"effects",hint:effect?.text||""}}),
     statusHints:Boolean(Scene.tablePolicy?.processStatuses),
-    editCounter:(actor,entry,change)=>commitSceneEvents(manualTableCopy("Ручной счётчик приёма","Manual ability counter"),[{id:uid(),type:"table.command",actorId:actor.id,payload:{kind:"technique-counter",key:entry.id,...change}}]),
+    editResource:(actor,change)=>submitManualNumber(actor,{kind:"resource",values:{[change.field]:change.value}},manualTableCopy("Записать здоровье","Set Health")),
+    editCounter:(actor,entry,change)=>submitManualNumber(actor,{kind:"technique-counter",key:entry.id,...change},manualTableCopy("Ручной счётчик приёма","Manual ability counter")),
     toggleTechnique:(actor,entry,on)=>commitSceneEvents(manualTableCopy("Пометка Техники","Technique note"),[{type:"table.command",actorId:actor.id,payload:{kind:"technique",key:entry.id,enabled:on}}])
   });
+}
+function submitManualNumber(actor,payload,label){
+  const event={id:uid(),type:"table.command",actorId:actor.id,payload};
+  const result=commitSceneEvents(label,[event]);
+  return result?{...result,manualEventIds:[event.id]}:null;
 }
 window.DAWN_TABLE_POLICY?.install();
 document.addEventListener("keydown",event=>{

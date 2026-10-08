@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const read=name=>fs.readFileSync(new URL(`../${name}`,import.meta.url),'utf8');
 const handlers=new Map(),nodes=new Map(),events=[],opened=[];
-const element=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',value:'',checked:false,closest:()=>({hidden:false})});return nodes.get(id)};
+const element=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',value:'',checked:false,contains:()=>true,querySelector:()=>null,closest:()=>({hidden:false})});return nodes.get(id)};
 let role='gm';const scene={tablePolicy:{mode:'manual',epoch:0,processStatuses:false},spaces:[{id:'main',name:'Main',width:7,height:7}],activeSpace:'main',selectedActor:'hero',manualTable:{actorId:'hero',round:1},actors:[{id:'hero',heroId:'owned',space:'main',name:'Hero',hp:7,maxHp:10,focus:4,influence:1,stress:0,tokenColor:'#112233'},{id:'enemy',space:'main',name:'Enemy',hidden:false},{id:'hidden',space:'main',hidden:true}],version:0};
 const context={window:{DAWN_TABLE_POLICY:{isManual:s=>s.tablePolicy?.mode==='manual'},DAWN_MANUAL_READER_DATA:{entries:a=>[{id:'ability',name:a.name,text:`Private ${a.id}`}]},DAWN_MANUAL_WORKSPACE:{render:o=>{context.options=o},open:id=>{opened.push(id);return true}}},Scene:scene,Sync:{state:()=>({})},activeScenePanel:null,isEnglishPreview:()=>false,activeSceneView:()=>role,canControlSceneActor:a=>role==='gm'||a.id==='hero',esc:v=>String(v).replaceAll('<','&lt;'),$:element,document:{body:{dataset:{}},addEventListener:(name,handler)=>handlers.set(name,handler),querySelector:()=>null,querySelectorAll:()=>[]},activeSceneSpace:()=>scene.spaces[0],uid:()=>"note-event",clearManualAreaPreview:()=>{},persist:()=>{},renderScene:()=>{},closeAllScenePanels:()=>{},enemyProfile:()=>{},antagonistDefense:()=>{},wordById:()=>{},t:()=>{},sceneEffectList:()=>[],commitSceneEvents:(label,packet)=>{events.push(packet);return {ok:true}},setNarratorActorValue:()=>{throw Error('legacy numeric mutation')},setNarratorEffect:()=>{throw Error('legacy effect mutation')}};
 vm.createContext(context);const source=read('scene-manual-integration.js');
 vm.runInContext(source.slice(0,source.indexOf('function placeManualMapObject')),context);
+vm.runInContext(source.slice(source.indexOf('function manualClockScope'),source.indexOf('function reconcileManualClockNumbers')),context);
 vm.runInContext(source.slice(source.indexOf('function manualTableAbilities'),source.indexOf('window.DAWN_TABLE_POLICY?.install()')),context);
 context.ensureManualAreaTools=()=>{};context.renderManualAreaDraft=()=>{};context.openManualTableArea=()=>{};context.renderManualClocks=()=>{};context.renderManualMapTools=()=>{};context.renderManualJournal=()=>{};
 context.openManualTableDice=()=>{};context.openManualTableClocks=()=>{};
@@ -24,6 +25,7 @@ assert.equal(context.manualTableAbilities(scene.actors[0])[0].text,'Private hero
 assert.equal(context.openManualActorReader('hidden'),false);assert.equal(opened.length,0);
 assert.equal(context.openManualActorReader('hero'),true);assert.deepEqual(opened,['hero']);
 const change=handlers.get('change');const input={value:'3',dataset:{manualResource:'focus',manualActor:'hero'}};
+context.renderManualActorInspector(scene.actors[0]);
 change({target:{closest:selector=>selector.includes("data-manual-resource")?input:null}});assert.equal(events.at(-1)[0].payload.kind,'resource');assert.equal(events.at(-1)[0].payload.values.focus,3);
 input.dataset.manualActor='enemy';change({target:{closest:selector=>selector.includes("data-manual-resource")?input:null}});assert.equal(events.length,1,'foreign values cannot be edited');
 input.dataset.manualActor='hero';input.value='';change({target:{closest:selector=>selector.includes("data-manual-resource")?input:null}});assert.equal(events.length,1,'blank is not interpreted as zero');
@@ -31,6 +33,30 @@ change({target:{id:'scene-manual-status-processing',checked:true}});assert.equal
 role='gm';change({target:{id:'scene-manual-status-processing',checked:true}});assert.equal(events.at(-1)[0].payload.processStatuses,true);
 assert.equal(JSON.stringify(scene),before,'reading and commands never write resource/policy locally');
 console.log('Manual surfaces: Reader routing, NPC privacy, actor-bound typed resources, hint authority and no legacy runtime writes passed');
+
+// Real renderer + delegated listeners: replace a dirty focused control as
+// Chromium does, emitting change/focusout from its departing DOM node.
+const inspector=element('scene-inspector');context.renderManualActorInspector(scene.actors[0]);
+const makeHp=()=>({value:'7',disabled:false,dataset:{manualResource:'hp',manualActor:'hero'},matches:()=>true,closest:selector=>selector.includes('data-manual-resource')?hpEditor:null,focus(){context.document.activeElement=this;}});
+let hpEditor=makeHp(),inspectorHtml=inspector.innerHTML;
+inspector.contains=node=>node===hpEditor;inspector.querySelector=()=>hpEditor;
+Object.defineProperty(inspector,'innerHTML',{get:()=>inspectorHtml,set:value=>{
+  handlers.get('change')({target:hpEditor});handlers.get('focusout')({target:hpEditor});
+  inspectorHtml=value;hpEditor=makeHp();
+}});
+context.document.activeElement=hpEditor;hpEditor.value='5';const beforeDraft=events.length;
+context.renderManualActorInspector(scene.actors[0]);
+assert.equal(events.length,beforeDraft,'dirty inspector repaint never writes browser-generated change/focusout');
+assert.equal(hpEditor.value,'5');assert.equal(context.document.activeElement,hpEditor,'same actor restores draft and focus');
+handlers.get('focusout')({target:hpEditor});assert.equal(events.length,beforeDraft+1,'leaving a restored draft writes once');
+context.renderManualActorInspector(scene.actors[0]);handlers.get('focusout')({target:hpEditor});
+assert.equal(events.length,beforeDraft+1,'fresh inspector input keeps its pending submission marker');
+scene.tablePolicy.epoch++;context.renderManualActorInspector(scene.actors[0]);
+assert.equal(hpEditor.value,'7','changed policy discards an old inspector draft');assert.equal(events.length,beforeDraft+1);
+const inspectorWriter=context.commitSceneEvents;context.commitSceneEvents=()=>null;
+hpEditor.value='6';handlers.get('change')({target:hpEditor});assert.equal(hpEditor.manualSubmitted,undefined,'refused inspector edit remains retryable');
+context.commitSceneEvents=inspectorWriter;handlers.get('focusout')({target:hpEditor});assert.equal(events.length,beforeDraft+2);
+console.log('Manual inspector fresh DOM: no repaint writes, restored drafts submit once, pending markers survive, epoch invalidates and refusal permits retry.');
 
 // Exercise the real legacy-panel redirects. A render calls setScenePanel again,
 // as the production render does, so a stale panel exposes recursion.

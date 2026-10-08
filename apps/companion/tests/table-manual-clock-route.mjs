@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {loadSceneEngine} from './load-scene-engine.mjs';
 const context={window:{},console,Scene:{tablePolicy:{mode:'manual',epoch:2},version:0,selectedActor:'a',actors:[{id:'a',name:'A',hp:6,maxHp:10,ap:3,focus:2},{id:'b',name:'B',hp:8,maxHp:10}],sessionClocks:[]},isEnglishPreview:()=>false,activeSceneView:()=> 'player',canControlSceneActor:a=>a.id==='a'};
 vm.createContext(context);loadSceneEngine(context);
+let eventSequence=0;context.uid=()=>`clock-event-${++eventSequence}`;
 context.commitSceneEvents=(label,events)=>{const result=context.window.DAWN_TABLE_POLICY.dispatchMany(context.Scene,events);context.Scene=result.scene;return result};
 const source=fs.readFileSync(new URL('../scene-manual-integration.js',import.meta.url),'utf8');
 vm.runInContext(source.slice(0,source.indexOf('function manualTableRoll')),context);
@@ -37,7 +38,7 @@ context.Scene.tablePolicy.mode='manual';context.activeSceneView=()=> 'player';co
 context.Scene.sessionClocks=[{id:'draft',manual:true,ownerActorId:'a',size:6,value:1}];
 const focused={dataset:{manualClockId:'draft'},value:'4',max:'6'};
 let closed=false,replaced=false;
-const dialog={open:true,dataset:{scope:'local:2',visibility:context.manualClockVisibilityScope()},close:()=>closed=true,querySelector:()=>({replaceChildren:()=>{replaced=true;throw Error('rebuild')}})};
+const dialog={open:true,contains:()=>true,dataset:{scope:'local:2',visibility:context.manualClockVisibilityScope()},close:()=>closed=true,querySelectorAll:()=>[],querySelector:()=>({replaceChildren:()=>{replaced=true;throw Error('rebuild')}})};
 context.Sync={state:()=>({})};context.$=()=>dialog;context.document={activeElement:focused};
 context.renderManualClocks();assert.equal(replaced,false);assert.equal(focused.value,'4','unconfirmed draft survives scene render');
 context.Scene.sessionClocks[0].size=3;context.renderManualClocks();assert.equal(focused.max,'3','new bounds update without losing draft');
@@ -46,3 +47,37 @@ context.canControlSceneActor=()=>true;context.Scene.actors.find(a=>a.id==='a').h
 context.Scene.actors.find(a=>a.id==='a').hidden=false;context.activeSceneView=()=> 'gm';dialog.dataset.visibility=context.manualClockVisibilityScope();context.activeSceneView=()=> 'player';assert.throws(()=>context.renderManualClocks(),/rebuild/,'view changes rebuild every private row despite focused own clock');
 context.Scene.tablePolicy.epoch=3;context.renderManualClocks();assert.equal(closed,true,'changed policy closes stale dialog');
 console.log('manual clock UI route: create/set/remove, owner recheck, atomic bounds and no combat mutations passed');
+
+// Actual renderer/listeners with a delayed writer and fresh DOM controls.
+context.activeSceneView=()=> 'gm';context.Scene.tablePolicy.epoch=0;
+context.Scene.sessionClocks=[{id:'clock-a',manual:true,ownerActorId:null,name:'A',size:6,value:0}];
+let inputs=[],createdInputs=[],clockSends=0,rebuildChange=null;
+class ClockNode {
+  constructor(tag){this.tag=tag;this.dataset={};this.events={};this.children=[];this.value='';}
+  setAttribute(){} append(...nodes){this.children.push(...nodes);}
+  addEventListener(type,callback){this.events[type]=callback;}
+  checkValidity(){return this.value!==''&&Number.isSafeInteger(Number(this.value))&&Number(this.value)>=0&&Number(this.value)<=Number(this.max);}
+  focus(){context.document.activeElement=this;}
+}
+const list=new ClockNode('div');list.replaceChildren=()=>{rebuildChange?.();inputs=[];createdInputs=[];list.children=[];};
+Object.defineProperty(list,'childElementCount',{get:()=>list.children.length});
+const create=new ClockNode('button');
+const pendingDialog={open:true,dataset:{scope:'local:0'},contains:input=>inputs.includes(input),close(){this.open=false},querySelector:selector=>selector==='[data-clock-list]'?list:create,querySelectorAll:()=>inputs};
+context.$=id=>id==='manual-table-clocks'?pendingDialog:null;
+context.document={activeElement:null,createElement:tag=>{const node=new ClockNode(tag);if(tag==='input'){createdInputs.push(node);inputs.push(node);}return node}};
+context.manualClockCommand=()=>({pending:true,clientIntentId:`clock-intent-${++clockSends}`,manualEventIds:[`clock-event-${clockSends}`]});
+context.renderManualClocks();let clockInput=inputs[0];clockInput.value='2';context.document.activeElement=clockInput;
+clockInput.events.change();assert.equal(clockSends,1);
+clockInput.events.blur();assert.equal(clockSends,1,'change followed by a delayed blur submits once');
+context.document.activeElement=clockInput;rebuildChange=()=>clockInput.events.change();
+context.Scene.sessionClocks.push({id:'clock-b',manual:true,ownerActorId:null,name:'B',size:6,value:0});
+context.renderManualClocks();assert.equal(clockSends,1,'adding another clock cannot resubmit dirty input during DOM replacement');
+assert.notEqual(inputs[0],clockInput);clockInput=inputs[0];assert.equal(clockInput.value,'2');assert.equal(context.document.activeElement,clockInput);
+rebuildChange=null;clockInput.events.blur();assert.equal(clockSends,1,'fresh clock input retains its pending submission marker');
+context.reconcileManualClockNumbers({status:'rejected',payload:{clientIntentId:'other'}});assert.equal(clockInput.manualSubmitted,'2');
+context.reconcileManualClockNumbers({status:'rejected',payload:{clientIntentId:'clock-intent-1'}});assert.equal(clockInput.manualSubmitted,undefined);
+context.document.activeElement=clockInput;clockInput.events.change();assert.equal(clockSends,2,'exact rejection restores a retry');
+clockInput.value='3';context.manualClockCommand=()=>{clockSends++;return null;};clockInput.events.change();assert.equal(clockInput.manualSubmitted,undefined);
+clockInput.events.blur();assert.equal(clockSends,4,'immediate refusal never locks a retry');
+clockInput.value='';clockInput.events.change();assert.equal(clockSends,4,'blank clock input does not write zero');
+console.log('Manual clock actual DOM handlers: delayed writer, fresh-node rebuild, repaint suppression, exact rejection, retry and blank input passed.');

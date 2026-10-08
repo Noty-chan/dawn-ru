@@ -20,6 +20,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
   let adapter = null, footer = null, initiative = null, reader = null;
   let reading = false, readingActorId = null, readerActorId = null, scope = null, footerScope = null, paintingFooter = false, paintingReader = false;
   const techniqueFlags = new Map();
+  let lastWriteResult=null;
   const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const text = (key, fallback) => window.DAWN_I18N?.t?.(`scene.manual.${key}`, {}, {fallback}) || fallback;
   const icon = name => window.DAWN_UI_ICONS?.html?.(name) || "";
@@ -65,6 +66,8 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       action:active.dataset?.manualAction,
       entry:active.closest?.('[data-entry-id]')?.dataset.entryId,
       counter:active.matches?.('[data-manual-counter]'),
+      submitted:active.manualSubmitted,
+      submission:active.manualSubmission,
       draft:preserveDraft && state.control && active.matches?.('[data-manual-counter]') && active.value !== active.getAttribute('value') ? active.value : null
     } : null;
     const expanded = new Set(keepExpansion ? Array.from(reader.querySelectorAll('details[open]')).map(node => node.dataset.manualAbility) : []);
@@ -81,6 +84,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       const target = focused.counter ? root?.querySelector('[data-manual-counter]') : Array.from(root?.querySelectorAll('[data-manual-action]') || []).find(node=>node.dataset.manualAction===focused.action);
       if (target && !target.disabled) {
         if (focused.draft !== null && focused.counter) target.value=focused.draft;
+        if (focused.counter && focused.draft !== null && focused.submitted === focused.draft) {target.manualSubmitted=focused.submitted;target.manualSubmission=focused.submission;}
         target.focus({preventScroll:true});
       }
     }
@@ -91,6 +95,8 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     const oldHp=footer.querySelector('[data-manual-hp]');
     const editingHp=oldHp&&document.activeElement===oldHp&&oldHp.dataset.manualActor===actor?.id&&footerScope===scope&&state.control;
     const hpDraft=editingHp&&oldHp.value!==oldHp.dataset.manualValue?oldHp.value:null;
+    const hpSubmitted=editingHp?oldHp.manualSubmitted:undefined;
+    const hpSubmission=editingHp?oldHp.manualSubmission:undefined;
     footerScope=scope;
     initiative.setAttribute('aria-label',text('participants','Участники'));
     reader.setAttribute('aria-label',text('abilities','Способности участника'));
@@ -100,7 +106,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     paintingFooter=true;try{footer.innerHTML=footerMarkup;}finally{paintingFooter=false;}
     initiative.innerHTML = `<span class="scene-manual-initiative-label">${escape(text("participants", "Участники"))}</span>${state.initiativeActors.map(item => {const image=item.tokenImage || item.portraitImage || item.portraitUrl;return `<button type="button" data-manual-action="select" data-actor-id="${escape(item.id)}" class="${item.id === actor?.id ? "selected" : ""} ${item.id === state.current?.id ? "current" : ""}" title="${escape(item.name)}" aria-label="${escape(item.name)}" ${!state.actors.some(actor=>actor.id===item.id)?"disabled":""} ${item.id === state.current?.id ? 'aria-current="step"' : ""}>${image ? `<img src="${escape(image)}" alt="">` : `<span aria-hidden="true">${escape(item.name?.slice(0,2) || "?")}</span>`}<small>${escape(item.name)}</small></button>`;}).join("")}`;
     paintReader(state);
-    if(editingHp&&state.manual){const input=footer.querySelector('[data-manual-hp]');if(input&&!input.disabled){if(hpDraft!==null)input.value=hpDraft;input.focus({preventScroll:true});}}
+    if(editingHp&&state.manual){const input=footer.querySelector('[data-manual-hp]');if(input&&!input.disabled){if(hpDraft!==null){input.value=hpDraft;if(hpSubmitted===hpDraft){input.manualSubmitted=hpSubmitted;input.manualSubmission=hpSubmission;}}input.focus({preventScroll:true});}}
     return state;
   }
   function act(action, value) {
@@ -127,7 +133,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     if (action === "hp" && state.control && (adapter.editResource || adapter.commit)) {
       const amount = String(value).trim() === "" ? NaN : Number(value);
       if (!Number.isSafeInteger(amount) || amount < 0 || amount > (actor.maxHp ?? 9999)) { paint(); return false; }
-      if (adapter.editResource) adapter.editResource(actor, {field:"hp",value:amount}); else adapter.commit(text("exactHp", "Записать здоровье"), [{type:"table.command",actorId:actor.id,payload:{kind:"resource",values:{hp:amount}}}]); return true;
+      lastWriteResult=adapter.editResource ? adapter.editResource(actor, {field:"hp",value:amount}) : adapter.commit(text("exactHp", "Записать здоровье"), [{type:"table.command",actorId:actor.id,payload:{kind:"resource",values:{hp:amount}}}]);return Boolean(lastWriteResult);
     }
     if (actor && action.startsWith("counter-") && state.control && adapter.editCounter) {
       const index = typeof value === "object" ? value.index : value;
@@ -142,7 +148,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
         if (!Number.isSafeInteger(change.value) || change.value < 0 || change.value > 999) { paintReader(state, false); return false; }
       }
       if (operation !== "create" && !Number.isSafeInteger(actor.manualTechniqueCounters?.[entry.id])) return false;
-      adapter.editCounter(actor,entry,change); return true;
+      lastWriteResult=adapter.editCounter(actor,entry,change);return Boolean(lastWriteResult);
     }
     if (actor && (action === "technique-toggle" || action === "show-area")) {
       const entry = abilities(actor)[Number(value)];
@@ -154,6 +160,30 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       }
     }
     return false;
+  }
+  function submitNumber(target,isCounter){
+    const state=model(adapter),actorId=state.selected?.id,writeScope=scope;
+    const entry=isCounter?abilities(state.selected)[Number(target.dataset.manualCounter)]?.id:null;
+    const value=target.value;target.manualSubmitted=value;lastWriteResult=null;
+    const accepted=act(isCounter?'counter-set':'hp',isCounter?{index:target.dataset.manualCounter,value}:value);
+    const receipt=accepted?lastWriteResult:null;
+    // A local writer may synchronously render and replace this very input.
+    const current=model(adapter);
+    const replacement=scope===writeScope&&current.control&&current.selected?.id===actorId
+      ?isCounter?Array.from(reader.querySelectorAll('[data-manual-counter]')).find(node=>abilities(current.selected)[Number(node.dataset.manualCounter)]?.id===entry):footer.querySelector('[data-manual-hp]'):null;
+    for(const node of new Set([target,replacement].filter(Boolean))){
+      if(node.value!==value)continue;
+      if(accepted){node.manualSubmitted=value;node.manualSubmission=receipt;}
+      else{delete node.manualSubmitted;delete node.manualSubmission;}
+    }
+  }
+  function reconcileNumber(command,events=[]){
+    const rejected=command?.status==='rejected',intentId=command?.payload?.clientIntentId||command?.clientIntentId;
+    const ids=new Set(events.map(event=>event.id));
+    for(const node of [...(footer?.querySelectorAll('[data-manual-hp]')||[]),...(reader?.querySelectorAll('[data-manual-counter]')||[])]){
+      const receipt=node.manualSubmission;
+      if(receipt&&((rejected&&intentId&&receipt.clientIntentId===intentId)||(receipt.manualEventIds||[]).some(id=>ids.has(id)))){delete node.manualSubmitted;delete node.manualSubmission;}
+    }
   }
   function init(mount) {
     if (footer) return true;
@@ -169,18 +199,18 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
         if (target && node.contains(target)) act(target.dataset.manualAction, target.dataset.actorId ?? target.dataset.abilityIndex);
       });
     }
-    footer.addEventListener("change", event => { if (paintingFooter) return; if (event.target.matches("[data-manual-hp]")) { event.target.manualSubmitted=event.target.value; act("hp", event.target.value); } });
+    footer.addEventListener("change", event => { if (paintingFooter) return; if (event.target.matches("[data-manual-hp]")) submitNumber(event.target,false); });
     footer.addEventListener("focusout", event => {
       const target=event.target;
-      if(!paintingFooter&&footer.contains(target)&&target.matches("[data-manual-hp]")&&target.value!==target.dataset.manualValue&&target.value!==target.manualSubmitted){target.manualSubmitted=target.value;act("hp",target.value);}
+      if(!paintingFooter&&footer.contains(target)&&target.matches("[data-manual-hp]")&&target.value!==target.dataset.manualValue&&target.value!==target.manualSubmitted)submitNumber(target,false);
     });
     reader.addEventListener("change", event => {
       if(paintingReader)return;
-      if (event.target.matches("[data-manual-counter]")) { event.target.manualSubmitted=event.target.value; act("counter-set", {index:event.target.dataset.manualCounter,value:event.target.value}); }
+      if (event.target.matches("[data-manual-counter]")) submitNumber(event.target,true);
     });
     reader.addEventListener("focusout", event => {
       const target=event.target;
-      if(!paintingReader&&reader.contains(target)&&target.matches("[data-manual-counter]")&&target.value!==target.getAttribute("value")&&target.value!==target.manualSubmitted){target.manualSubmitted=target.value;act("counter-set",{index:target.dataset.manualCounter,value:target.value});}
+      if(!paintingReader&&reader.contains(target)&&target.matches("[data-manual-counter]")&&target.value!==target.getAttribute("value")&&target.value!==target.manualSubmitted)submitNumber(target,true);
     });
     reader.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if(event.target.matches("[data-manual-counter]"))event.target.value=event.target.getAttribute("value"); act("close-reader"); footer.querySelector('[data-manual-action="read"]')?.focus(); } });
     return true;
@@ -197,5 +227,5 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     const actor=model(adapter).actors.find(item=>item.id===actorId);if(!actor)return false;
     adapter.beforeRead?.();reading=true;readingActorId=actor.id;paint();return true;
   }
-  return Object.freeze({ closeReader:()=>act("close-reader"),render, act, model, open});
+  return Object.freeze({ closeReader:()=>act("close-reader"),render, act, model, open,reconcileNumber});
 })();
