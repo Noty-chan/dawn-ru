@@ -42,6 +42,8 @@
 
 ## Продолжение после лимита
 
+**Актуализация после `4b85b41`:** gated сетевой transport пингов/рисунков реализован, прежнее «transport не реализован» заменяется «сервер не подключён и настоящий Realtime gate не пройден». Подробный порядок ревью, серверного подключения, N02/N03 и публикации: [PRIVATE_PRESENTATIONS — план следующего агента](PRIVATE_PRESENTATIONS_2026-10-08.md#план-следующего-агента--выполнять-по-порядку). Это текущий план сетевого продолжения; старые snapshots handoff не дают разрешения пропускать gates.
+
 Работа сохранена в `codex/manual-table-review-20261008`: `83895e0` числовые pending/rejection; `cae6721` gesture lifecycle, Space-pan и прозрачная idle палитра; следующий коммит добавляет честные подсказки ручного режима и Fit aria. Main и опубликованный сайт этой задачей не обновлялись. Следующий агент сначала fetch/review этой ветки, затем desktop acceptance и четыре сетевых/start-rules gate выше; full PASS не даёт разрешения объявлять shared alpha готовой. Одноразовый high review уже был выполнен в прежнем проходе, пользователь просил не повторять его постоянно; далее держать low reviewer. Мобильный проход отложен.
 
 Локальный QA origin `http://127.0.0.1:18815/output/manual-review-qa.html?lang=ru&edition=lionwing&mode=play`, отдельный Python http.server PID22112, workspace root. Страница оставлена для просмотра результата; это QA clone с cache-buster/скрытой update banner, не production. Перед остановкой сервера проверить PID/commandline; чужие серверы не трогать. Screenshot `output/manual-palette-alpha-final-20261008.jpg` подтверждает чистую палитру и HUD. Viewport override сброшен, pending/inspector fixture tabs закрыты.
