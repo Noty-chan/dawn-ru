@@ -158,7 +158,10 @@ function manualEncounterLayout(encounter){
     return out;
   });
   const owner=row=>template?actorIds.get(row.ownerActorId)||null:actors[row.ownerEnemyIndex]?.id||null;
-  const header=row=>({id:uid(),space:row.space||activeSpace,label:String(row.label||'').slice(0,80),hidden:Boolean(row.hidden),ownerActorId:owner(row)});
+  // Classify the original record before removing excluded/private owners. A
+  // remapped null owner must never turn a private annotation into a public one.
+  const sourceVisible=template?SceneEngine.projectionPrivacy.predicate(template,{role:'player'}):()=>true;
+  const header=row=>({id:uid(),space:row.space||activeSpace,label:String(row.label||'').slice(0,80),hidden:Boolean(row.hidden||!sourceVisible(row)),ownerActorId:owner(row)});
   const objects=(template?.objects||encounter.objects||[]).map(row=>({...header(row),cells:[...(row.cells||[])],appearance:['terrain','difficult','high','low','custom'].includes(row.appearance||row.type)?row.appearance||row.type:'custom',color:/^#[0-9a-f]{6}$/i.test(row.color||'')?row.color:'#65c8d0'}));
   const walls=(template?.walls||encounter.walls||[]).map(row=>({...header(row),a:row.a,b:row.b}));
   const markers=(template?.markers||encounter.markers||[]).map(row=>({...header(row),x:Number(row.x),y:Number(row.y),kind:['mark','custom','objective','countdown'].includes(row.kind)?row.kind:'custom',color:/^#[0-9a-f]{6}$/i.test(row.color||'')?row.color:'#e2b54a',...(row.metadata?.clock?{clock:{size:Number(row.metadata.clock.size),value:Number(row.metadata.clock.value)||0}}:{})}));

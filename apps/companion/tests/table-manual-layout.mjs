@@ -58,3 +58,18 @@ let previewDialog;const output={textContent:''};c.showManualEncounterPreview=pay
 c.deployManualEncounter(encounter);assert.equal(writes,0);assert.equal(JSON.stringify(c.Scene),saved,'preview/cancel do not mutate state');previewDialog.close();assert.equal(writes,0);
 role='player';c.deployManualEncounter(encounter);assert.equal(writes,0);role='gm';c.deployManualEncounter(encounter);c.confirmManualEncounter(previewDialog);assert.equal(writes,1);assert.equal(c.Scene.actors.find(row=>row.name==='A').profileId,'lionwing.npc.assassin');
 console.log('Manual layout: typed atomic space/table replacement, frozen heroes/runtime, caps, stale revision/epoch, private audit, replay, player denial, real preview/cancel route passed');
+
+// Imported full presets exclude sheet-owned heroes. Classify private/orphan
+// annotations before their original owner identity is removed by the mapper.
+const excluded={...plain(hero),id:'private-sheet-owner',heroId:'foreign-sheet',hidden:true};
+const template={spaces:[{id:'main',name:'Main',mode:'custom',width:3,height:3}],activeSpace:'main',actors:[excluded],objects:[{id:'secret-area',space:'main',ownerActorId:excluded.id,label:'SECRET_IMPORTED_AREA',cells:['2,2'],hidden:false}],walls:[{id:'secret-wall',space:'main',ownerActorId:excluded.id,label:'SECRET_IMPORTED_WALL',a:'1,1',b:'2,1',hidden:false}],markers:[{id:'orphan-marker',space:'main',ownerActorId:'deleted-owner',label:'SECRET_IMPORTED_MARKER',x:1,y:1,hidden:false}],artworks:[]};
+const imported=c.manualEncounterLayout({edition:'lionwing',name:'Private preset',templateScene:template});
+assert.equal(imported.layout.actors.length,0);
+for(const kind of ['objects','walls','markers']){assert.equal(imported.layout[kind][0].hidden,true,kind+' preserves source privacy before owner remap');assert.equal(imported.layout[kind][0].ownerActorId,null);}
+const importedScene=engine.dispatchMany(c.Scene,[{id:'import-private-full',type:'table.command',actorId:null,payload:imported}]).scene;
+assert.ok(!JSON.stringify(engine.projectScene(importedScene,{role:'player'})).includes('SECRET_IMPORTED_'));
+assert.equal(importedScene.objects[0].label,'SECRET_IMPORTED_AREA','narrator can still access private annotations');
+template.actors[0].hidden=false;template.markers[0].ownerActorId=excluded.id;
+const publicImport=c.manualEncounterLayout({edition:'lionwing',name:'Public preset',templateScene:template});
+for(const kind of ['objects','walls','markers'])assert.equal(publicImport.layout[kind][0].hidden,false,'explicit public source is not blanket hidden');
+console.log('Full preset producer: excluded hidden sheet owner, orphan owner, walls/markers/areas and intentional public annotations passed');
