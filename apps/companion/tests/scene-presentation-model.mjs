@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';import vm from 'node:vm';
+const c=vm.createContext({});vm.runInContext(fs.readFileSync(new URL('../scene-presentation-model.js',import.meta.url),'utf8'),c);const m=c.DAWN_PRESENTATION_MODEL,plain=v=>JSON.parse(JSON.stringify(v));
+const space={id:'main',width:7,height:7},a={x:0,y:0},b={x:3,y:2};
+assert.deepEqual(plain(m.geometry('line',a,b,space)),['0,0','1,1','2,1','3,2']);
+assert.equal(m.geometry('rectangle',a,b,space).length,12);assert.equal(m.geometry('ping',a,null,space).length,1);
+assert.throws(()=>m.geometry('line',a,{x:7,y:0},space));assert.throws(()=>m.geometry('damage',a,b,space));
+const now=Date.now(),scene={tablePolicy:{epoch:2},spaces:[space]},row={id:'frame',scene_id:'room',user_id:'u',display_name:'Peer',color_slot:3,policy_epoch:2,space_id:'main',kind:'line',cells:['0,0','1,1'],created_at:new Date(now).toISOString(),expires_at:new Date(now+6000).toISOString()};
+assert.equal(m.frame(scene,row,{roomId:'room',now}).colorSlot,3);
+for(const patch of [{scene_id:'old'},{policy_epoch:1},{color_slot:12},{expires_at:new Date(now-1).toISOString()},{expires_at:new Date(now+60000).toISOString()},{cells:['0,0','0,0']},{cells:['1,1;delete']},{cells:['00,0']},{cells:['0,01']},{kind:'ping'},{space_id:'other'}])assert.equal(m.frame(scene,{...row,...patch},{roomId:'room',now}),null);
+assert.throws(()=>m.validateCells(Array.from({length:129},(_,i)=>`${i%12},${Math.floor(i/12)}`),{width:12,height:12}));
+assert.equal(m.frame(scene,{...row,kind:'ping',cells:['0,0'],expires_at:new Date(now+1200).toISOString()},{roomId:'room',now}).kind,'ping');
+assert.equal(m.frame(scene,{...row,kind:'ping',cells:['0,0']},{roomId:'room',now}),null,'ping cannot last six seconds');
+console.log('Ephemeral presentation model: geometry, clipping guards, scope/epoch/expiry/shape validation passed.');

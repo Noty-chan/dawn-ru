@@ -42,3 +42,5 @@ Sol6.1 low reviewer нашёл malformed-counter import и потерю focus; �
 
 
 Финальный core/layout receipt: `output/manual-counters-desktop-final-20261008-test.log` PASS exit0, после normalization/focus/плавающей палитры/ручного контекста. После него отдельный пакет журнала: настоящий formatter переводит ручные изменения RU/EN (HP0 и Stress3 сохраняются явными значениями, без механических последствий), временные метки выводятся HH:MM; local Player view получает только projected journal. Native GM→Player: записи скрытого NPC/counters исчезают, собственный hero HP остаётся. Прогон `freeplay-tools.mjs` и native журнал записать в receipt после завершения.
+
+Следующий пакет: [локальные нейтральные показы и точная граница shared транспорта](MANUAL_TABLE_PRESENTATIONS_2026-10-08.md). Финальный targeted журнала — `output/manual-journal-targeted-20261008-test.log` PASS; объединённый full после локального U03 также PASS, см. новый журнал.

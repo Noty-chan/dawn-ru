@@ -350,6 +350,7 @@ function openManualActorReader(actorId){
   return window.DAWN_MANUAL_WORKSPACE.open(actor.id);
 }
 function renderManualTable(){
+  window.DAWN_SCENE_PRESENTATIONS?.refresh?.();
   if(manualTableActive())ensureManualAreaTools();
   renderManualAreaDraft();
   renderManualClocks();

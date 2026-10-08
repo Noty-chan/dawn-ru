@@ -1,3 +1,4 @@
+import './scene-presentation-model.mjs';
 import './table-manual-roll-route.mjs';
 import './table-manual-tools.mjs';
 import './table-manual-clock-route.mjs';

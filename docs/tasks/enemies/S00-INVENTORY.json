@@ -304,6 +304,7 @@
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-tools.mjs",
+            "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/tools-support-workspace.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],

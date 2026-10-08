@@ -7,10 +7,11 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     const value = typeof t === "function" ? t(key) : key;
     return value && value !== key ? value : fallback;
   };
-  const labelFor = group => group.id === "highlights" ? (typeof isEnglishPreview === "function" && isEnglishPreview() ? "Ability highlights" : "Подсветки способностей") : copy(`scene.boardTools.category.${group.id}`, group.label);
+  const labelFor = group => group.id === "present" ? (typeof isEnglishPreview === "function" && isEnglishPreview() ? "Show" : "Показ") : group.id === "highlights" ? (typeof isEnglishPreview === "function" && isEnglishPreview() ? "Ability highlights" : "Подсветки способностей") : copy(`scene.boardTools.category.${group.id}`, group.label);
   const groups = [
     { id: "tokens", label: "Жетоны", icon: "●", selectors: ['[data-scene-tool="select"]','[data-scene-tool="place"]','[data-scene-tool="target"]','#scene-clear-targets'] },
     { id: "measure", label: "Измерение", icon: "↔", selectors: ['[data-scene-tool="measure"]','#scene-clear-movement-traces'] },
+    { id: "present", label: "Показ", icon: "✦", selectors: ["#scene-present-ping","#scene-present-line","#scene-present-rectangle","#scene-present-cells","#scene-present-cancel"], controls: ["scene-presentation-status"] },
     { id: "areas", label: "Окружение", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"][data-scene-area-type="terrain"]','[data-scene-tool="wall"]','[data-scene-tool="erase"]'], controls: ["scene-area-controls","scene-wall-controls"] },
     { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: ["scene-marker-controls"] },
     { id: "highlights", label: "Подсветки способностей", icon: "✦", selectors: ["#manual-table-area-tool"], controls: ["manual-table-area-tools"] },
@@ -31,7 +32,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   function decorate(node) {
     const home = remember(node, true);
     if(node.dataset?.sceneTool==="erase"){const label=copy("scene.boardTools.eraseEnvironment","Удалить окружение; участники сохраняются");node.dataset.toolHelp=label;node.setAttribute("aria-label",label);node.title=label;}
-    const operation = ({area:"areas",wall:"walls",marker:"markers",topology:"edit",erase:"clear"})[node.dataset?.sceneTool] || node.dataset?.sceneTool || ({"scene-zoom-fit":"view","scene-undo":"undo","scene-redo":"redo","scene-clear-targets":"clear","scene-clear-movement-traces":"traces"})[node.id];
+    const operation = ({area:"areas",wall:"walls",marker:"markers",topology:"edit",erase:"clear"})[node.dataset?.sceneTool] || node.dataset?.sceneTool || ({"scene-zoom-fit":"view","scene-undo":"undo","scene-redo":"redo","scene-clear-targets":"clear","scene-clear-movement-traces":"traces"})[node.id] || node.dataset?.boardIcon;
     const svg = icon(operation);
     if (svg && !node.querySelector(".scene-board-tool-original-label")) node.innerHTML = svg + `<span class="scene-board-tool-original-label">${escape(home.label)}</span>`;
     if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", home.label);
