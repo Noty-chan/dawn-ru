@@ -1005,7 +1005,7 @@ function applySceneZoom(next=sceneZoom,{manual=false}={}){
   sceneZoom=clamp(next,30,180);if(manual){sceneZoomMode="manual";sceneNeedsInitialFit=false}
   const board=$("scene-board"),input=$("scene-zoom"),output=$("scene-zoom-value"),fit=$("scene-zoom-fit");
   board?.style.setProperty("--scene-zoom",String(sceneZoom/100));if(input)input.value=sceneZoom;if(output)output.textContent=`${sceneZoom}%`;
-  if(fit){fit.classList.remove("on");fit.removeAttribute("aria-pressed");fit.title=isEnglishPreview()?"Fit the field once":"Вписать поле один раз"}
+  if(fit){fit.classList.remove("on");fit.removeAttribute("aria-pressed");fit.title=isEnglishPreview()?"Fit the field once":"Вписать поле один раз";fit.setAttribute("aria-label",fit.title)}
   persist();
 }
 function fitSceneZoom(comfortable=false){

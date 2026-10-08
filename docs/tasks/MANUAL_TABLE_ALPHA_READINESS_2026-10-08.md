@@ -32,6 +32,20 @@
 
 ## Следующий desktop проход
 
+Дополнительный native проход этой ветки: колесо в режиме Стены меняет сторону north→east, камера остаётся scroll0/0; клик D3 создаёт side-east сегмент. Перезагрузка сохраняет стену и местность, ЗД Убийцы15/18. Это локальный полный app, не shared room.
+
+Уточнены RU/EN подсказки select/place/target/marker: ручное передвижение не обещает Шаг/оплату, маркировка целей не обещает исполнение действия. Actual helper проверен при live смене языка/policy; новые aria-labels подтверждены в браузере. Fit имеет одинаковое одноразовое название в tooltip и screen reader. Classic erase сохраняет прежний маршрут удаления участников; next erase удаляет окружение и сохраняет участников. Эти различия не устранены и не следует обещать одинаковое поведение двух интерфейсов.
+
+Общий охват автоматизации по текущей generated [AUTOMATION-READINESS](../../apps/companion/AUTOMATION-READINESS.md):333 Уровня Техник,85 заявленных shared/inherited,57 partial,191 manual;122 правила обычных врагов,69 исполнимых и53 assisted. Формально E2E-сертифицированных записей0: это ограничение evidence-реестра, а не отсутствие всех тестов. Числа характеризуют охват реализации, не процент готовности выпуска. Ручной стол можно тестировать независимо от полноты автоматизаций.
+
+Финальный labels executable пакет прошёл immutable полный `npm test`: `output/manual-alpha-labels-final2-20261008-test.log`, PASS exit0. Readonly low reviewer перепроверил актуальные helpers и targeted tests, подтверждённых ошибок в пакете не нашёл. Ранний labels full также PASS, но не включает поздние marker/fit исправления; для итогового gate использовать final2.
+
+## Продолжение после лимита
+
+Работа сохранена в `codex/manual-table-review-20261008`: `83895e0` числовые pending/rejection; `cae6721` gesture lifecycle, Space-pan и прозрачная idle палитра; следующий коммит добавляет честные подсказки ручного режима и Fit aria. Main и опубликованный сайт этой задачей не обновлялись. Следующий агент сначала fetch/review этой ветки, затем desktop acceptance и четыре сетевых/start-rules gate выше; full PASS не даёт разрешения объявлять shared alpha готовой. Одноразовый high review уже был выполнен в прежнем проходе, пользователь просил не повторять его постоянно; далее держать low reviewer. Мобильный проход отложен.
+
+Локальный QA origin `http://127.0.0.1:18815/output/manual-review-qa.html?lang=ru&edition=lionwing&mode=play`, отдельный Python http.server PID22112, workspace root. Страница оставлена для просмотра результата; это QA clone с cache-buster/скрытой update banner, не production. Перед остановкой сервера проверить PID/commandline; чужие серверы не трогать. Screenshot `output/manual-palette-alpha-final-20261008.jpg` подтверждает чистую палитру и HUD. Viewport override сброшен, pending/inspector fixture tabs закрыты.
+
 - New/classic, несколько героев и NPC, обе панели, токены у краёв/zoom; читать, менять ЗД, выбирать цель, закрывать HUD без пересечения токена.
 - Мышью проверить erase после Space-pan, wall wheel без сдвига камеры, marker create/delete и Undo; отличать native browser receipt от handler VM.
 - Доделать U04 drag brush одним Undo; затем полный RU/EN просмотр палитр и Reader.

@@ -407,7 +407,20 @@ function openManualActorReader(actorId){
   Scene.selectedActor=actor.id;Scene.activeSpace=actor.space;persist();renderScene();
   return window.DAWN_MANUAL_WORKSPACE.open(actor.id);
 }
+function renderManualToolLabels(){
+  const manual=manualTableActive();
+  const labels={
+    select:manual?["Выбрать участника; передвижение записывается вручную без расхода ресурсов","Select a participant; movement is recorded manually without spending resources"]:["Выбирать токены; движение текущего участника выполняет Шаг","Select tokens; moving the current participant performs Step"],
+    place:manual?["Переставить участника и записать перемещение в журнал","Reposition a participant and record the movement in the journal"]:["Переставить любого участника без затрат и записать это в журнал","Reposition any participant without costs and record it in the journal"],
+    target:manual?["Отметить участников как цели; действия не выполняются","Mark participants as targets; no actions are performed"]:["Отметить цели следующего действия","Mark targets for the next action"],
+    marker:manual?["Поставить обозначение на карту","Place a map annotation"]:["Поставить маркер правила","Place a rule marker"]
+  };
+  for(const [tool,text] of Object.entries(labels))for(const button of document.querySelectorAll(`[data-scene-tool="${tool}"]`)){
+    const label=manualTableCopy(...text);button.dataset.toolHelp=label;button.title=label;button.setAttribute("aria-label",label);
+  }
+}
 function renderManualTable(){
+  renderManualToolLabels();
   window.DAWN_SCENE_PRESENTATIONS?.refresh?.();
   if(manualTableActive())ensureManualAreaTools();
   renderManualAreaDraft();

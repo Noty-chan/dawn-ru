@@ -44,6 +44,10 @@ run("scheduleSceneViewportFit();applySceneZoom()");flush();
 assert.equal(run("sceneZoom"),110,"renders, panel changes and desktop resizes preserve manual zoom");
 assert.equal(saved.at(-1).mode,"manual","the local preference survives persistence");
 assert.equal(attributes.has("aria-pressed"),false,"Fit is a one-shot command, not a toggle");
+assert.equal(attributes.get("aria-label"),"Вписать поле один раз","screen readers describe the same one-shot command as the tooltip");
+context.isEnglishPreview=()=>true;run("applySceneZoom()");
+assert.equal(attributes.get("aria-label"),"Fit the field once");
+assert.equal(elements.get("scene-zoom-fit").title,attributes.get("aria-label"));
 
 run("fitSceneZoom()");
 assert.equal(run("sceneZoomMode"),"manual","the explicit fit control fixes the resulting zoom");

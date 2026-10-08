@@ -126,3 +126,16 @@ assert.equal(writes,0,'suppressed synthetic click cannot place an annotation');a
 assert.ok(!emit(pointerEvents,'pointerdown',{button:1}).prevented,'area draft lets middle-button pan pass');
 pc.sceneSuppressBoardClickUntil=0;emit(pointerEvents,'click');assert.equal(writes,1,'ordinary click still places the annotation');
 console.log('Manual area actual capture + camera handlers: Space/middle pan, scroll, synthetic-click suppression, draft preservation and normal placement passed.');
+
+// Reused classic/next buttons must describe the current policy and language,
+// including a live transition back to rules; changing labels never changes Scene.
+const toolNodes=Object.fromEntries(['select','place','target','marker'].map(tool=>[tool,{dataset:{},attrs:{},setAttribute(k,v){this.attrs[k]=v;}}]));
+let manualLabels=true,englishLabels=false;
+const labelContext={manualTableActive:()=>manualLabels,manualTableCopy:(ru,en)=>englishLabels?en:ru,document:{querySelectorAll:selector=>[toolNodes[selector.match(/="(.*?)"/)[1]]]}};
+vm.createContext(labelContext);
+vm.runInContext(integration.slice(integration.indexOf('function renderManualToolLabels('),integration.indexOf('function renderManualTable(')),labelContext);
+labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/без расхода ресурсов/);assert.match(toolNodes.target.title,/действия не выполняются/);assert.equal(toolNodes.marker.title,'Поставить обозначение на карту');
+englishLabels=true;labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/without spending resources/);assert.equal(toolNodes.select.attrs['aria-label'],toolNodes.select.dataset.toolHelp);
+manualLabels=false;labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/performs Step/);assert.match(toolNodes.target.title,/next action/);assert.equal(toolNodes.marker.attrs['aria-label'],'Place a rule marker');
+manualLabels=true;labelContext.renderManualToolLabels();assert.doesNotMatch(toolNodes.select.title,/Step/);
+console.log('Manual tool labels: policy/language transitions describe storage-only movement and target marking passed.');
