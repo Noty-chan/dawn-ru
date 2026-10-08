@@ -59,6 +59,7 @@
   function detachReferences(value, ids) {
     if (!value || typeof value !== "object") return;
     for (const [key, item] of Object.entries(value)) {
+      if(["receipts","history","journal","entityReceipts","boundaryReceipts","afterEventReceipts","specialJournal"].includes(key))continue;
       if (REF_KEYS.has(key) && ids.has(item)) value[key] = null;
       else if (REF_ARRAY_KEYS.has(key) && Array.isArray(item)) value[key] = item.filter(id => !ids.has(id));
       else if (key === "links" && Array.isArray(item)) value[key] = item.filter(link => !ids.has(link?.from) && !ids.has(link?.to));
@@ -83,8 +84,77 @@
     // essential for duplicate detection and undo handled by the caller.
     for (const key of ["actors", "objects", "markers", "walls", "reminders", "sessionClocks"]) detachReferences(scene[key], ids);
     if (scene.lionwing) for (const [key, value] of Object.entries(scene.lionwing)) {
-      if (!["receipts", "history", "specialJournal", "boundaryReceipts", "afterEventReceipts"].includes(key)) detachReferences(value, ids);
+      if (!["receipts", "history", "journal", "entityReceipts", "specialJournal", "boundaryReceipts", "afterEventReceipts"].includes(key)) detachReferences(value, ids);
     }
+  }
+  const LAYOUT_ACTOR_FIELDS = ["id","kind","team","profileId","rulesEdition","name","tier","space","x","y","gmRole","notes","tokenSymbol","tokenColor","tokenImage","portraitImage","hidden","manualInitiativeVisible",...RESOURCE_FIELDS,"attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState"];
+  function replaceLayout(scene,event){
+    const p=event.payload;exactKeys(p,["kind","layout","expectedVersion","policyEpoch"]);
+    if(event.actorId)fail("Расстановку меняет Нарратор.");
+    if(!Number.isSafeInteger(p.expectedVersion)||p.expectedVersion!==Number(scene.version||0))fail("Стол изменился после предпросмотра. Откройте расстановку заново.","SCENE_VERSION_CONFLICT");
+    if(!Number.isSafeInteger(p.policyEpoch)||p.policyEpoch!==normalizePolicy(scene.tablePolicy).epoch)fail("Ведение стола изменилось.","TABLE_POLICY_CONFLICT");
+    if(pendingWork(scene))fail("Сначала завершите ожидающее действие.","TABLE_PENDING_WORK");
+    const layout=p.layout;exactKeys(layout,["scope","name","spaces","activeSpace","actors","objects","walls","markers","artworks","backgroundArt","featuredArt","backgroundView"]);
+    if(!["space","table"].includes(layout.scope)||typeof layout.name!=="string"||layout.name.length>120)fail("Некорректная расстановка.");
+    if(JSON.stringify(layout).length>1800000)fail("Расстановка слишком большая.","TABLE_CAPACITY");
+    if(!Array.isArray(layout.spaces)||!layout.spaces.length||layout.spaces.length>12)fail("Расстановка содержит от 1 до 12 полей.","TABLE_CAPACITY");
+    const spaceIds=new Set();
+    for(const row of layout.spaces){
+      exactKeys(row,["id","name","mode","width","height"]);safeId(row.id);
+      if(spaceIds.has(row.id)||typeof row.name!=="string"||row.name.length>60||!["standard","cinematic","custom"].includes(row.mode)||![row.width,row.height].every(value=>Number.isSafeInteger(value)&&value>=1&&value<=12)||row.mode==="standard"&&(row.width!==7||row.height!==7)||row.mode==="cinematic"&&(row.width!==7||row.height!==1))fail("Некорректное поле расстановки.");
+      spaceIds.add(row.id);
+    }
+    if(!spaceIds.has(layout.activeSpace))fail("Активное поле расстановки отсутствует.");
+    if(layout.scope==="space"&&(layout.spaces.length!==1||layout.activeSpace!==scene.activeSpace))fail("Расстановка поля должна относиться к текущему полю.");
+    const affected=row=>layout.scope==="table"||row.space===scene.activeSpace;
+    const retainedHero=row=>row.team==="hero"&&(row.kind==="hero"||row.heroId)||Boolean(row.ownerId||row.characterId||row.heroId);
+    const removedActors=(scene.actors||[]).filter(row=>affected(row)&&!retainedHero(row)).map(row=>row.id);
+    for(const id of removedActors)removeStoredObject(scene,"actors",id);
+    for(const key of ["objects","walls","markers"])for(const row of [...(scene[key]||[])])if(affected(row))removeStoredObject(scene,key,row.id);
+    if(layout.scope==="table")scene.spaces=copy(layout.spaces);
+    else scene.spaces=scene.spaces.map(row=>row.id===layout.activeSpace?copy(layout.spaces[0]):row);
+    scene.activeSpace=layout.activeSpace;
+    const allSpaces=new Map(scene.spaces.map(row=>[row.id,row]));
+    // Preserve heroes and their frozen records. Only map coordinates may change.
+    for(const row of scene.actors||[]){
+      const space=allSpaces.get(row.space)||allSpaces.get(layout.activeSpace);
+      if(!allSpaces.has(row.space))row.space=space.id;
+      if(affected(row)||!Number.isInteger(row.x)||!Number.isInteger(row.y)){row.x=Math.max(0,Math.min(space.width-1,Number(row.x)||0));row.y=Math.max(0,Math.min(space.height-1,Number(row.y)||0));}
+    }
+    if(!Array.isArray(layout.actors)||(scene.actors||[]).length+layout.actors.length>120)fail("Лимит участников — 120.","TABLE_CAPACITY");
+    for(const row of layout.actors){
+      exactKeys(row,LAYOUT_ACTOR_FIELDS);uniqueObjectId(scene,row.id);
+      if(!["enemy","hero","crowd","token"].includes(row.kind)||!["enemy","hero"].includes(row.team)||!spaceIds.has(row.space)||typeof row.name!=="string"||row.name.length>120||row.rulesEdition!==scene.rulesEdition||!Number.isSafeInteger(row.tier)||row.tier<0||row.tier>99)fail("Некорректный участник расстановки.");
+      if(scene.rulesEdition==='lionwing'&&String(row.profileId||'').startsWith('enemy.'))fail("Профиль старой редакции нельзя импортировать в LionWing.");
+      if(row.kind==='hero'&&!row.profileId)fail("Листы героев сохраняются на столе и не импортируются из расстановки.");
+      cell(scene,row.space,row.x,row.y);
+      for(const key of RESOURCE_FIELDS)if(!Number.isSafeInteger(row[key])||row[key]<0||row[key]>resourceMaximum(row,key))fail("Некорректный ресурс участника расстановки.");
+      if(row.hp>row.maxHp)fail("Здоровье превышает максимум.");
+      for(const key of ["hidden","manualInitiativeVisible"])if(row[key]!==undefined&&typeof row[key]!=="boolean")fail("Некорректная видимость участника.");
+      for(const key of ["profileId","gmRole","notes","tokenSymbol","tokenColor","tokenImage","portraitImage"])if(row[key]!==undefined&&row[key]!==null&&typeof row[key]!=="string")fail("Некорректное описание участника.");
+      for(const key of ["attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState"])if(row[key]!==undefined&&JSON.stringify(row[key]).length>16000)fail("Описание участника слишком большое.");
+      scene.actors.push({...copy(row),heroId:null,ownerId:null,characterId:null,effects:[],usedActions:[],usedTrump:false,acted:row.kind==="crowd",knockedOut:false});
+    }
+    for(const [key,kind] of [["objects","area/create"],["walls","wall/create"],["markers","marker/create"]]){
+      if(!Array.isArray(layout[key])||(scene[key]||[]).length+layout[key].length>240)fail("Лимит объектов каждого вида — 240.","TABLE_CAPACITY");
+      for(const stored of layout[key]){
+        const {ownerActorId,...row}=stored;
+        if(!spaceIds.has(row.space)||ownerActorId!==null&&!layout.actors.some(actor=>actor.id===ownerActorId))fail("Некорректный владелец или поле обозначения.");
+        reduce(scene,{...event,actorId:ownerActorId,payload:{kind,[kind==="area/create"?"area":kind==="wall/create"?"wall":"marker"]:row}});
+      }
+    }
+    if(layout.scope==="table"){
+      if(!Array.isArray(layout.artworks)||layout.artworks.length>12)fail("Лимит артов — 12.","TABLE_CAPACITY");
+      const artIds=new Set();
+      for(const art of layout.artworks){exactKeys(art,["id","name","kind","image","imageStored","hidden"]);safeId(art.id);if(artIds.has(art.id)||typeof art.name!=="string"||art.name.length>120||!["art","background"].includes(art.kind)||typeof art.image!=="string"||typeof art.hidden!=="boolean"||typeof art.imageStored!=="boolean")fail("Некорректный арт расстановки.");artIds.add(art.id);}
+      for(const key of ["backgroundArt","featuredArt"])if(layout[key]!==null&&!artIds.has(layout[key]))fail("Арт расстановки отсутствует.");
+      exactKeys(layout.backgroundView,["fit","position","dim","gridOpacity"]);
+      if(!["contain","cover"].includes(layout.backgroundView.fit)||!["center","top","bottom","left","right"].includes(layout.backgroundView.position)||!Number.isSafeInteger(layout.backgroundView.dim)||layout.backgroundView.dim<0||layout.backgroundView.dim>85||!Number.isSafeInteger(layout.backgroundView.gridOpacity)||layout.backgroundView.gridOpacity<12||layout.backgroundView.gridOpacity>96)fail("Некорректное отображение фона.");
+      scene.artworks=copy(layout.artworks);scene.backgroundArt=layout.backgroundArt;scene.featuredArt=layout.featuredArt;scene.backgroundView=copy(layout.backgroundView);
+    }else if(["artworks","backgroundArt","featuredArt","backgroundView"].some(key=>layout[key]!==undefined))fail("Фон меняется только с полной расстановкой.");
+    if(!actor(scene,scene.manualTable?.actorId)&&scene.manualTable)scene.manualTable.actorId=null;
+    if(!actor(scene,scene.selectedActor))scene.selectedActor=null;
+    scene.targetIds=(scene.targetIds||[]).filter(id=>actor(scene,id));scene.targetCells=[];
   }
   function reduce(scene, event) {
     const p = event.payload;
@@ -102,7 +172,8 @@
     }
     if (!isManual(scene)) fail("Ручная команда требует ручной политики стола.", "TABLE_MANUAL_REQUIRED");
     if (p.kind === "start-rules") fail("Инициализация нового боя ещё не подключена.", "TABLE_START_RULES_UNAVAILABLE");
-    if (p.kind === "move") {
+    if(p.kind === "layout/replace")replaceLayout(scene,event);
+    else if (p.kind === "move") {
       exactKeys(p, ["kind", "space", "x", "y"]);
       const target = requiredActor(scene, event.actorId), to = cell(scene, p.space, p.x, p.y);
       target.manualMovementTrace = { eventId: event.id, from: { space: target.space, x: target.x, y: target.y }, to: copy(to) };
@@ -239,6 +310,7 @@
       const privateTarget=target?.hidden||target?.kind==="hidden"||target?.manual&&target.ownerActorId&&(!actor(next,target.ownerActorId)||actor(next,target.ownerActorId).hidden);
       if(privateTarget)event.visibility="gm";
       if (actor(next, event.actorId)?.hidden || event.payload?.kind === "marker/create" && (event.payload.marker?.hidden||event.payload.marker?.kind==="hidden") || event.payload?.kind === "area/create" && event.payload.area?.hidden || event.payload.kind==="wall/create"&&event.payload.wall?.hidden) event.visibility = "gm";
+      if(event.payload.kind==="layout/replace")event.visibility="gm";
       reduce(next, event);
       next.version = Number(next.version || 0) + 1;
       next.log ||= []; next.log.unshift(event); next.log = next.log.slice(0, 200);
@@ -324,5 +396,5 @@
     }
     return global.DAWN_TABLE_POLICY;
   }
-  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceMaximum, resourceFields: RESOURCE_FIELDS };
+  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceMaximum, resourceFields: RESOURCE_FIELDS, layoutActorFields:LAYOUT_ACTOR_FIELDS };
 })(typeof window === "object" ? window : globalThis);

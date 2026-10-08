@@ -18,6 +18,7 @@ try{
   state.actors[0].lionwing={inventory:{schema:1,actorId:'visible',definitions:{pub:{id:'pub',active:true,visibility:'public'},secret:{id:'PRIVATE_ITEM',active:true,visibility:'narrator'}},
     records:{pub:{definitionId:'pub',visibility:'public',value:2},secret:{definitionId:'secret',visibility:'public',label:'PRIVATE_INVENTORY',value:37}},journal:[{before:'PRIVATE_JOURNAL'}],reservations:{secret:{value:'PRIVATE_RESERVATION'}}}};
   state.actors[0].inventory={pub:2,secret:37};
+  state.actors[0].effects=['visible-effect'];state.actors[0].effectStates={'visible-effect':{appliedEventId:'PRIVATE_EFFECT_EVENT',sources:[{actorId:'secret',sourceId:'secret',eventId:'PRIVATE_EFFECT_EVENT'},{actorId:'visible',sourceId:'visible',eventId:'public-effect'}]}};
   await db.query('insert into public.scenes values($1,$2,$3::jsonb)',['test',9,JSON.stringify(state)]);
   await db.exec("insert into public.scene_public_snapshots select id,version,public.public_scene_projection(state),now() from public.scenes;");
   const before=(await db.query('select state from public.scene_public_snapshots')).rows[0].state;
@@ -32,12 +33,20 @@ try{
   assert.deepEqual(projected.lionwing.entities,{});assert.deepEqual(projected.lionwing.auras,[]);assert.deepEqual(projected.lionwing.subscriptions,[]);
   assert.deepEqual(Object.keys(projected.actors[0].lionwing.inventory.definitions),['pub']);assert.deepEqual(Object.keys(projected.actors[0].lionwing.inventory.records),['pub']);
   assert.equal(projected.actors[0].lionwing.inventory.journal,undefined);assert.equal(projected.actors[0].lionwing.inventory.reservations,undefined);assert.deepEqual(projected.actors[0].inventory,{pub:2});
+  assert.deepEqual(projected.actors[0].effects,['visible-effect']);assert.deepEqual(projected.actors[0].effectStates['visible-effect'].sources,[{actorId:'visible',sourceId:'visible',eventId:'public-effect'}]);
   assert.ok(!JSON.stringify(projected).includes('PRIVATE_'),'raw public JSON contains no private receipt, inventory or map metadata');
   assert.equal(projected.manualTable.actorId,null);assert.equal(projected.manualTable.round,2);
   assert.equal(projected.eventReceipts,undefined);
   assert.deepEqual(projected.log.map(e=>e.id),['public-event'],'old public event referencing private clock is removed');
   assert.ok(!JSON.stringify(projected).includes('Hidden ritual plan'));
   assert.equal((await db.query('select state from public.scenes')).rows[0].state.sessionClocks.length,5,'authoritative data untouched');
+  const deleted=structuredClone(state);deleted.actors=deleted.actors.filter(row=>row.id!=='secret');
+  deleted.lionwing.auras[0].label='PRIVATE_ORPHAN_AURA';deleted.lionwing.subscriptions.push({id:'orphan-sub',ownerActorId:'secret',label:'PRIVATE_ORPHAN_SUB'});
+  deleted.lionwing.selections=[{actorId:'missing',label:'PRIVATE_ORPHAN_SELECTION'}];deleted.lionwing.choices=[{actorId:'secret',label:'PRIVATE_ORPHAN_CHOICE'}];
+  deleted.log.push({id:'orphan-audit',actorId:'secret',text:'PRIVATE_ORPHAN_AUDIT'});
+  const orphanProjection=(await db.query('select public.public_scene_projection($1::jsonb) as state',[JSON.stringify(deleted)])).rows[0].state;
+  assert.ok(!JSON.stringify(orphanProjection).includes('PRIVATE_'),'deleted typed actor references do not make frozen state or audit public');
+  assert.deepEqual(orphanProjection.lionwing.auras,[]);assert.deepEqual(orphanProjection.lionwing.subscriptions,[]);assert.deepEqual(orphanProjection.lionwing.selections,[]);assert.deepEqual(orphanProjection.lionwing.choices,[]);
   await db.exec(migration);
   assert.deepEqual((await db.query('select state from public.scene_public_snapshots')).rows[0].state,projected,'repeat migration remains stable');
   const known={...state,tablePolicy:{mode:'manual'},actors:[{id:'secret',name:'Known vanished enemy',space:'main',hidden:true,manualInitiativeVisible:true,hp:18,x:4,privateNotes:'classified'},{id:'never-seen',name:'Ambush secret',hidden:true}]};

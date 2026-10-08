@@ -110,3 +110,7 @@ body.scene-mode:not(.scene-interface-next) .manual-area-tools{width:min(280px,10
 .manual-area-tools[data-placement="idle"]>[data-area-note],
 .manual-area-tools[data-placement="idle"]>[data-area-cancel]{display:none}
 .manual-area-tools[data-placement="idle"]{max-width:280px}
+#manual-layout-preview{width:min(520px,calc(100vw - 32px));padding:20px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+#manual-layout-preview::backdrop{background:#0c0c1280}
+#manual-layout-preview [data-layout-summary]{white-space:pre-line;line-height:1.6}
+#manual-layout-preview output{display:block;color:var(--accent);margin-top:8px}

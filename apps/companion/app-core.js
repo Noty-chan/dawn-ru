@@ -329,6 +329,9 @@ actor.modifierState=modifierProfile?{carrierId:typeof rawModifier.carrierId==="s
   base.targetCells=normalizedCells(base.activeSpace,scene.targetCells,40);
   const actorFor=id=>base.actors.find(actor=>actor.id===id),actorAvailable=id=>Boolean(actorFor(id)&&!actorFor(id).knockedOut),markerIds=new Set(base.markers.map(marker=>marker.id));
   if(base.activeActorId&&(!actorAvailable(base.activeActorId)||String(actorFor(base.activeActorId)?.profileId||"").includes(".modifier.")))base.activeActorId=null;
+  // Manual play freezes the old combat pointer; deleting a token must not
+  // implicitly advance/reset combat or make its history step unrestorable.
+  if(sceneTableIsManual(base))base.activeActorId=typeof scene.activeActorId==='string'?scene.activeActorId:null;
   if(base.pendingActionPlan){
     if(!actorAvailable(base.pendingActionPlan.actorId))base.pendingActionPlan=null;
     else if(base.pendingActionPlan.context&&typeof base.pendingActionPlan.context==="object"){

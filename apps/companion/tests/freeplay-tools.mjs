@@ -7,6 +7,7 @@ import './table-manual-public-projection.mjs';
 import './table-manual-map-tools.mjs';
 import './table-manual-network.mjs';
 import './table-manual-persistence.mjs';
+import './table-manual-layout.mjs';
 import './table-manual-policy.mjs';
 import './table-manual-workspace.mjs';
 import './table-manual-surfaces.mjs';

@@ -701,10 +701,11 @@
     const narrator = ["narrator", "gm"].includes(viewer.role);
     const ownActors = new Set(Array.isArray(viewer.actorIds) ? viewer.actorIds : viewer.actorId ? [viewer.actorId] : []);
     const result = {};
+    const metadataVisible=global.DAWN_SCENE_ENGINE?.projectionPrivacy?.predicate(scene,viewer)||(()=>true);
     for (const actor of normalizedScene?.actors || []) {
       const state = actor.lionwing?.inventory;
       if (!state || typeof state !== "object") continue;
-      const allowed = record => narrator || record.visibility === "public" || record.visibility === "owner" && ownActors.has(actor.id);
+      const allowed = record => narrator || (record.visibility === "public" || record.visibility === "owner" && ownActors.has(actor.id)) && metadataVisible(record);
       const definitions = Object.fromEntries(Object.entries(state.definitions || {}).filter(([, definition]) => definition.active !== false && allowed(definition)).map(([id, definition]) => [id, clone(definition)]));
       const records = Object.fromEntries(Object.entries(state.records || {}).filter(([, record]) => definitions[record.definitionId] && allowed(record)).map(([id, record]) => [id, clone(record)]));
       result[actor.id] = { schema: VERSION, actorId: actor.id, definitions, records };

@@ -84,6 +84,7 @@
           "apps/companion/tests/network-v2.mjs",
           "apps/companion/tests/qa.mjs",
           "apps/companion/tests/scene-engine.mjs",
+          "apps/companion/tests/table-manual-layout.mjs",
           "apps/companion/tests/table-manual-persistence.mjs"
         ],
         "notRun": [
@@ -153,6 +154,7 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/table-manual-layout.mjs",
             "apps/companion/tests/table-manual-persistence.mjs"
           ],
           "notRun": [
@@ -294,6 +296,7 @@
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-clock-route.mjs",
             "apps/companion/tests/table-manual-deletion-route.mjs",
+            "apps/companion/tests/table-manual-layout.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
@@ -365,6 +368,7 @@
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
             "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/table-manual-layout.mjs",
             "apps/companion/tests/table-manual-persistence.mjs"
           ],
           "notRun": [
@@ -1319,6 +1323,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-workspace-next.mjs",
             "apps/companion/tests/table-manual-clock-route.mjs",
+            "apps/companion/tests/table-manual-layout.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-network.mjs",
             "apps/companion/tests/table-manual-persistence.mjs",
@@ -9129,6 +9134,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-clock-route.mjs",
             "apps/companion/tests/table-manual-deletion-route.mjs",
+            "apps/companion/tests/table-manual-layout.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-movement.mjs",
             "apps/companion/tests/table-manual-network.mjs",

@@ -42,6 +42,7 @@ const longReload=plain(context.normalizeScene(longClock));assert.equal(longReloa
 
 assert.equal(once.sessionClocks[0].kind,"counter");assert.equal(once.sessionClocks[0].size,2000);assert.equal(once.sessionClocks[0].value,7);
 assert.deepEqual(twice,once,"reload is idempotent");assert.deepEqual(once.tablePolicy,scene.tablePolicy);assert.deepEqual(once.manualTable,scene.manualTable);
+const frozenPointer=plain(scene);frozenPointer.activeActorId='deleted-combat-actor';assert.equal(context.normalizeScene(frozenPointer).activeActorId,'deleted-combat-actor','manual normalization cannot reset a frozen combat pointer after storage-only deletion');
 for(const field of ["manualStatuses","manualTechniqueState","manualMovementTrace","hp","focus","ap","knockedOut","x","y"])assert.deepEqual(once.actors[0][field],scene.actors[0][field],field);
 assert.equal(once.actors[0].focus,7,'manual NPC Focus is preserved rather than reset as a rule default');
 assert.equal(once.actors[1].x,5,"compound positions stay independent");assert.equal(once.actors[1].knockedOut,false,"HP zero does not derive KO");assert.deepEqual(once.actors[1].effects,[],"compound does not spread status");

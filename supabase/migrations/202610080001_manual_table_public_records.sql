@@ -20,6 +20,33 @@ $$;
 
 -- Only public active inventory definitions and their public records are shared.
 -- Journals/reservations contain before/after authoritative state.
+create or replace function public.scene_metadata_redacted(metadata jsonb, hidden_ids text[])
+returns jsonb language plpgsql immutable set search_path = '' as $$
+declare result jsonb; child record; redacted jsonb;
+begin
+  if metadata is null then return null; end if;
+  if jsonb_typeof(metadata)='string' and (metadata #>> '{}')=any(hidden_ids) then return null; end if;
+  if jsonb_typeof(metadata)='object' then
+    if exists(select 1 from jsonb_each(metadata) e where e.key=any(hidden_ids) or jsonb_typeof(e.value)='string' and (e.value #>> '{}')=any(hidden_ids)) then return null; end if;
+    result='{}'::jsonb;
+    for child in select key,value from jsonb_each(metadata) loop
+      redacted=public.scene_metadata_redacted(child.value,hidden_ids);
+      if redacted is not null then result=result||jsonb_build_object(child.key,redacted); end if;
+    end loop;
+    if jsonb_typeof(metadata->'sources')='array' and jsonb_array_length(metadata->'sources')<>jsonb_array_length(coalesce(result->'sources','[]'::jsonb)) then result=result-'appliedEventId'-'createdEventId'-'lastEventId'; end if;
+    return result;
+  elsif jsonb_typeof(metadata)='array' then
+    result='[]'::jsonb;
+    for child in select value from jsonb_array_elements(metadata) loop
+      redacted=public.scene_metadata_redacted(child.value,hidden_ids);
+      if redacted is not null then result=result||jsonb_build_array(redacted); end if;
+    end loop;
+    return result;
+  end if;
+  return metadata;
+end;
+$$;
+
 create or replace function public.scene_actor_public_projection(actor jsonb, hidden_ids text[])
 returns jsonb language sql immutable set search_path = '' as $$
   with definitions as (
@@ -32,8 +59,9 @@ returns jsonb language sql immutable set search_path = '' as $$
       and public.scene_metadata_visible(item,hidden_ids)
   )
   select (actor - 'notes' - 'privateNotes' - 'ownerId' - 'characterId' - 'profileId' - 'antagonistTraitId' - 'attrs' - 'skills' - 'ability' - 'taintedAbility' - 'techniques' - 'inventory')
+    || coalesce((select jsonb_object_agg(key,coalesce(public.scene_metadata_redacted(value,hidden_ids),'{}'::jsonb)) from jsonb_each(actor) where key in ('effectStates','ruleState','techniqueState','modifierState','ruleResources','ruleClocks','lionwing')),'{}'::jsonb)
     || case when jsonb_typeof(actor->'lionwing'->'inventory')='object' then jsonb_build_object('lionwing',
-      ((actor->'lionwing') - 'inventory') || jsonb_build_object('inventory',jsonb_build_object(
+      coalesce(public.scene_metadata_redacted((actor->'lionwing') - 'inventory',hidden_ids),'{}'::jsonb) || jsonb_build_object('inventory',jsonb_build_object(
         'schema',actor->'lionwing'->'inventory'->'schema','actorId',actor->'id',
         'definitions',coalesce((select jsonb_object_agg(key,item) from definitions),'{}'::jsonb),
         'records',coalesce((select jsonb_object_agg(key,item) from records),'{}'::jsonb)))) else '{}'::jsonb end
@@ -48,7 +76,7 @@ language sql
 immutable
 set search_path = ''
 as $$
-  with src as (
+  with recursive src as (
     select coalesce(source,'{}'::jsonb) as value
   ), visible_actors as (
     select item
@@ -62,7 +90,25 @@ as $$
     where src.value->'tablePolicy'->>'mode'='manual' and item->>'initiativeOnly'='true' and not exists(select 1 from jsonb_array_elements(coalesce(src.value->'actors','[]'::jsonb)) actor where actor->>'id'=item->>'id')
   ), visible_actor_ids as (
     select item->>'id' as id from visible_actors where item ? 'id'
-  ), hidden_ids as (
+  ), reference_nodes(value,key) as (
+    select value,null::text from src
+    union all
+    select child.value,child.key from reference_nodes
+    cross join lateral (
+      select e.value,e.key from jsonb_each(case when jsonb_typeof(reference_nodes.value)='object' then reference_nodes.value else '{}'::jsonb end) e
+      union all select a.value,null::text from jsonb_array_elements(case when jsonb_typeof(reference_nodes.value)='array' then reference_nodes.value else '[]'::jsonb end) a
+    ) child
+  ), known_component_ids as (
+    select item->>'id' as id from src,lateral (
+      select value from jsonb_array_elements(coalesce(src.value->'actors','[]'::jsonb))
+      union all select value from jsonb_array_elements(coalesce(src.value->'objects','[]'::jsonb))
+      union all select value from jsonb_array_elements(coalesce(src.value->'walls','[]'::jsonb))
+      union all select value from jsonb_array_elements(coalesce(src.value->'markers','[]'::jsonb))
+      union all select value from jsonb_array_elements(coalesce(src.value->'sessionClocks','[]'::jsonb))
+      union all select value from jsonb_array_elements(coalesce(src.value->'artworks','[]'::jsonb))
+      union all select value from jsonb_each(coalesce(src.value->'lionwing'->'entities','{}'::jsonb))
+    ) records(item)
+  ), initial_hidden_ids as (
     select coalesce(array_agg(id),'{}'::text[]) as ids from (
       select item->>'id' as id from src, jsonb_array_elements(coalesce(value->'actors','[]'::jsonb)) item where coalesce((item->>'hidden')::boolean,false)
       union
@@ -83,7 +129,28 @@ as $$
       union
       select duel->>'id' from src, jsonb_array_elements(coalesce(value->'lionwing'->'duels','[]'::jsonb)) duel
       where duel->>'actorId' not in (select id from visible_actor_ids) or duel->>'targetId' not in (select id from visible_actor_ids)
+      union
+      select value #>> '{}' from reference_nodes
+      where key in ('actorId','ownerActorId','sourceActorId','targetActorId','hostActorId','seekerOwnerId','seekerTargetId','summonerId','vortexOwnerId','deploymentFodderOwnerId')
+        and jsonb_typeof(value)='string' and value #>> '{}' <> '' and value #>> '{}' not in (select id from visible_actor_ids)
+      union
+      select value #>> '{}' from reference_nodes
+      where key in ('targetId','entityId','sourceEntityId','objectId','wallId','markerId','areaId','backingId') and jsonb_typeof(value)='string' and value #>> '{}'<>'' and value #>> '{}' not in (select id from known_component_ids)
+      union
+      select item->>'id' from src,jsonb_array_elements(coalesce(value->'log','[]'::jsonb)) item
+      where coalesce(item->>'visibility',item->'payload'->>'visibility','public')='gm'
+        or not public.scene_metadata_visible(item,coalesce((select array_agg(value #>> '{}') from reference_nodes where key in ('actorId','ownerActorId','sourceActorId','targetActorId','hostActorId','seekerOwnerId','seekerTargetId','summonerId','vortexOwnerId','deploymentFodderOwnerId') and jsonb_typeof(value)='string' and value #>> '{}' not in (select id from visible_actor_ids)),'{}'::text[]))
     ) hidden
+  ), hidden_nodes(id) as (
+    select unnest(ids) from initial_hidden_ids
+    union
+    select coalesce(item->>'id',key) from hidden_nodes,src,lateral (
+      select key,value from jsonb_each(coalesce(src.value->'lionwing'->'entities','{}'::jsonb))
+      union all select null::text,value from jsonb_array_elements(coalesce(src.value->'log','[]'::jsonb))
+    ) records(key,item)
+    where not public.scene_metadata_visible(item,array[hidden_nodes.id]) and coalesce(item->>'id',key) is not null
+  ), hidden_ids as (
+    select coalesce(array_agg(id),'{}'::text[]) as ids from hidden_nodes
   ), visible_artworks as (
     select item
     from src, jsonb_array_elements(coalesce(value->'artworks','[]'::jsonb)) item
