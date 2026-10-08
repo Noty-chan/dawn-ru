@@ -98,3 +98,31 @@ assert.match(markup,/перемещение не блокируется/);assert
 c.Scene.tablePolicy.mode='rules';markup='';c.renderSceneWalls(board,[{id:'wall',a:'0,0',b:'1,0',label:'Wall',hp:99,maxHp:99}]);assert.match(markup,/ЗД 99/);c.Scene.tablePolicy.mode='manual';
 
 c.usingNextSceneInterface=()=>false;areaPanel.areaDraft=null;c.renderManualAreaDraft();assert.equal(areaPanel.hidden,true,"classic palette is compact when idle");
+
+// Production capture listeners must defer camera gestures before reaching the
+// ordinary board click handler; otherwise that handler's pan guard is too late.
+const pointerEvents=new Map(),documentEvents=new Map(),windowEvents=new Map();
+const register=(map,type,fn)=>{const rows=map.get(type)||[];rows.push(fn);map.set(type,rows)};
+let writes=0;
+const areaDraft={id:'annotation',actorId:'actor'},pointerPanel={areaDraft,querySelector:()=>({value:'cell',textContent:''})};
+const cell={dataset:{sceneCell:'0,0'},closest:()=>cell,matches:()=>false};
+const pointerBoard={addEventListener:(type,fn)=>register(pointerEvents,type,fn),querySelector:()=>({classList:{add(){}}})};
+const toolbar={addEventListener(){}};
+const cameraWrap={scrollLeft:100,scrollTop:80,classList:{add(){},remove(){}},addEventListener:(type,fn)=>register(pointerEvents,`wrap:${type}`,fn)};
+const pc=vm.createContext({panel:pointerPanel,toolbar,scenePanState:null,sceneSpaceHeld:false,sceneSuppressBoardClickUntil:0,performance:{now:()=>1000},store:{mode:'play'},$:id=>id==='scene-board'?pointerBoard:cameraWrap,window:{addEventListener:(type,fn)=>register(windowEvents,type,fn)},document:{hidden:false,addEventListener:(type,fn)=>register(documentEvents,type,fn),querySelector:()=>toolbar},CSS:{escape:String},clearManualAreaPreview(){},renderManualAreaDraft(){},manualAreaDraftActor:()=>({id:'actor'}),manualAreaDraftPayload:()=>({area:{cells:['0,0']}}),submitManualAreaDraft:()=>{writes++;return{pending:true}},manualTableCopy:ru=>ru});
+vm.runInContext(integration.slice(integration.indexOf('function manualAreaCameraGesture('),integration.indexOf('function ensureManualAreaTools(')),pc);
+const listenerStart=integration.indexOf('const board=$("scene-board");',integration.indexOf('function ensureManualAreaTools('));
+const listenerEnd=integration.indexOf('  return panel;',listenerStart);
+vm.runInContext(integration.slice(listenerStart,listenerEnd),pc);
+const panSource=read('app-scene-events.js');vm.runInContext(panSource.slice(panSource.indexOf('function resetScenePanGesture()'),panSource.indexOf('document.addEventListener("keydown",event=>{if(event.key.toLowerCase()==="m"')),pc);
+const emit=(map,type,extra={})=>{const event={target:cell,button:0,preventDefault(){this.prevented=true},stopImmediatePropagation(){this.stopped=true},...extra};for(const fn of map.get(type)||[]){fn(event);if(event.stopped)break;}return event;};
+emit(documentEvents,'keydown',{code:'Space'});assert.equal(pc.sceneSpaceHeld,true);
+assert.ok(!emit(pointerEvents,'pointerdown').prevented,'area draft lets Space pointerdown reach mouse pan');
+emit(pointerEvents,'wrap:mousedown',{currentTarget:cameraWrap,clientX:200,clientY:200});emit(windowEvents,'mousemove',{clientX:180,clientY:190});
+assert.equal(cameraWrap.scrollLeft,120);assert.equal(cameraWrap.scrollTop,90);
+emit(pointerEvents,'click');assert.equal(writes,0,'no annotation placement while camera is active');
+emit(documentEvents,'keyup',{code:'Space'});emit(windowEvents,'mouseup');emit(pointerEvents,'click');
+assert.equal(writes,0,'suppressed synthetic click cannot place an annotation');assert.equal(pointerPanel.areaDraft,areaDraft,'pan preserves the armed annotation');
+assert.ok(!emit(pointerEvents,'pointerdown',{button:1}).prevented,'area draft lets middle-button pan pass');
+pc.sceneSuppressBoardClickUntil=0;emit(pointerEvents,'click');assert.equal(writes,1,'ordinary click still places the annotation');
+console.log('Manual area actual capture + camera handlers: Space/middle pan, scroll, synthetic-click suppression, draft preservation and normal placement passed.');

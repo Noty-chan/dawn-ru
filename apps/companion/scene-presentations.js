@@ -3,7 +3,7 @@
 // it never calls changeSceneTool, commitSceneEvents, persist or the rules engine.
 window.DAWN_SCENE_PRESENTATIONS=(()=>{
   const M=window.DAWN_PRESENTATION_MODEL;
-  let host=null,board=null,scope=null,spaceId=null,mode=null,draft=null,timer=null,raf=null,ignoreClickUntil=0,lastVersion=0;
+  let host=null,board=null,scope=null,spaceId=null,mode=null,draft=null,gesture=null,timer=null,raf=null,ignoreClickUntil=0,lastVersion=0;
   const frames=new Map(),buttons=new Map();let tokens=4,lastRefill=Date.now();
   const copy=(ru,en)=>typeof isEnglishPreview==='function'&&isEnglishPreview()?en:ru;
   const sync=()=>typeof Sync==='undefined'?null:Sync;
@@ -13,7 +13,10 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
   const labels={ping:['Пинг','Ping'],line:['Линия','Line'],rectangle:['Прямоугольник','Rectangle'],cells:['Клетки','Cells'],cancel:['Завершить показ','Finish showing']};
   function available(){const state=sync()?.state?.()||{};return !state.sceneId;}
   function schedule(){if(raf!==null)return;raf=requestAnimationFrame(()=>{raf=null;paint()});}
-  function clear(){draft=null;mode=null;frames.clear();clearTimeout(timer);timer=null;schedule();updateButtons();}
+  function cancelGesture(){draft=null;gesture=null;ignoreClickUntil=Date.now()+200;schedule();}
+  function panning(event){return event?.button===1||(typeof sceneSpaceHeld!=='undefined'&&sceneSpaceHeld)||(typeof scenePanState!=='undefined'&&Boolean(scenePanState));}
+  function suppressedPanClick(){return typeof sceneSuppressBoardClickUntil!=='undefined'&&performance.now()<sceneSuppressBoardClickUntil;}
+  function clear(){cancelGesture();mode=null;frames.clear();clearTimeout(timer);timer=null;schedule();updateButtons();}
   function updateButtons(){
     board?.classList.toggle('is-presenting',Boolean(mode));
     for(const [kind,button]of buttons){const label=copy(...labels[kind]);button.setAttribute('aria-label',label);button.title=label+copy(' · Только показ. Escape — выход.',' · Presentation only. Escape exits.');button.setAttribute('aria-pressed',String(mode===kind));button.disabled=kind==='cancel'?!mode:!available();button.querySelector('span').textContent=label;}
@@ -37,11 +40,11 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
     return false;
   }
   function setMode(kind){
-    if(kind==='cancel'){draft=null;mode=null;schedule();updateButtons();return true;}
+    if(kind==='cancel'){cancelGesture();mode=null;updateButtons();return true;}
     if(!labels[kind]||!available())return false;
     window.DAWN_SCENE_BOARD_TOOLS?.select?.('present');
     window.DAWN_SCENE_TOKEN_HUD?.close?.();
-    draft=null;mode=mode===kind?null:kind;schedule();updateButtons();return true;
+    cancelGesture();mode=mode===kind?null:kind;schedule();updateButtons();return true;
   }
   function point(event){const cell=event.target.closest?.('[data-scene-cell]');if(!cell||!board.contains(cell))return null;const[x,y]=cell.dataset.sceneCell.split(',').map(Number);return{x,y};}
   function preview(end){
@@ -74,32 +77,38 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
     }
     const status=document.createElement('p');status.id='scene-presentation-status';status.className='scene-presentation-status';status.setAttribute('aria-live','polite');toolbar.append(status);
     window.DAWN_SCENE_BOARD_TOOLS?.enhance?.();
-    toolbar.addEventListener('scene-board-category-change',event=>{if(event.detail.id!=='present'){draft=null;mode=null;schedule();updateButtons();}});
+    toolbar.addEventListener('scene-board-category-change',event=>{if(event.detail.id!=='present'){cancelGesture();mode=null;updateButtons();}});
     board.addEventListener('pointerdown',event=>{
-      if(!mode)return;if(event.button!==0){event.preventDefault();event.stopImmediatePropagation();setMode('cancel');return;}
+      if(!mode)return;if(panning(event)){cancelGesture();return;}if(event.isPrimary===false)return;
+      if(event.button!==0){event.preventDefault();event.stopImmediatePropagation();setMode('cancel');return;}
       const start=point(event);if(!start)return;
       event.preventDefault();event.stopImmediatePropagation();
+      gesture={pointerId:event.pointerId};
       if(mode!=='ping'){draft={start,last:start,cells:M.geometry(mode,start,start,activeSpace())};schedule();}
     },true);
-    board.addEventListener('pointermove',event=>{if(!mode)return;event.stopImmediatePropagation();const end=point(event);if(draft&&end)preview(end);},true);
+    board.addEventListener('pointermove',event=>{if(!mode||panning(event))return;event.stopImmediatePropagation();if(gesture&&gesture.pointerId!==event.pointerId)return;const end=point(event);if(draft&&end)preview(end);},true);
     board.addEventListener('mouseover',event=>{if(mode)event.stopImmediatePropagation();},true);
     board.addEventListener('pointerup',event=>{
-      if(!mode||event.button!==0)return;event.preventDefault();event.stopImmediatePropagation();
+      if(!mode||event.button!==0||panning(event))return;event.preventDefault();event.stopImmediatePropagation();
+      if(!gesture||gesture.pointerId!==event.pointerId){cancelGesture();return;}
       const end=point(event);if(mode==='ping'){if(end)void publish(mode,M.geometry(mode,end,end,activeSpace()));}
       else if(draft&&end){preview(end);if(draft)void publish(mode,draft.cells);}
-      draft=null;ignoreClickUntil=Date.now()+200;schedule();
+      cancelGesture();
     },true);
     board.addEventListener('click',event=>{
-      if(!mode)return;event.preventDefault();event.stopImmediatePropagation();if(event.detail!==0&&Date.now()<ignoreClickUntil)return;
+      if(!mode)return;event.preventDefault();event.stopImmediatePropagation();if(panning(event)||suppressedPanClick()||event.detail!==0&&Date.now()<ignoreClickUntil)return;
       const cell=point(event);if(!cell)return;
       if(mode==='ping'||mode==='cells'){void publish(mode,M.geometry(mode,cell,cell,activeSpace()));return;}
       if(!draft){draft={start:cell,last:cell,cells:M.geometry(mode,cell,cell,activeSpace())};schedule();}
       else{preview(cell);if(draft)void publish(mode,draft.cells);draft=null;schedule();}
     },true);
-    board.addEventListener('keydown',event=>{if(!mode||!['Enter',' '].includes(event.key)||!point(event))return;event.preventDefault();event.stopImmediatePropagation();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true,detail:0}));},true);
+    board.addEventListener('keydown',event=>{if(!mode||event.key!=='Enter'||panning(event)||!point(event))return;event.preventDefault();event.stopImmediatePropagation();event.target.dispatchEvent(new MouseEvent('click',{bubbles:true,detail:0}));},true);
     board.addEventListener('contextmenu',event=>{if(mode){event.preventDefault();event.stopImmediatePropagation();setMode('cancel');}},true);
     board.addEventListener('dragstart',event=>{if(mode){event.preventDefault();event.stopImmediatePropagation();}},true);
-    document.addEventListener('pointerup',event=>{if(draft&&!board.contains(event.target)){draft=null;schedule();}},true);
+    board.addEventListener('pointercancel',cancelGesture,true);
+    window.addEventListener('blur',cancelGesture);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelGesture();});
+    document.addEventListener('pointerup',event=>{if((gesture||draft)&&!board.contains(event.target))cancelGesture();},true);
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mode&&!event.target.closest?.('input,select,textarea,[contenteditable]')){event.preventDefault();event.stopImmediatePropagation();setMode('cancel');}},true);
     if(typeof MutationObserver==='function')new MutationObserver(schedule).observe(board,{childList:true});
     sync()?.on?.('status',refresh);
@@ -109,9 +118,9 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
     if(!init())return;
     const current=scene(),state=sync()?.state?.()||{},next=`${room()}:${state.userId||'local'}:${current?.rulesEdition}:${current?.name}:${current?.tablePolicy?.epoch||0}`;
     if(scope!==next||Number(current?.version||0)<lastVersion){scope=next;clear();}
-    if(spaceId!==current?.activeSpace){spaceId=current?.activeSpace;draft=null;mode=null;}
+    if(spaceId!==current?.activeSpace){spaceId=current?.activeSpace;cancelGesture();mode=null;}
     lastVersion=Number(current?.version||0);
-    if(!available()){draft=null;mode=null;}
+    if(!available()){cancelGesture();mode=null;}
     updateButtons();schedule();
   }
   return Object.freeze({init,refresh,setMode,receive,publish,isActive:()=>Boolean(mode)});

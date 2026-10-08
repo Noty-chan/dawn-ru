@@ -121,6 +121,10 @@ function submitManualAreaDraft(panel,values){
   if(result?.pending){current.pending=true;current.clientIntentId=result.clientIntentId||null;}
   return result;
 }
+function manualAreaCameraGesture(event){
+  return event?.button===1||(typeof sceneSpaceHeld!=='undefined'&&sceneSpaceHeld)||(typeof scenePanState!=='undefined'&&Boolean(scenePanState));
+}
+function manualAreaCameraClickSuppressed(){return typeof sceneSuppressBoardClickUntil!=='undefined'&&performance.now()<sceneSuppressBoardClickUntil;}
 function ensureManualAreaTools(){
   let panel=$("manual-table-area-tools");if(panel)return panel;
   const toolbar=document.querySelector('.scene-toolbar');if(!toolbar)return null;
@@ -157,6 +161,7 @@ function ensureManualAreaTools(){
   const board=$("scene-board");
   const preview=event=>{
     const draft=panel.areaDraft;if(!draft)return;
+    if(manualAreaCameraGesture(event)){clearManualAreaPreview();return;}
     event.stopImmediatePropagation();clearManualAreaPreview();
     if(draft.pending)return;
     const cell=event.target.closest('[data-scene-cell]');if(!cell)return;
@@ -167,6 +172,7 @@ function ensureManualAreaTools(){
   board.addEventListener('mouseleave',clearManualAreaPreview);
   board.addEventListener('click',event=>{
     if(!panel.areaDraft)return;
+    if(manualAreaCameraGesture(event)||manualAreaCameraClickSuppressed()){event.preventDefault();event.stopImmediatePropagation();clearManualAreaPreview();return;}
     event.preventDefault();event.stopImmediatePropagation();
     const cell=event.target.closest('[data-scene-cell]');if(!cell)return;
     const [x,y]=cell.dataset.sceneCell.split(',').map(Number),draft=panel.areaDraft;
@@ -177,7 +183,7 @@ function ensureManualAreaTools(){
     renderManualAreaDraft();
   },true);
   // Do not drag a token while placing an informational area.
-  for(const type of ['pointerdown','dragstart','contextmenu'])board.addEventListener(type,event=>{if(panel.areaDraft){event.preventDefault();event.stopImmediatePropagation();}},true);
+  for(const type of ['pointerdown','dragstart','contextmenu'])board.addEventListener(type,event=>{if(panel.areaDraft){if(type==='pointerdown'&&manualAreaCameraGesture(event)){clearManualAreaPreview();return;}event.preventDefault();event.stopImmediatePropagation();}},true);
   document.addEventListener('keydown',event=>{
     if(event.key!=='Escape'||!panel.areaDraft)return;
     event.preventDefault();event.stopImmediatePropagation();panel.areaDraft=null;clearManualAreaPreview();renderManualAreaDraft();

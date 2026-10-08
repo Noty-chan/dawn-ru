@@ -114,6 +114,23 @@ body.scene-mode.scene-interface-next .scene-board-tool-panel .scene-area-control
 body.scene-mode.scene-interface-next .scene-board-tool-panel .scene-area-controls>header{display:flex;gap:8px;padding-bottom:6px}
 body.scene-mode.scene-interface-next .scene-board-tool-panel .scene-area-controls>header small{display:block;color:var(--muted)}
 
+/* A transparent toolbar still blurs the entire field through legacy glass CSS.
+   Keep only the individual controls; empty palette space must stay clear. */
+body.scene-mode.scene-interface-next .scene-toolbar.scene-board-tools-ready{backdrop-filter:none;-webkit-backdrop-filter:none}
+@keyframes scene-tool-idle{to{opacity:.62}}
+@media(hover:hover) and (pointer:fine){
+ body.scene-mode.scene-interface-next .scene-board-tool-category:not(:disabled):not(:hover):not(:focus-visible),
+ body.scene-mode.scene-interface-next .scene-board-tool-panel>button:not(:disabled):not(:hover):not(:focus-visible){animation:scene-tool-idle .18s ease 5s forwards}
+ body.scene-mode.scene-interface-next .scene-board-tool-category:not(:disabled):hover,
+ body.scene-mode.scene-interface-next .scene-board-tool-category:focus-visible,
+ body.scene-mode.scene-interface-next .scene-board-tool-panel>button:not(:disabled):hover,
+ body.scene-mode.scene-interface-next .scene-board-tool-panel>button:focus-visible{opacity:1;animation:none}
+}
+@media(prefers-reduced-motion:reduce){
+ body.scene-mode.scene-interface-next .scene-board-tool-category,
+ body.scene-mode.scene-interface-next .scene-board-tool-panel>button{animation-duration:1ms}
+}
+
 .scene-cell.scene-erase-preview{box-shadow:inset 0 0 0 3px var(--red);background:color-mix(in srgb,var(--red) 20%,transparent)}
 .scene-erase-label{position:absolute;z-index:12;left:0;bottom:100%;max-width:220px;padding:5px 8px;border-radius:5px;background:var(--surface);color:var(--ink);white-space:nowrap;font-size:12px;pointer-events:none}
 

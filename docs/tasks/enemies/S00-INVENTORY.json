@@ -288,6 +288,7 @@
             "apps/companion/tests/scene-measurement.mjs",
             "apps/companion/tests/scene-pan-lifecycle.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-model.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-turn-strip.mjs",
@@ -8518,7 +8519,9 @@
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pan-lifecycle.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-model.mjs",
             "apps/companion/tests/table-manual-clock-route.mjs",
+            "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
             "apps/companion/tests/table-manual-workspace.mjs"
           ],
