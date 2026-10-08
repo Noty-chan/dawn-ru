@@ -124,7 +124,7 @@ function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
     send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
-    onError:(error,row,{retrying=true}={})=>{if(!retrying){clearPendingNetworkPlacement(row);if(typeof rejectManualToolsRollIntent==="function")rejectManualToolsRollIntent(row);}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
+    onError:(error,row,{retrying=true}={})=>{if(!retrying){clearPendingNetworkPlacement(row);if(typeof rejectManualToolsRollIntent==="function")rejectManualToolsRollIntent(row);if(typeof reconcileManualAreaDraft==="function")reconcileManualAreaDraft({...row,status:"rejected"});}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,

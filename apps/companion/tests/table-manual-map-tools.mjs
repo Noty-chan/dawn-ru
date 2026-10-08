@@ -36,3 +36,65 @@ const replayScene=plain(c.Scene),event={id:'replay-map',type:'table.command',act
 const once=Engine.dispatchMany(replayScene,[event]).scene;assert.equal(Engine.dispatchMany(once,[event]).scene.version,once.version);
 vm.runInContext(read('network-v2.js'),c);assert.throws(()=>c.window.DAWN_NETWORK_V2.materializeIntent(c.Scene,c.window.DAWN_DATA,{kind:'table',actorId:'actor',policyEpoch:0,request:{kind:'wall/create'}},null),/Нарратору|не владеет/);
 console.log('Manual map UI/core: create, same-edge rejection, canonical cells/capacity, hidden persistence/projection, no targets/resources, marker clocks and replay passed');
+
+for(const name of ['manualAreaDraftActor','manualAreaDraftPayload']){const start=integration.indexOf(`function ${name}(`),end=integration.indexOf('\nfunction ',start+1);vm.runInContext(integration.slice(start,end),c);}
+c.manualClockScope=()=> `local:${c.Scene.tablePolicy.epoch}`;c.canControlSceneActor=actor=>role==='gm'||actor.id==='actor';
+c.manualTableAbilities=()=>[{id:'ability',text:'Real text',area:true}];
+const draft={id:'reader-area',actorId:'actor',entryId:'ability',text:'Real text',name:'Attack annotation',space:'main',scope:c.manualClockScope()};
+const priorActors=JSON.stringify(c.Scene.actors),priorTargets=JSON.stringify(c.Scene.targetIds);role='player';
+const request=c.manualAreaDraftPayload(draft,{shape:'square3',x:'0',y:'0'});assert.equal(request.kind,'area/create');assert.equal(request.area.cells.length,4,'edge shape clips within board');
+assert.ok(c.commitSceneEvents('Show area',[{type:'table.command',actorId:'actor',payload:request}]));
+assert.equal(c.Scene.objects.at(-1).ownerActorId,'actor');assert.equal(JSON.stringify(c.Scene.actors),priorActors);assert.equal(JSON.stringify(c.Scene.targetIds),priorTargets);
+assert.equal(c.manualAreaDraftPayload({...draft,scope:'stale'},{shape:'cell',x:0,y:0}),null);
+c.manualTableAbilities=()=>[{id:'ability',text:'Changed text',area:true}];assert.equal(c.manualAreaDraftPayload(draft,{shape:'cell',x:0,y:0}),null,'source changed while dialog was open');
+c.manualTableAbilities=()=>[{id:'ability',text:'Real text',area:true}];c.canControlSceneActor=()=>false;assert.equal(c.manualAreaDraftPayload(draft,{shape:'cell',x:0,y:0}),null,'ownership loss cancels draft');
+c.canControlSceneActor=()=>true;c.Scene.actors[0].hidden=true;assert.equal(c.manualAreaDraftPayload(draft,{shape:'cell',x:0,y:0}),null,'hidden own actor cannot publish through stale player dialog');
+
+// Real palette renderer/recovery; only DOM and transport are mocked.
+for(const name of ['renderManualAreaDraft','recheckManualAreaDraft']){const marker=name==='recheckManualAreaDraft'?'async function ':'function ',start=integration.indexOf(`${marker}${name}(`),end=integration.indexOf('\nfunction ',start+1);vm.runInContext(integration.slice(start,end<0?integration.length:end),c);}
+c.usingNextSceneInterface=()=>true;c.clearManualAreaPreview=()=>{};c.Scene.actors[0].hidden=false;c.canControlSceneActor=actor=>Boolean(actor);c.esc=String;
+c.Scene.objects.push({id:'private-area',ownerActorId:'actor',type:'manual-area',manual:true,space:'main',hidden:true,label:'TOP SECRET',cells:['1,1']});
+const nodes={name:{textContent:''},existing:{innerHTML:''},shape:{disabled:false},source:{disabled:false,innerHTML:'',value:'',replaceChildren(){this.innerHTML=''}},cancel:{disabled:false},recheck:{hidden:false},output:{textContent:''}};
+const areaPanel={dataset:{},areaDraft:{...draft,id:'retry-area',pending:true},querySelector:selector=>({'[data-area-name]':nodes.name,'[name="shape"]':nodes.shape,'[name="source"]':nodes.source,'[data-area-cancel]':nodes.cancel,'[data-area-recheck]':nodes.recheck,'[data-area-existing]':nodes.existing,output:nodes.output})[selector]};
+c.$=id=>id==='manual-table-area-tools'?areaPanel:null;
+c.renderManualAreaDraft();assert.equal(nodes.shape.disabled,true);assert.ok(!nodes.existing.innerHTML.includes('TOP SECRET'));assert.match(nodes.existing.innerHTML,/type="button"/);
+let pending=1,refresh=0;c.Sync={state:()=>({sceneId:'test'}),refreshScene:async()=>{refresh++}};c.networkV2QueueStatus=()=>({pending,failed:0});
+await c.recheckManualAreaDraft(areaPanel);assert.equal(areaPanel.areaDraft.pending,true,'no retry during outstanding canonical queue');
+pending=0;await c.recheckManualAreaDraft(areaPanel);assert.equal(areaPanel.areaDraft.pending,true,'an empty transport queue does not prove authority rejected the command');assert.equal(nodes.shape.disabled,true);assert.equal(refresh,2,'retry refreshes canonical state');
+c.canControlSceneActor=()=>false;areaPanel.areaDraft.pending=true;await c.recheckManualAreaDraft(areaPanel);assert.equal(refresh,2,'lost ownership does not refresh or retry');
+{const start=integration.indexOf('function submitManualAreaDraft('),end=integration.indexOf('\nfunction ',start+1);vm.runInContext(integration.slice(start,end),c);}
+c.canControlSceneActor=()=>true;let sends=0;c.commitSceneEvents=()=>{sends++;return {pending:true}};
+areaPanel.areaDraft.pending=false;const args={shape:'cell',x:'0',y:'0'};
+assert.ok(c.submitManualAreaDraft(areaPanel,args).pending);assert.equal(areaPanel.areaDraft.pending,true);assert.equal(c.submitManualAreaDraft(areaPanel,args),null);assert.equal(sends,1,'double click cannot duplicate queued create');
+{const start=integration.indexOf('function reconcileManualAreaDraft('),end=integration.indexOf('\nfunction ',start+1);vm.runInContext(integration.slice(start,end),c);}
+areaPanel.areaDraft.clientIntentId='my-intent';
+c.reconcileManualAreaDraft({status:'rejected',payload:{clientIntentId:'other'}});assert.equal(areaPanel.areaDraft.pending,true);
+c.reconcileManualAreaDraft({status:'applied',payload:{clientIntentId:'my-intent'}});assert.equal(areaPanel.areaDraft.pending,true,'applied command waits for the canonical area');
+c.reconcileManualAreaDraft({status:'rejected',payload:{clientIntentId:'my-intent'}});assert.equal(areaPanel.areaDraft.pending,false,'only exact terminal rejection rearms placement');
+areaPanel.areaDraft.pending=true;c.Scene.objects.push({id:areaPanel.areaDraft.id,type:'manual-area',space:'main',cells:['0,0']});
+await c.recheckManualAreaDraft(areaPanel);assert.equal(areaPanel.areaDraft,null,'canonical area confirms the placement');
+areaPanel.areaDraft={...draft,id:'next'};
+areaPanel.areaDraft.pending=false;c.commitSceneEvents=()=>null;assert.equal(c.submitManualAreaDraft(areaPanel,args),null);assert.equal(areaPanel.areaDraft.pending,false,'rejected local write leaves draft retryable');
+areaPanel.areaDraft={...draft,id:'stale',scope:'old'};c.renderManualAreaDraft();assert.equal(areaPanel.areaDraft,null,'stale role/source/field draft is cancelled');
+for(const reason of ['hidden','ownership','epoch','space']){
+ role='gm';c.Scene.actors[0].hidden=false;c.canControlSceneActor=()=>true;c.Scene.activeSpace='main';
+ areaPanel.areaDraft={...draft,id:'private-draft'};nodes.source.innerHTML='<option>SECRET NPC ABILITY</option>';nodes.source.value='secret';nodes.output.textContent='SECRET OUTPUT';
+ if(reason==='hidden'){role='player';c.Scene.actors[0].hidden=true;}
+ if(reason==='ownership')c.canControlSceneActor=()=>false;
+ if(reason==='epoch')areaPanel.areaDraft.scope='old';
+ if(reason==='space')c.Scene.activeSpace='other';
+ c.renderManualAreaDraft();assert.equal(areaPanel.areaDraft,null,reason);assert.equal(nodes.source.innerHTML,'',`${reason} clears private options`);assert.equal(nodes.source.value,'');assert.equal(nodes.output.textContent,'');
+}
+c.Scene.activeSpace='main';c.Scene.actors[0].hidden=false;c.canControlSceneActor=()=>true;role='gm';
+nodes.shape.options=[{value:'square3',textContent:'Квадрат 3×3'}];c.manualTableCopy=(ru,en)=>en;
+c.renderManualAreaDraft();assert.equal(nodes.shape.options[0].textContent,'Square 3×3');assert.equal(nodes.cancel.textContent,'Cancel placement');assert.equal(areaPanel.dataset.placement,'idle');
+c.manualTableCopy=ru=>ru;
+
+// Actual wall markup distinguishes advisory manual walls from rules walls.
+const wallStart=ui.indexOf('function renderSceneWalls(');vm.runInContext(ui.slice(wallStart,ui.indexOf('\nfunction renderSceneBoard',wallStart)),c);
+c.CSS={escape:String};let markup='';const board={querySelector:()=>({insertAdjacentHTML:(where,html)=>{markup+=html}})};
+c.renderSceneWalls(board,[{id:'wall',a:'0,0',b:'1,0',label:'Wall',hp:99,maxHp:99}]);
+assert.match(markup,/перемещение не блокируется/);assert.ok(!markup.includes('99'),'manual wall does not promise combat HP');
+c.Scene.tablePolicy.mode='rules';markup='';c.renderSceneWalls(board,[{id:'wall',a:'0,0',b:'1,0',label:'Wall',hp:99,maxHp:99}]);assert.match(markup,/ЗД 99/);c.Scene.tablePolicy.mode='manual';
+
+c.usingNextSceneInterface=()=>false;areaPanel.areaDraft=null;c.renderManualAreaDraft();assert.equal(areaPanel.hidden,true,"classic palette is compact when idle");

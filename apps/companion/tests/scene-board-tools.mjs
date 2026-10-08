@@ -17,6 +17,7 @@ class Element {
   getAttribute(name) { return this.attrs[name] ?? null; }
   removeAttribute(name) { delete this.attrs[name]; }
   addEventListener(type, fn) { this.listeners[type] = fn; }
+  dispatchEvent(event) { this.listeners[event.type]?.(event); }
   closest() { return stage; }
 }
 const candidate = new Element(), stage = new Element(), oldPrimary = new Element(), oldActions = new Element(), body = new Element();
@@ -50,7 +51,8 @@ const observers = [];
 class Observer { constructor(callback) { this.callback = callback; observers.push(this); } observe(target, options) { this.target = target; this.options = options; } }
 let next = false;
 const Scene = { tool: "select", history: ["existing"] };
-const context = vm.createContext({ document, Scene, usingNextSceneInterface: () => next, window: { DAWN_UI_ICONS: { html: name => `<svg class="dawn-control-icon" data-icon="${name}"></svg>` } }, MutationObserver: Observer });
+class CustomEvent { constructor(type,options){this.type=type;this.detail=options.detail;} }
+const context = vm.createContext({ CustomEvent, document, Scene, usingNextSceneInterface: () => next, window: { DAWN_UI_ICONS: { html: name => `<svg class="dawn-control-icon" data-icon="${name}"></svg>` } }, MutationObserver: Observer });
 vm.runInContext(fs.readFileSync(path.join(root, "scene-board-tools.js"), "utf8"), context);
 const api = context.window.DAWN_SCENE_BOARD_TOOLS;
 assert.equal(api.isEnabled(), false, "Classic startup does not mount experimental controls");
@@ -78,7 +80,8 @@ childObserver.callback();
 assert.equal(controls.get("#scene-wall-controls").parentNode, walls, "A later mount converges to the single flyout parameter owner");
 childObserver.callback();
 assert.equal(strip.children.length, 5, "Repeated late-mount enhancement converges without duplicate categories");
-api.select("areas"); controls.get("#scene-wall-controls").hidden = false;
+let lastCategory=null;candidate.addEventListener("scene-board-category-change",event=>{lastCategory=event.detail.id});
+api.select("areas");assert.equal(lastCategory,"areas"); controls.get("#scene-wall-controls").hidden = false;
 api.select("tokens"); assert.equal(walls.hidden, true, "Browsing another category hides the wall controls even when the Scene's wall tool remains active");
 tokens.children[1].listeners.click(); assert.equal(gameClicks, 1, "Original tool listeners survive relocation");
 api.select("history");

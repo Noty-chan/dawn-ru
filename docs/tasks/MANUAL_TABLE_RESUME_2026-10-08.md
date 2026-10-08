@@ -55,3 +55,40 @@ SQL `202610080001_manual_table_public_records.sql` по-прежнему **не 
 ## Следующий проход ревью
 
 См. [исправления, доказательства и текущие ограничения](MANUAL_TABLE_REVIEW_2026-10-08.md). Этот документ обновляет статус предыдущего подхвата; main ещё не слит.
+
+## Подсветки через инструменты поля — следующий пакет 8 октября
+
+Последнее уточнение пользователя: **не отдельный диалог с координатами**. Основной путь теперь: категория «Подсветки способностей» → выбрать способность и форму → наведение показывает клетки → клик сохраняет обозначение. Reader «Показать область» сразу включает этот инструмент и закрывается. Escape, смена категории/инструмента, смена поля, потеря прав/смена текста источника отменяют draft. После размещения не остаётся прежняя линейка/кисть: возвращаемся к обычному выбору. Поля выбора координат и modal не используются.
+
+- Draft transient, не в Scene/targets. Пишется существующая typed `table.command area/create`, actor/source/space/epoch перепроверяются. Поддержаны cell/cross/square2/3/5/radius2/lineH/V, clipping края. Область информирует игроков; нет урона, стоимости, статусов или выбора целей.
+- Собственный герой доступен игроку; чужие NPC — Нарратору. В tool flyout можно переключить способность и форму. Список ранее поставленных собственных видимых областей раскрывается отдельно и ограничен по высоте; явное удаление typed area/remove. Чужие/скрытые записи игроку не перечисляются.
+- Pending повторный клик не создаёт новый запрос. «Проверить сохранение» сначала refresh canonical scene; если queue pending/failed, повторная отправка закрыта. UID draft сохраняется до подтверждения/отмены. Live transport не проверялся.
+- Новая категория не GM-only: игроку нужен свой инструмент обозначения. Native category-change notification отменяет активное размещение и при программной смене категории. Classic сохраняется: параметры скрыты в idle, при размещении блок 280px; новая версия остаётся по умолчанию.
+- Reader больше не перекрывается открытым chrome menu: перед чтением закрываем меню и боковые панели. Экспорт closeReader из workspace используется для возвращения на поле.
+- Исправлена private clock-list утечка при focus: DOM списка сохраняется только при том же visibility fingerprint; GM→Player/смена скрытия owner перестраивает список.
+- Manual board не консультирует frozen effectPresence/deployment для скрытия. Legacy wrapper compound/modifier не удаляет/не заменяет обычные токены; reconcile destination пропускается. Стены в manual — предупреждающие обозначения без HP/обещания блокировки. Marker carrier скрытого персонажа не раскрывает имя игроку. Это не означает, что все старые декоративные overlays уже проаудированы.
+
+### Фактическая проверка этого пакета
+
+Targeted actual-function tests: map-tools (typed create/remove, clipping, stale source/role/field guards, pending/retry, privacy, wall markup), clock-route (focus visibility), surfaces (manual presence + wrapper bypass), workspace, board-tools PASS. DOM/transport в этих harness подставлены. Sol6.1 low reviewer проверил текущие функции: нашёл смену категории со скрытым активным draft, исправление перепроверил; новых подтверждённых регрессий в проверенном пакете нет.
+
+Полные прогоны `output/manual-highlight-full-20261008.log`, `output/manual-highlight-final-20261008.log`, `output/manual-highlight-release-20261008.log` PASS exit0 для соответствующих предыдущих состояний пакета. Последний `manual-highlight-ship-20261008.log` запущен после classic idle fix; финальное сворачивание списка областей сделано после старта и отдельно проверено map/surfaces/workspace. Не выдавать старый полный прогон за доказательство последнего CSS/layout.
+
+Native Edge 1440×1000, localhost8785, dawn-resume, QA-only pass19–22: нет modal, Reader закрыт; hover square3=9, edge=4; клики реально создают область и сохраняют HP18/AP3, targets не заменяются. Проверены Escape, category cancel, смена трёх способностей Убийцы, измерение→highlight→select, classic idle hidden/44px trigger/280px armed, возврат next без reload. Это локальная приёмка, не сеть двух клиентов. Один клавиатурный M на сфокусированной кнопке не сработал из-за стандартного shortcut guard; не считать такой сценарий проверенной отменой через M. Скриншоты в ignored output; финальный список приёмки ниже обновить после последнего снимка/прогона.
+
+### Приоритеты следующего агента
+
+1. Сначала прочитать последний продуктовый договор здесь и MANUAL_TABLE_CONTINUATION, потом полный backlog. Не возвращать область в отдельный modal/координатный блок. Не возвращать механические compound/effectPresence в manual отрисовку. Палитру сохранить.
+2. Native user-owned Hero area и role/space change при активном размещении, pending recovery с реальным изолированным транспортом. GM NPC/local paths уже проверены. Проверить hover при открытых левой/правой панелях, pan/zoom, клавиатурное управление полем. Mobile отложен пользователем; HUD только PC/tablet.
+3. Дальше manual техника: удобные явные переключатели/счётчики и показываемые области, без авто-стоимости/эффектов. Сейчас toggles — только ручные пометки, произвольный текст не интерпретируется в механику.
+4. Cancellable переход к автоматике всё ещё отдельная задача: не объявлять автоматический старт доступным. Frozen snapshots, epoch, receipts, permissions сохранить.
+5. Изолированная двухклиентная сетевая приёмка и применение SQL draft остаются НЕ выполнены. Не трогать live Supabase/пользовательские комнаты без текущего контекста разрешения. Свободные Tools atomic WIP остаются в stash, не pop поверх этой ветки. Старый freeplay backlog не закрыт ручным roll.
+6. Финальная RU/EN проверка (D6 не переводить), локализация динамических элементов при смене языка без reload, desktop/tablet. Весь общий backlog не считать выполненным.
+
+GitHub: продолжение в `codex/manual-table-continuation-20261008`, draft PR #11, base checkpoint-20261007, stack #10/#9. Main не слит. Защищённые untracked .codex-remote-attachments/, apps/companion/output/, site/dead-gods/maps/ не добавлять/не удалять. QA-server localhost8785 и CLI browser сохранены; user data не менять.
+
+
+Финальный receipt текущего пакета: `output/manual-highlight-ship-20261008.log` **PASS exit0**. Последнее сворачивание списка областей отдельно: map/surfaces/workspace PASS; native pass23 snapshot проверяет скрытый по умолчанию bounded список. Полный проход перед этим маленьким HTML/CSS изменением честно отделён от targeted/native результата.
+
+
+Последний кодовый коммит пакета: `8c0d3be`, опубликован в origin и PR #11. Последняя native проверка pass23: список областей collapsed, панель 351.8px при четырёх областях, square3 preview9; GM→Player отменяет draft, очищает preview и собственный private-area list. English reload: категория Ability highlights, выборы Neutralize Target/Slice/Hidden Blades, все восемь форм и управляющие подписи английские. Имена ранее сохранённых RU областей остаются записанным пользовательским текстом, не переводятся задним числом. Смена locale без reload пока отдельный пункт проверки. Последний screenshot: ignored `output/manual-highlight-final-20261008.png` (RU, new desktop).

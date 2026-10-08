@@ -9,7 +9,7 @@ body[data-table-policy="manual"] .scene-cell.has-manual-area{box-shadow:inset 0 
 body[data-table-policy="manual"] [data-area-duration-editor],body[data-table-policy="manual"] [data-marker-duration-editor]{display:none!important}
 body[data-table-policy="manual"] .scene-duration-editor{display:none!important}
 #manual-table-clocks,#manual-table-dice{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
-#manual-table-clocks::backdrop,#manual-table-dice::backdrop{background:#0c0c1280}
+#manual-table-clocks::backdrop,#manual-table-dice::backdrop::backdrop{background:#0c0c1280}
 #manual-table-clocks{width:min(480px,calc(100vw - 32px));max-height:80vh;overflow:auto;box-sizing:border-box}
 #manual-table-clocks form{display:grid;gap:8px;margin-top:16px}
 #manual-table-clocks form label{display:grid;grid-template-columns:85px minmax(0,1fr)}
@@ -93,3 +93,20 @@ body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overl
 body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="effects"]{left:var(--hud-right);top:var(--hud-cap)}
 body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="more"]{left:var(--hud-left);top:var(--hud-row)}
 body.scene-mode.scene-interface-next[data-table-policy="manual"] .is-token-overlay [data-token-hud-action="target"]{left:var(--hud-right);top:var(--hud-row)}
+
+
+.manual-area-preview{background:color-mix(in srgb,var(--cyan) 28%,transparent)!important;box-shadow:inset 0 0 0 2px var(--cyan)}
+.manual-area-tools [data-area-existing]>div{display:flex;align-items:center;gap:.5rem;justify-content:space-between}
+.manual-area-tools [data-area-existing] button{flex:0 0 auto}
+.manual-area-tools p,.manual-area-tools output{font-size:.8rem;line-height:1.4}
+
+body.scene-mode:not(.scene-interface-next) #manual-table-area-tool{width:44px;min-width:44px;min-height:44px;flex:0 0 44px;padding:8px}
+body.scene-mode:not(.scene-interface-next) .manual-area-tools{width:min(280px,100%);max-width:280px;grid-column:auto;max-height:55vh;overflow:auto}
+#manual-table-area-tool .dawn-control-icon{width:24px;height:24px}
+
+.manual-area-tools [data-area-existing]{max-height:180px;overflow:auto;overscroll-behavior:contain}
+.manual-area-tools summary{cursor:pointer;font-size:.8rem}
+.manual-area-tools[data-placement="idle"]>label,
+.manual-area-tools[data-placement="idle"]>[data-area-note],
+.manual-area-tools[data-placement="idle"]>[data-area-cancel]{display:none}
+.manual-area-tools[data-placement="idle"]{max-width:280px}

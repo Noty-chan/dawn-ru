@@ -83,7 +83,8 @@
           "apps/companion/tests/lionwing-reaction-gates.mjs",
           "apps/companion/tests/network-v2.mjs",
           "apps/companion/tests/qa.mjs",
-          "apps/companion/tests/scene-engine.mjs"
+          "apps/companion/tests/scene-engine.mjs",
+          "apps/companion/tests/table-manual-persistence.mjs"
         ],
         "notRun": [
           "complete trigger-to-writer trace",
@@ -151,7 +152,8 @@
             "apps/companion/tests/lionwing-reaction-gates.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
-            "apps/companion/tests/scene-engine.mjs"
+            "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/table-manual-persistence.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -362,7 +364,8 @@
             "apps/companion/tests/lionwing-reaction-gates.mjs",
             "apps/companion/tests/network-v2.mjs",
             "apps/companion/tests/qa.mjs",
-            "apps/companion/tests/scene-engine.mjs"
+            "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/table-manual-persistence.mjs"
           ],
           "notRun": [
             "real browser click path",
@@ -5264,6 +5267,7 @@
           "apps/companion/tests/service-worker-navigation.mjs",
           "apps/companion/tests/table-manual-map-tools.mjs",
           "apps/companion/tests/table-manual-movement.mjs",
+          "apps/companion/tests/table-manual-persistence.mjs",
           "apps/companion/tests/table-manual-policy.mjs",
           "apps/companion/tests/table-manual-public-projection.mjs",
           "apps/companion/tests/table-manual-reader-data.mjs",
@@ -5428,6 +5432,7 @@
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-movement.mjs",
+            "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-public-projection.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
@@ -5586,6 +5591,7 @@
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-movement.mjs",
+            "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-public-projection.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",
@@ -5750,6 +5756,7 @@
             "apps/companion/tests/service-worker-navigation.mjs",
             "apps/companion/tests/table-manual-map-tools.mjs",
             "apps/companion/tests/table-manual-movement.mjs",
+            "apps/companion/tests/table-manual-persistence.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-public-projection.mjs",
             "apps/companion/tests/table-manual-reader-data.mjs",

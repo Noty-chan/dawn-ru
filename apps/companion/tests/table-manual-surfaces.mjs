@@ -9,7 +9,7 @@ const context={window:{DAWN_TABLE_POLICY:{isManual:s=>s.tablePolicy?.mode==='man
 vm.createContext(context);const source=read('scene-manual-integration.js');
 vm.runInContext(source.slice(0,source.indexOf('function placeManualMapObject')),context);
 vm.runInContext(source.slice(source.indexOf('function manualTableAbilities'),source.indexOf('window.DAWN_TABLE_POLICY?.install()')),context);
-context.renderManualClocks=()=>{};context.renderManualMapTools=()=>{};
+context.ensureManualAreaTools=()=>{};context.renderManualAreaDraft=()=>{};context.openManualTableArea=()=>{};context.renderManualClocks=()=>{};context.renderManualMapTools=()=>{};
 context.openManualTableDice=()=>{};context.openManualTableClocks=()=>{};
 vm.runInContext(source.slice(source.indexOf('const numericCorrectionWithRules')),context);
 const before=JSON.stringify(scene);
@@ -57,3 +57,17 @@ scene.manualTable.actorId=null;change(hideEvent);assert.equal(scene.actors[1].hi
 scene.actors[1].hidden=false;delete scene.actors[1].manualInitiativeVisible;scene.manualTable.actorId='hero';change(hideEvent);assert.equal(scene.actors[1].manualInitiativeVisible,true,'vanishing during play keeps initiative');
 const toggle={dataset:{manualInitiativeVisible:'enemy'},checked:false};change({target:{closest:selector=>selector.includes('data-manual-initiative-visible')?toggle:null}});assert.equal(scene.actors[1].manualInitiativeVisible,false);
 role='player';toggle.checked=true;change({target:{closest:selector=>selector.includes('data-manual-initiative-visible')?toggle:null}});assert.equal(scene.actors[1].manualInitiativeVisible,false,'player cannot reveal hidden initiative');
+
+// Execute the production board predicate against frozen mechanical presence.
+const actorPredicate=uiSource.match(/actors=(Scene\.actors\.filter[\s\S]*?),markers=/)[1];
+context.SceneEngine.effectPresenceStatus=()=>{throw Error('manual board must not query mechanical presence')};context.SceneEngine.isEnemyModifier=()=>{throw Error('manual board must not query modifier deployment')};
+context.Scene.actors=[{id:'ordinary',space:'main'},{id:'vanished',space:'main',effects:['positive.исчез']},{id:'proxy',space:'main',deploymentProxy:true},{id:'hidden',space:'main',hidden:true}];
+context.space={id:'main'};context.manualBoard=true;role='player';
+assert.deepEqual(Array.from(vm.runInContext(actorPredicate,context),actor=>actor.id),['ordinary','vanished','proxy'],'manual visibility uses explicit hidden rather than frozen effects');
+
+// The wrapping modifier renderer used to remove/recreate tokens even in manual mode.
+context.renderSceneBoard=()=>{};let baseCalls=0;context.renderSceneBoardWithCrowdBase=()=>{baseCalls++};
+context.applyEnemyModifierVisuals=()=>{throw Error('manual must not run automatic compound/modifier renderer')};
+const wrapperStart=uiSource.indexOf('renderSceneBoard=function(){renderSceneBoardWithCrowdBase();');
+vm.runInContext(uiSource.slice(wrapperStart,uiSource.indexOf('function renderSceneInspector',wrapperStart)),context);
+context.renderSceneBoard();assert.equal(baseCalls,1);

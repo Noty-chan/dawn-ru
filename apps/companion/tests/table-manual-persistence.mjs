@@ -79,3 +79,37 @@ assert.equal(context.Scene.actors.length,3);assert.equal(new Set(context.Scene.a
 assert.ok(context.Scene.actors.every(a=>a.kind==='crowd'&&a.hp===1&&a.maxHp===1&&a.ap===0));
 assert.equal(context.Scene.tablePolicy.mode,'manual');assert.equal(context.Scene.turnSerial,0);
 }
+
+// Manual modifiers are stored profiles, not automatic rule activations.
+{
+const nodes=new Map();context.$=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id)};
+context.$('scene-enemy-tier').value='1';context.$('scene-enemy-team').value='enemy';
+context.antagonistTrait=()=>null;context.placeActorsSafely=()=>{};
+context.enemyActorFromProfile=profile=>({id:context.uid(),profileId:profile.id,name:profile.name,kind:'enemy',team:'enemy',space:'main',hp:1,maxHp:1,ap:3,baseAp:3,x:0,y:0,effects:[]});
+context.SceneEngine.prepareModifierConfigure=()=>{throw Error('manual modifier cannot activate mechanics')};
+const notices=[];context.toast=message=>notices.push(message);
+const events=read('app-scene-events.js'),start=events.indexOf('$("scene-add-enemy").onclick'),end=events.indexOf('\n',start);
+vm.runInContext(events.slice(start,end),context);
+for(const id of ['lionwing.modifier.vip','lionwing.modifier.artillery']){
+ context.Scene=context.normalizeScene(context.blankScene());context.Scene.tool='select';context.Scene.targetIds=[];
+ context.enemyProfile=()=>({id,name:'Manual modifier'});context.$('scene-add-enemy').onclick();
+ assert.equal(context.Scene.actors.length,1);assert.equal(context.Scene.tool,'select');assert.deepEqual(Array.from(context.Scene.targetIds),[]);assert.equal(notices.length,0);
+}
+context.commitScene=()=>null;context.$('scene-add-enemy').onclick();assert.equal(context.Scene.actors.length,1);assert.equal(notices.length,0,'refused write has no activation message');
+}
+
+// Real reinforcement route must not report success after a capacity refusal.
+{
+const library=read('gm-library.js'),start=library.indexOf('function deployEncounter(encounter,'),end=library.indexOf('const deployEncounterBase',start);
+vm.runInContext(library.slice(start,end),context);
+context.Scene=context.normalizeScene(context.blankScene());
+context.Scene.actors=Array.from({length:120},(_,i)=>({id:`full-${i}`,kind:'enemy',space:'main',x:0,y:0}));
+context.encounterTemplateActorForReinforcement=()=>null;context.availableEncounterCell=()=>({x:1,y:1});
+context.enemyProfile=()=>({id:'lionwing.npc.assassin',name:'A'});
+let committed=false;const notices=[];context.toast=message=>notices.push(message);
+context.commitScene=(label,mutator)=>{const before=context.sceneCore(context.Scene),candidate=JSON.parse(JSON.stringify(context.Scene));mutator(candidate);try{context.window.DAWN_TABLE_POLICY.validateSnapshot(before,candidate)}catch(error){context.toast(error.message);return null}committed=true;context.Scene=candidate;return {ok:true}};
+context.deployEncounter({edition:'lionwing',name:'Reinforcement',enemies:[{profileId:'lionwing.npc.assassin',tier:1}]});
+assert.equal(committed,false);assert.equal(context.Scene.actors.length,120);assert.equal(notices.length,1);assert.ok(!notices.some(message=>message.includes('готовы')),'refused reinforcement has no success toast');
+const resetStart=library.indexOf('function resetDeployedLionwingTension(');vm.runInContext(library.slice(resetStart,start),context);
+context.lwSubmit=()=>{throw Error('manual preset cannot reset a mechanical meter')};context.window.DAWN_LIONWING_ENGINE={isScene:()=>true};context.resetDeployedLionwingTension();
+}
