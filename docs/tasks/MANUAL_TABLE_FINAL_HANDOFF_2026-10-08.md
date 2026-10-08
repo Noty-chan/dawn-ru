@@ -40,3 +40,6 @@ Ignored scripts/logs в корневом output — локальные receipts,
 5. Tools P1 и atomic freeplay WIP остаются; не объявлять их закрытыми manual roll. Stash не pop поверх этого пакета. RU/EN полный backlog также не закрыт малым aria проходом.
 
 Не добавлять/удалять `.codex-remote-attachments/`, `apps/companion/output/`, `site/dead-gods/maps/`. Main не менялся. Использовать ветку/stack PR, не reset или stash pop.
+
+
+Финальный прогон output/manual-inputs-hud-final3-20261008-test.log завершился PASS exit0. Последняя защита submitted draft добавлялась в ходе прогона; её конечная версия отдельно прошла targeted 	ests/table-manual-workspace.mjs. Поэтому полный лог вместе с targeted подтверждает пакет, но не является immutable exact-HEAD receipt. Для строгого release gate повторить npm test на неизменном HEAD.
