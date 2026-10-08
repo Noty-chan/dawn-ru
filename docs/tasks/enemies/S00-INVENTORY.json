@@ -289,6 +289,7 @@
             "apps/companion/tests/scene-pan-lifecycle.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
             "apps/companion/tests/scene-presentation-model.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/scene-turn-strip.mjs",
@@ -9140,6 +9141,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-clock-route.mjs",
@@ -11020,7 +11022,8 @@
             "apps/companion/tests/lionwing-localization.mjs",
             "apps/companion/tests/lionwing-swarm-bodyguards.mjs",
             "apps/companion/tests/qa.mjs",
-            "apps/companion/tests/scene-engine.mjs"
+            "apps/companion/tests/scene-engine.mjs",
+            "apps/companion/tests/scene-presentation-transport.mjs"
           ],
           "notRun": [
             "real browser click path",

@@ -11,7 +11,7 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
   const room=()=>sync()?.state?.()?.sceneId||'local';
   const activeSpace=()=>scene()?.spaces?.find(row=>row.id===scene()?.activeSpace);
   const labels={ping:['Пинг','Ping'],line:['Линия','Line'],rectangle:['Прямоугольник','Rectangle'],cells:['Клетки','Cells'],cancel:['Завершить показ','Finish showing']};
-  function available(){const state=sync()?.state?.()||{};return !state.sceneId;}
+  function available(){const state=sync()?.state?.()||{};return !state.sceneId||state.status==='online'&&state.presentationReady===true;}
   function schedule(){if(raf!==null)return;raf=requestAnimationFrame(()=>{raf=null;paint()});}
   function cancelGesture(){draft=null;gesture=null;ignoreClickUntil=Date.now()+200;schedule();}
   function panning(event){return event?.button===1||(typeof sceneSpaceHeld!=='undefined'&&sceneSpaceHeld)||(typeof scenePanState!=='undefined'&&Boolean(scenePanState));}
@@ -37,7 +37,7 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
     if(room()==='local'){
       const stamp=Date.now();return receive({id:request.clientId,scene_id:'local',user_id:'local',display_name:copy('Вы','You'),color_slot:0,policy_epoch:request.epoch,space_id:space.id,kind,cells,created_at:new Date(stamp).toISOString(),expires_at:new Date(stamp+(kind==='ping'?M.PING_TTL:M.TTL)).toISOString()});
     }
-    return false;
+    return sync()?.sendPresentation?.(request)||false;
   }
   function setMode(kind){
     if(kind==='cancel'){cancelGesture();mode=null;updateButtons();return true;}
@@ -112,6 +112,7 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mode&&!event.target.closest?.('input,select,textarea,[contenteditable]')){event.preventDefault();event.stopImmediatePropagation();setMode('cancel');}},true);
     if(typeof MutationObserver==='function')new MutationObserver(schedule).observe(board,{childList:true});
     sync()?.on?.('status',refresh);
+    sync()?.on?.('presentation',receive);
     return true;
   }
   function refresh(){
@@ -120,7 +121,7 @@ window.DAWN_SCENE_PRESENTATIONS=(()=>{
     if(scope!==next||Number(current?.version||0)<lastVersion){scope=next;clear();}
     if(spaceId!==current?.activeSpace){spaceId=current?.activeSpace;cancelGesture();mode=null;}
     lastVersion=Number(current?.version||0);
-    if(!available()){cancelGesture();mode=null;}
+    if(!available()){cancelGesture();mode=null;frames.clear();}
     updateButtons();schedule();
   }
   return Object.freeze({init,refresh,setMode,receive,publish,isActive:()=>Boolean(mode)});
