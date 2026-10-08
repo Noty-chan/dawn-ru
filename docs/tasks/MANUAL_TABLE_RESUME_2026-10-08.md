@@ -16,7 +16,7 @@
 
 ## Доказательства и ограничения
 
-Полный `npm test` PASS до последнего пакета истории: `output/manual-boundaries-20261008-final-test.log`, `output/manual-resume-final-20261008-test.log`. Финальный полный прогон после approved anchors: `output/manual-resume-approved-final-20261008-test.log` (см. итоговую запись ниже). Targeted snapshots/movement/surfaces PASS после финальных изменений. Test transport и DOM — подстановки; reviewer отдельно запускал настоящие normalizeScene/sceneCore/commit/queue/rebase в VM. Реальная сеть двух клиентов не проверена.
+Полный `npm test` PASS до последнего пакета истории: `output/manual-boundaries-20261008-final-test.log`, `output/manual-resume-final-20261008-test.log`. Финальный полный прогон после approved anchors: `output/manual-resume-approved-final-20261008-test.log` **PASS, exit 0**. Targeted snapshots/movement/surfaces PASS после финальных изменений. Test transport и DOM — подстановки; reviewer отдельно запускал настоящие normalizeScene/sceneCore/commit/queue/rebase в VM. Реальная сеть двух клиентов не проверена.
 
 Browser: отдельный origin 127.0.0.1:8785, Edge headless 1440×1000, CLI session dawn-resume. Native mouse/cell eraser удаляет область; причиной универсального отказа ластика объявлять нельзя — прежний CUA отказ не воспроизвёлся. ЗД через -2 Enter: 18→16, переживает reload. NPC Reader все4 раздела открыты. Mouse move G1→D4: HP16/AP3 неизменны, SVG линия1. Очистить пути срабатывает. На pass7: D4→E4 мышью, Undo→D4, Redo→E4; HP16/18 неизменны. HUD geometry браузерно проверена после панели/fit. Снимки ignored output/manual-hud-fixed-20261008.png, manual-npc-open-20261008.png; финальный HUD manual-hud-final-20261008.png. HUD hover работает в инструменте Выбор; right-click — в том числе при Переставить.
 
@@ -32,3 +32,7 @@ Browser: отдельный origin 127.0.0.1:8785, Edge headless 1440×1000, CLI
 6. Вычитка RU/EN интерфейса остаётся: в canonical Reader профилей встречается NPC в русской presentation. D6/стабильные IDs не менять, generated edition data вручную не править; ранее согласованные переводы и полный backlog сверить, не объявлять локализацию готовой.
 
 Не трогать untracked пользовательские .codex-remote-attachments/, apps/companion/output/, site/dead-gods/maps/. Отдельный freeplay atomic WIP `codex/freeplay-atomic-wip-20261007`/stash не распаковывать в этот пакет. Полностью закрыть backlog этим заходом не удалось; ручной стол ещё не готов для объявления законченного редизайна.
+
+## Финальная фиксация
+
+Draft PR: https://github.com/Noty-chan/dawn-ru/pull/11, base codex/manual-table-checkpoint-20261007 (PR #10). Последний полный npm test после финальных approved anchors и пересборки S00 ссылок — PASS, exit0. S00 diff только добавил ссылки на snapshots suite в четырёх профилях; canonical тексты не изменены. Reviewer Sol6.1 low: финальная проверка fake anchor reject, shared rename/Undo/rebase PASS; новых подтверждённых существенных багов в проверенном пакете нет. Это не доказательство готовности остальных пунктов backlog. Остановка при ~5% пятичасового лимита; сервер локального QA 8785 и ignored артефакты сохранены для подхвата.
