@@ -129,6 +129,7 @@ function ensureNetworkV2Runtime(){
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
     flush:flushNetworkV2Authority,
+    onSettled:()=>{if(typeof renderSync==="function")renderSync()},
     onError:async(error,{retrying=true}={})=>{
       const message=friendlySyncError(error,error?.message||"неизвестная ошибка синхронизации");
       toast(retrying?`Сетевой такт не сохранён, будет повторён: ${message}`:`Сетевой такт не сохранён: ${message}. Исправьте причину и повторите действие.`);

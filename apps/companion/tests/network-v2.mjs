@@ -677,4 +677,13 @@ for(let attempt=0;attempt<6;attempt++){
 assert.equal(transientLegacy.scheduled.length,0,"legacy automatic retries stop after six attempts");
 assert.ok(transientLegacy.context.delayedAutomaticCommands.has("legacy-1"),"a command that exhausts transient retries becomes a visible manual decision");
 
+// The successful RPC renders while the queue still counts its in-flight item.
+// A final UI notification must observe the cleared queue, including rejection.
+for(const rejected of [false,true]){
+  const observed=[];
+  const queue=new Network.AuthorityQueue({flush:async()=>{observed.push(queue.pending());if(rejected)throw new Error("invalid command")},onSettled:()=>observed.push(queue.pending())});
+  queue.enqueue({kind:"events",events:[]});await queue.flush();
+  assert.deepEqual(observed,[1,0],"UI sees the settled queue instead of a permanent saving label");
+  assert.equal(queue.failed.length,Number(rejected));queue.clear();
+}
 console.log("Network v2 QA passed: local UI isolation, structured intents, ownership, coalescing, and atomic ticks");

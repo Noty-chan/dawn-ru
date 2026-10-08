@@ -511,6 +511,7 @@
         if(this.inFlight===source)this.inFlight=null;
         this.flushing=false;
         if(generation===this.generation&&(this.retryBatch||this.queue.length))this.schedule();
+        if(generation===this.generation)try{this.options.onSettled?.()}catch(error){console.warn("DAWN authority settled handler failed",error)}
       }
     }
     discard(predicate){
