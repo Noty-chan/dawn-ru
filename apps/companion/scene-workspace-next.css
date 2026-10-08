@@ -153,3 +153,6 @@ body.scene-mode.scene-interface-next .scene-chrome-menu-body :is(select,input):f
 body.scene-mode.scene-interface-next #scene-workbench .scene-stage-head:has(.scene-chrome-menu[open]){position:relative;z-index:95;isolation:isolate}
 body.scene-mode.scene-interface-next .scene-chrome-menu[open]{z-index:95}
 body.scene-mode.scene-interface-next.scene-next-narrow .scene-chrome-menu-body{position:fixed;top:calc(var(--mobile-header-height,101px) + 42px);right:8px;left:auto;width:min(360px,calc(100vw - 16px));max-height:calc(100dvh - var(--mobile-header-height,101px) - 58px)}
+
+/* Keep the perimeter stable while hovering: emphasis must not move its token. */
+body.scene-mode.scene-interface-next .scene-token:hover{transform:none}

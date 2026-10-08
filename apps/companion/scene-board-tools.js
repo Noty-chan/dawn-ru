@@ -66,6 +66,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   }
   function enhance() {
     if (!enabled || !toolbar || !strip || !tools) return;
+    const stripLabel=copy("scene.boardTools.categoriesLabel","Категории инструментов поля");if(strip.getAttribute("aria-label")!==stripLabel)strip.setAttribute("aria-label",stripLabel);
     for (const group of groups) {
       const nodes = group.selectors.flatMap(selector => [...document.querySelectorAll(selector)]).filter(node => !node.classList.contains("scene-stage-quick-action"));
       if (!nodes.length) continue;

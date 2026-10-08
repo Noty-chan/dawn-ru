@@ -123,4 +123,7 @@ for (let cycle = 0; cycle < 3; cycle++) {
   assert.equal(operations.get("#scene-undo")[0].disabled, true);
   assert.equal(JSON.stringify(Scene), sceneBefore, "Interface toggles do not write Scene.tool/history");
 }
+context.t=key=>key==="scene.boardTools.categoriesLabel"?"Board tool categories":key;api.enhance();
+assert.equal(strip.getAttribute("aria-label"),"Board tool categories","Live locale change updates category navigation label without replacing controls");
+assert.equal(JSON.stringify(Scene),sceneBefore);
 console.log("PASS: actual controls/listeners/state preserved, separate clears, five real categories, player gating, idempotent lifecycle, no Escape interception.");

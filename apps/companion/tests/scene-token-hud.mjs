@@ -268,7 +268,7 @@ for(const manual of [false,true])for(const fieldWidth of [250,400,900])for(const
   const result=hud.perimeterLayout(rect,field);if(!result){fallbacks++;continue;}
   placements++;
   const controls=(manual?[0,48]:[0,48,96]).flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+44,top:result.controlTop+dy,bottom:result.controlTop+dy+44})));
-  controls.push({left:result.healthLeft,right:result.healthLeft+80,top:result.healthTop,bottom:result.healthTop+40});
+  controls.push({left:result.healthLeft,right:result.healthLeft+80,top:result.healthTop,bottom:result.healthTop+42});
   for(const control of controls){assert.ok(!overlap(control,rect,6),'control is outside token with >=6px gutter');assert.ok(control.left>=field.left&&control.right<=field.right&&control.top>=field.top&&control.bottom<=field.bottom,'control is inside the visible field');}
   for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++)assert.ok(!overlap(controls[i],controls[j]),'controls cannot intersect');
 }

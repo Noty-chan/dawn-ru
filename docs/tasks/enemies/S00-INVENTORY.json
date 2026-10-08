@@ -1333,6 +1333,7 @@
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
             "apps/companion/tests/table-manual-tools.mjs",
+            "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -8514,7 +8515,8 @@
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-pan-lifecycle.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
-            "apps/companion/tests/table-manual-reader-data.mjs"
+            "apps/companion/tests/table-manual-reader-data.mjs",
+            "apps/companion/tests/table-manual-workspace.mjs"
           ],
           "notRun": [
             "real browser click path",

@@ -92,3 +92,6 @@ GitHub: продолжение в `codex/manual-table-continuation-20261008`, dr
 
 
 Последний кодовый коммит пакета: `8c0d3be`, опубликован в origin и PR #11. Последняя native проверка pass23: список областей collapsed, панель 351.8px при четырёх областях, square3 preview9; GM→Player отменяет draft, очищает preview и собственный private-area list. English reload: категория Ability highlights, выборы Neutralize Target/Slice/Hidden Blades, все восемь форм и управляющие подписи английские. Имена ранее сохранённых RU областей остаются записанным пользовательским текстом, не переводятся задним числом. Смена locale без reload пока отдельный пункт проверки. Последний screenshot: ignored `output/manual-highlight-final-20261008.png` (RU, new desktop).
+
+
+Последний checkpoint и исправление прежних native выводов: [FINAL HANDOFF](MANUAL_TABLE_FINAL_HANDOFF_2026-10-08.md).

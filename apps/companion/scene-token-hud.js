@@ -57,8 +57,8 @@
       const controls=(manual?[0,48]:[0,48,96]).flatMap(offset=>[box(leftControl,controlTop+offset),box(rightControl,controlTop+offset)]);
       if(!controls.every(r=>inside(r)&&apart(r,token)))continue;
       const healthLeft=clamp(token.left+(token.right-token.left)/2-40,field.left,field.right-80);
-      for(const healthTop of [token.bottom+8,token.top-48,controlTop+rows+gap,controlTop-46]){
-        const hp=box(healthLeft,healthTop,80,40);
+      for(const healthTop of [token.bottom+8,token.top-50,controlTop+rows+gap,controlTop-48]){
+        const hp=box(healthLeft,healthTop,80,42);
         if(inside(hp)&&apart(hp,token)&&controls.every(r=>apart(r,hp)))return {leftControl,rightControl,controlTop,healthLeft,healthTop};
       }
     }

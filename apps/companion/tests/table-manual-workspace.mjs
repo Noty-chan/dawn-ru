@@ -159,3 +159,38 @@ assert.ok(!fmt({kind:'technique-counter',key:'unknown-private-rule',operation:'r
 assert.equal(fmt({kind:'move',x:0,y:1}),'Hero: перемещение → A2');
 assert.ok(!fmt({kind:'unknown-event'}).includes('unknown-event'));
 console.log('Manual journal: actual RU/EN summaries, explicit zero, coordinates and no raw command/private rule IDs passed.');
+
+// Native Chromium emits change while a dirty focused number input is replaced.
+// Inject that event into the actual delegated handlers during their real render.
+scene.tablePolicy.mode='manual';scene.selectedActor='hero';control=true;narrator=true;
+ui.render(options);ui.open('hero');
+const footer=nodes.get('scene-manual-footer');let footerHtml=footer.innerHTML;
+const dirtyHp={dataset:{manualActor:'hero',manualValue:'7'},value:'5',matches:()=>true};
+reader.contains=node=>node?.dataset?.manualCounter!==undefined;
+const nextHp={dataset:{manualActor:'hero',manualValue:'7'},disabled:false,value:'7',focus(){context.document.activeElement=this;}};
+let footerInput=dirtyHp;footer.querySelector=selector=>selector==='[data-manual-hp]'?footerInput:null;
+Object.defineProperty(footer,'innerHTML',{get:()=>footerHtml,set:value=>{footer.events.change({target:dirtyHp});footerHtml=value;footerInput=nextHp;}});
+context.document.activeElement=dirtyHp;const countBeforePaint=calls.length;ui.render(options);
+assert.equal(calls.length,countBeforePaint,'replacing a dirty HP control never submits its browser-generated change');
+assert.equal(nextHp.value,'5');assert.equal(context.document.activeElement,nextHp,'same-actor repaint restores the draft and focus');
+let readerHtml=reader.innerHTML;const dirtyCounter={dataset:{manualCounter:'0'},value:'9',matches:()=>true,getAttribute:()=> '2',closest:()=>null};
+Object.defineProperty(reader,'innerHTML',{get:()=>readerHtml,set:value=>{reader.events.change({target:dirtyCounter});readerHtml=value;}});
+context.document.activeElement=dirtyCounter;ui.render(options);
+assert.equal(calls.length,countBeforePaint,'Reader repaint cannot silently commit a counter draft');
+console.log('Manual inputs: actual reentrant change handlers are suppressed during HP/Reader repaint; HP focus/draft retained without a command.');
+const blurBefore=calls.length;
+nextHp.matches=()=>true;
+footer.events.focusout({target:nextHp});
+assert.equal(calls.length,blurBefore+1,'restored HP draft commits when leaving the field');
+reader.events.focusout({target:dirtyCounter});
+assert.equal(calls.length,blurBefore+2,'restored counter draft commits when leaving the field');
+assert.equal(calls.at(-1).change.value,9);
+const pendingCount=calls.length;
+footer.events.focusout({target:nextHp});reader.events.focusout({target:dirtyCounter});
+assert.equal(calls.length,pendingCount,'pending submission is not duplicated by another focusout');
+dirtyCounter.value='10';reader.events.change({target:dirtyCounter});
+const changedCount=calls.length;reader.events.focusout({target:dirtyCounter});
+assert.equal(calls.length,changedCount,'native change followed by focusout submits once without canonical repaint');
+reader.events.keydown({key:'Escape',target:dirtyCounter,preventDefault(){},stopPropagation(){}});
+assert.equal(dirtyCounter.value,'2','Escape resets the dirty counter before closing');
+assert.equal(calls.length,changedCount,'Escape does not commit the counter draft');

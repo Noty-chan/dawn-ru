@@ -18,7 +18,7 @@ window.DAWN_I18N?.registerLocale?.("en", {
 // Presentation adapter only: the host owns permissions, shared commands and rolls.
 window.DAWN_MANUAL_WORKSPACE = (() => {
   let adapter = null, footer = null, initiative = null, reader = null;
-  let reading = false, readingActorId = null, readerActorId = null, scope = null;
+  let reading = false, readingActorId = null, readerActorId = null, scope = null, footerScope = null, paintingFooter = false, paintingReader = false;
   const techniqueFlags = new Map();
   const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const text = (key, fallback) => window.DAWN_I18N?.t?.(`scene.manual.${key}`, {}, {fallback}) || fallback;
@@ -53,7 +53,11 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     const label = escape(`${text("counterValue", "Значение счётчика")}: ${entry.name}`);
     return `<div class="scene-manual-counter" role="group" aria-label="${label}">${button("counter-down", "−", "", !control || value <= 0, `${extra} aria-label="${escape(text("less", "Уменьшить"))}"`)}<input type="number" min="0" max="999" step="1" inputmode="numeric" data-manual-counter="${index}" aria-label="${label}" value="${value}" ${control ? "" : "disabled"}>${button("counter-up", "+", "", !control || value >= 999, `${extra} aria-label="${escape(text("more", "Увеличить"))}"`)}${button("counter-remove", text("removeCounter", "Убрать счётчик"), "close", !control, `${extra} aria-label="${escape(text("removeCounter", "Убрать счётчик"))}"`)}</div>`;
   }
-  function paintReader(state, preserveDraft = true) {
+  function paintReader(state,preserveDraft=true){
+    const previous=paintingReader;paintingReader=true;
+    try{return drawReader(state,preserveDraft);}finally{paintingReader=previous;}
+  }
+  function drawReader(state, preserveDraft = true) {
     const actor = state.selected;
     const keepExpansion = actor?.id === readerActorId && !reader.hidden;
     const active = document.activeElement;
@@ -84,11 +88,19 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
   function paint() {
     if (!adapter || !footer) return;
     const state = model(adapter), actor = state.selected;
+    const oldHp=footer.querySelector('[data-manual-hp]');
+    const editingHp=oldHp&&document.activeElement===oldHp&&oldHp.dataset.manualActor===actor?.id&&footerScope===scope&&state.control;
+    const hpDraft=editingHp&&oldHp.value!==oldHp.dataset.manualValue?oldHp.value:null;
+    footerScope=scope;
+    initiative.setAttribute('aria-label',text('participants','Участники'));
+    reader.setAttribute('aria-label',text('abilities','Способности участника'));
     footer.hidden = initiative.hidden = !state.manual;
-    if (!state.manual) { reader.hidden = true; reading = false; return state; }
-    footer.innerHTML = `<div class="scene-manual-selected"><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${actor ? `<label><span>${escape(text("hp", "ЗД"))}</span><input type="number" inputmode="numeric" data-manual-hp aria-label="${escape(text("exactHp", "Записать здоровье"))}" value="${escape(actor.hp ?? 0)}" min="0" max="${escape(actor.maxHp ?? 9999)}" ${!state.control || !(adapter.editResource || adapter.commit) ? "disabled" : ""}><small>/ ${escape(actor.maxHp ?? "—")}</small></label>` : ""}</div><nav aria-label="${escape(text("commands", "Команды ручного стола"))}">${button("read", text("read", "Читать"), "sheet", !actor, `aria-expanded="${reading}"`)}${button("dice", text("dice", "Кубы"), "dice", !adapter.roll)}${button("clocks", text("clocks", "Часы"), "history", !adapter.openClocks)}${state.narrator ? button("point", text("point", "Сейчас играет"), "tokens", !actor || !(adapter.setCurrent || adapter.commit)) : ""}</nav><span class="scene-manual-round">${escape(text("round", "Раунд"))} ${state.round}${state.narrator ? button("round", text("nextRound", "+1"), "add", !(adapter.setRound || adapter.commit)) : ""}</span><output class="scene-manual-message" aria-live="polite"></output>`;
+    if (!state.manual) { reading = false; paintReader(state); return state; }
+    const footerMarkup = `<div class="scene-manual-selected"><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${actor ? `<label><span>${escape(text("hp", "ЗД"))}</span><input type="number" inputmode="numeric" data-manual-hp data-manual-actor="${escape(actor.id)}" data-manual-value="${escape(actor.hp ?? 0)}" aria-label="${escape(text("exactHp", "Записать здоровье"))}" value="${escape(actor.hp ?? 0)}" min="0" max="${escape(actor.maxHp ?? 9999)}" ${!state.control || !(adapter.editResource || adapter.commit) ? "disabled" : ""}><small>/ ${escape(actor.maxHp ?? "—")}</small></label>` : ""}</div><nav aria-label="${escape(text("commands", "Команды ручного стола"))}">${button("read", text("read", "Читать"), "sheet", !actor, `aria-expanded="${reading}"`)}${button("dice", text("dice", "Кубы"), "dice", !adapter.roll)}${button("clocks", text("clocks", "Часы"), "history", !adapter.openClocks)}${state.narrator ? button("point", text("point", "Сейчас играет"), "tokens", !actor || !(adapter.setCurrent || adapter.commit)) : ""}</nav><span class="scene-manual-round">${escape(text("round", "Раунд"))} ${state.round}${state.narrator ? button("round", text("nextRound", "+1"), "add", !(adapter.setRound || adapter.commit)) : ""}</span><output class="scene-manual-message" aria-live="polite"></output>`;
+    paintingFooter=true;try{footer.innerHTML=footerMarkup;}finally{paintingFooter=false;}
     initiative.innerHTML = `<span class="scene-manual-initiative-label">${escape(text("participants", "Участники"))}</span>${state.initiativeActors.map(item => {const image=item.tokenImage || item.portraitImage || item.portraitUrl;return `<button type="button" data-manual-action="select" data-actor-id="${escape(item.id)}" class="${item.id === actor?.id ? "selected" : ""} ${item.id === state.current?.id ? "current" : ""}" title="${escape(item.name)}" aria-label="${escape(item.name)}" ${!state.actors.some(actor=>actor.id===item.id)?"disabled":""} ${item.id === state.current?.id ? 'aria-current="step"' : ""}>${image ? `<img src="${escape(image)}" alt="">` : `<span aria-hidden="true">${escape(item.name?.slice(0,2) || "?")}</span>`}<small>${escape(item.name)}</small></button>`;}).join("")}`;
     paintReader(state);
+    if(editingHp&&state.manual){const input=footer.querySelector('[data-manual-hp]');if(input&&!input.disabled){if(hpDraft!==null)input.value=hpDraft;input.focus({preventScroll:true});}}
     return state;
   }
   function act(action, value) {
@@ -157,11 +169,20 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
         if (target && node.contains(target)) act(target.dataset.manualAction, target.dataset.actorId ?? target.dataset.abilityIndex);
       });
     }
-    footer.addEventListener("change", event => { if (event.target.matches("[data-manual-hp]")) act("hp", event.target.value); });
-    reader.addEventListener("change", event => {
-      if (event.target.matches("[data-manual-counter]")) act("counter-set", {index:event.target.dataset.manualCounter,value:event.target.value});
+    footer.addEventListener("change", event => { if (paintingFooter) return; if (event.target.matches("[data-manual-hp]")) { event.target.manualSubmitted=event.target.value; act("hp", event.target.value); } });
+    footer.addEventListener("focusout", event => {
+      const target=event.target;
+      if(!paintingFooter&&footer.contains(target)&&target.matches("[data-manual-hp]")&&target.value!==target.dataset.manualValue&&target.value!==target.manualSubmitted){target.manualSubmitted=target.value;act("hp",target.value);}
     });
-    reader.addEventListener("keydown", event => { if (event.key === "Escape") { event.stopPropagation(); act("close-reader"); footer.querySelector('[data-manual-action="read"]')?.focus(); } });
+    reader.addEventListener("change", event => {
+      if(paintingReader)return;
+      if (event.target.matches("[data-manual-counter]")) { event.target.manualSubmitted=event.target.value; act("counter-set", {index:event.target.dataset.manualCounter,value:event.target.value}); }
+    });
+    reader.addEventListener("focusout", event => {
+      const target=event.target;
+      if(!paintingReader&&reader.contains(target)&&target.matches("[data-manual-counter]")&&target.value!==target.getAttribute("value")&&target.value!==target.manualSubmitted){target.manualSubmitted=target.value;act("counter-set",{index:target.dataset.manualCounter,value:target.value});}
+    });
+    reader.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if(event.target.matches("[data-manual-counter]"))event.target.value=event.target.getAttribute("value"); act("close-reader"); footer.querySelector('[data-manual-action="read"]')?.focus(); } });
     return true;
   }
   function render(options) {
