@@ -48,7 +48,7 @@
     if(status)status.textContent=busy||state?.message||"";
   }
   function perimeterLayout(token,field){
-    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),size=44,gap=6,rows=manual?92:140,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
+    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),size=40,gap=12,rows=manual?88:136,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
     const apart=(a,b)=>a.right+gap<=b.left||b.right+gap<=a.left||a.bottom+gap<=b.top||b.bottom+gap<=a.top;
     const box=(left,top,width=size,height=size)=>({left,top,right:left+width,bottom:top+height});
     const controlTop=clamp(token.top-48,field.top,field.bottom-rows);
@@ -57,9 +57,10 @@
       const controls=(manual?[0,48]:[0,48,96]).flatMap(offset=>[box(leftControl,controlTop+offset),box(rightControl,controlTop+offset)]);
       if(!controls.every(r=>inside(r)&&apart(r,token)))continue;
       const healthLeft=clamp(token.left+(token.right-token.left)/2-40,field.left,field.right-80);
-      for(const healthTop of [token.bottom+8,token.top-50,controlTop+rows+gap,controlTop-48]){
+      // Leave the token's small health indicator visible above the editor.
+      for(const healthTop of [token.bottom+28,token.top-54,controlTop+rows+gap,controlTop-54]){
         const hp=box(healthLeft,healthTop,80,42);
-        if(inside(hp)&&apart(hp,token)&&controls.every(r=>apart(r,hp)))return {leftControl,rightControl,controlTop,healthLeft,healthTop};
+        if(inside(hp)&&apart(hp,{...token,bottom:token.bottom+16})&&controls.every(r=>apart(r,hp)))return {leftControl,rightControl,controlTop,healthLeft,healthTop};
       }
     }
     return null;

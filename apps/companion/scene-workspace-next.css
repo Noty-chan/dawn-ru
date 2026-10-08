@@ -37,7 +37,7 @@ body.scene-mode.scene-interface-next .scene-board-tool-panel>button::before{disp
 body.scene-mode.scene-interface-next .scene-board-tools-ready>.scene-tool-actions,body.scene-mode.scene-interface-next .scene-board-tools-ready>.scene-rule-suggestions{display:none}
 body.scene-mode.scene-interface-next .scene-board-tool-category[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--ink);box-shadow:none}
 body.scene-mode.scene-interface-next #scene-dock button:has(.dawn-control-icon)::before{display:none}
-body.scene-mode.scene-interface-next .scene-context-menu.is-token-overlay [data-token-hud-action]{width:44px;height:44px;min-width:44px;min-height:44px;background:color-mix(in srgb,var(--surface-2) 88%,transparent);border:1px solid var(--line);color:var(--ink);display:grid;place-items:center;padding:0}
+body.scene-mode.scene-interface-next .scene-context-menu.is-token-overlay [data-token-hud-action]{width:40px;height:40px;min-width:40px;min-height:40px;background:color-mix(in srgb,var(--surface-2) 88%,transparent);border:1px solid var(--line);color:var(--ink);display:grid;place-items:center;padding:0}
 body.scene-mode.scene-interface-next .is-token-overlay [data-token-hud-action="inspect"],body.scene-mode.scene-interface-next .is-token-overlay [data-token-hud-action="target"]{top:calc(var(--hud-row) + 48px)}
 body.scene-mode.scene-interface-next .is-token-overlay .token-hud-health{display:block;width:80px;min-width:80px;padding:0}
 body.scene-mode.scene-interface-next .is-token-overlay .token-hud-health input{height:40px;min-height:40px;font-size:16px;font-weight:600;margin:0}

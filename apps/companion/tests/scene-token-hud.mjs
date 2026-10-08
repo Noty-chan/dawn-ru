@@ -142,8 +142,8 @@ token.getBoundingClientRect=originalTokenRect;
 for(const top of [100,775]){
   token.getBoundingClientRect=()=>({left:105,right:129,top,bottom:top+24,width:24,height:24});hud.refresh();
   const cap=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-cap"]),row=Number.parseFloat(menu.style.top)+Number.parseFloat(menu.style["--hud-row"]);
-  assert.equal(row-cap,48,"edge clamping keeps cap and first-row hit areas separated by 4px");
-  assert.ok(cap>=108&&row+48+44<=792,"the entire three-button stack stays inside the visible field");
+  assert.equal(row-cap,48,"edge clamping keeps cap and first-row hit areas separated by 8px");
+  assert.ok(cap>=108&&row+48+40<=792,"the entire three-button stack stays inside the visible field");
 }
 token.getBoundingClientRect=originalTokenRect;
 const originalFieldRect=wrap.getBoundingClientRect;
@@ -267,7 +267,7 @@ for(const manual of [false,true])for(const fieldWidth of [250,400,900])for(const
   context.window.DAWN_TABLE_POLICY={isManual:()=>manual};
   const result=hud.perimeterLayout(rect,field);if(!result){fallbacks++;continue;}
   placements++;
-  const controls=(manual?[0,48]:[0,48,96]).flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+44,top:result.controlTop+dy,bottom:result.controlTop+dy+44})));
+  const controls=(manual?[0,48]:[0,48,96]).flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+40,top:result.controlTop+dy,bottom:result.controlTop+dy+40})));
   controls.push({left:result.healthLeft,right:result.healthLeft+80,top:result.healthTop,bottom:result.healthTop+42});
   for(const control of controls){assert.ok(!overlap(control,rect,6),'control is outside token with >=6px gutter');assert.ok(control.left>=field.left&&control.right<=field.right&&control.top>=field.top&&control.bottom<=field.bottom,'control is inside the visible field');}
   for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++)assert.ok(!overlap(controls[i],controls[j]),'controls cannot intersect');
