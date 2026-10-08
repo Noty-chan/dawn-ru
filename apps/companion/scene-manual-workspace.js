@@ -2,6 +2,7 @@
 window.DAWN_I18N?.registerLocale?.("ru", {
   "scene.manual.statusHints":"Подсказки статусов", "scene.manual.policyName":"Ведение", "scene.manual.policyAria":"Режим игрового стола", "scene.manual.manual":"Вручную", "scene.manual.rules":"По правилам",
   "scene.manual.select":"Выберите участника", "scene.manual.sheet":"Лист", "scene.manual.close":"Закрыть", "scene.manual.marked":"Личная отметка ✓", "scene.manual.mark":"Личная отметка",
+  "scene.manual.counter":"Счётчик", "scene.manual.removeCounter":"Убрать счётчик", "scene.manual.counterValue":"Значение счётчика", "scene.manual.less":"Уменьшить", "scene.manual.more":"Увеличить",
   "scene.manual.area":"Показать область", "scene.manual.noAbilities":"Способности этого участника не добавлены.", "scene.manual.hp":"ЗД", "scene.manual.exactHp":"Записать здоровье",
   "scene.manual.commands":"Команды ручного стола", "scene.manual.read":"Читать", "scene.manual.dice":"Кубы", "scene.manual.clocks":"Часы", "scene.manual.point":"Сейчас играет",
   "scene.manual.round":"Раунд", "scene.manual.nextRound":"+1", "scene.manual.participants":"Участники", "scene.manual.abilities":"Способности участника"
@@ -9,6 +10,7 @@ window.DAWN_I18N?.registerLocale?.("ru", {
 window.DAWN_I18N?.registerLocale?.("en", {
   "scene.manual.statusHints":"Status hints", "scene.manual.policyName":"Table mode", "scene.manual.policyAria":"Table play mode", "scene.manual.manual":"Manual", "scene.manual.rules":"With rules",
   "scene.manual.select":"Select a participant", "scene.manual.sheet":"Sheet", "scene.manual.close":"Close", "scene.manual.marked":"Personal mark ✓", "scene.manual.mark":"Personal mark",
+  "scene.manual.counter":"Counter", "scene.manual.removeCounter":"Remove counter", "scene.manual.counterValue":"Counter value", "scene.manual.less":"Decrease", "scene.manual.more":"Increase",
   "scene.manual.area":"Show area", "scene.manual.noAbilities":"No abilities have been added for this participant.", "scene.manual.hp":"HP", "scene.manual.exactHp":"Set Health",
   "scene.manual.commands":"Manual table commands", "scene.manual.read":"Read", "scene.manual.dice":"Dice", "scene.manual.clocks":"Clocks", "scene.manual.point":"Playing now",
   "scene.manual.round":"Round", "scene.manual.nextRound":"+1", "scene.manual.participants":"Participants", "scene.manual.abilities":"Participant abilities"
@@ -33,7 +35,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       round: Math.max(1, Number(scene?.manualTable?.round) || 1), narrator: allowed(options?.canNarrate), control: Boolean(selected && allowed(options?.canControl, selected))};
   }
   function button(action, label, glyph, disabled = false, extra = "") {
-    return `<button type="button" data-manual-action="${action}" ${disabled ? "disabled" : ""} ${extra}>${icon(glyph)}<span>${escape(label)}</span></button>`;
+    return `<button type="button" data-manual-action="${action}" ${disabled ? "disabled" : ""} ${extra}>${glyph ? icon(glyph) : ""}<span>${escape(label)}</span></button>`;
   }
   function statuses(actor) {
     const entries = adapter.statuses?.(actor) || (actor.effects || []).map(effect => typeof effect === "string" ? {id:effect,name:effect} : effect);
@@ -43,9 +45,24 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     const result = adapter.readAbilities?.(actor) || [];
     return Array.isArray(result) ? result : [];
   }
-  function paintReader(state) {
+  function counterTools(actor, entry, index, control) {
+    if (!entry.counter || !adapter.editCounter) return "";
+    const value = actor.manualTechniqueCounters?.[entry.id];
+    const extra = `data-ability-index="${index}"`;
+    if (!Number.isSafeInteger(value)) return button("counter-create", text("counter", "Счётчик"), "add", !control, extra);
+    const label = escape(`${text("counterValue", "Значение счётчика")}: ${entry.name}`);
+    return `<div class="scene-manual-counter" role="group" aria-label="${label}">${button("counter-down", "−", "", !control || value <= 0, `${extra} aria-label="${escape(text("less", "Уменьшить"))}"`)}<input type="number" min="0" max="999" step="1" inputmode="numeric" data-manual-counter="${index}" aria-label="${label}" value="${value}" ${control ? "" : "disabled"}>${button("counter-up", "+", "", !control || value >= 999, `${extra} aria-label="${escape(text("more", "Увеличить"))}"`)}${button("counter-remove", text("removeCounter", "Убрать счётчик"), "close", !control, `${extra} aria-label="${escape(text("removeCounter", "Убрать счётчик"))}"`)}</div>`;
+  }
+  function paintReader(state, preserveDraft = true) {
     const actor = state.selected;
     const keepExpansion = actor?.id === readerActorId && !reader.hidden;
+    const active = document.activeElement;
+    const focused = keepExpansion && active && reader.contains(active) ? {
+      action:active.dataset?.manualAction,
+      entry:active.closest?.('[data-entry-id]')?.dataset.entryId,
+      counter:active.matches?.('[data-manual-counter]'),
+      draft:preserveDraft && state.control && active.matches?.('[data-manual-counter]') && active.value !== active.getAttribute('value') ? active.value : null
+    } : null;
     const expanded = new Set(keepExpansion ? Array.from(reader.querySelectorAll('details[open]')).map(node => node.dataset.manualAbility) : []);
     const expandProfile = !keepExpansion && Boolean(actor?.profileId || actor?.kind === "enemy" || actor?.kind === "npc");
     readerActorId = actor?.id || null;
@@ -53,8 +70,16 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     if (!reading) return;
     reader.innerHTML = `<header><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${adapter.openSheet?button("sheet", text("sheet", "Лист"), "sheet", !actor):""}${button("close-reader", text("close", "Закрыть"), "close")}</header>${actor ? `<div class="scene-manual-statuses">${statuses(actor)}</div><div class="scene-manual-abilities">${abilities(actor).map((entry, index) => {
       const key = `${actor.id}:${entry.id || index}`, on = adapter.toggleTechnique ? Boolean(actor.manualTechniqueState?.[entry.id]) : techniqueFlags.get(key) || false;
-      return `<details data-manual-ability="${index}" ${expandProfile || expanded.has(String(index)) ? "open" : ""}><summary>${escape(entry.name)}${entry.meta ? `<small>${escape(entry.meta)}</small>` : ""}</summary><div class="scene-manual-ability-text">${escape(entry.text || entry.description || "")}</div>${adapter.statusHints && entry.hint ? `<p class="scene-manual-hint">${escape(entry.hint)}</p>` : ""}<div class="scene-manual-ability-tools">${entry.toggle ? button("technique-toggle", on ? text("marked", "Личная отметка ✓") : text("mark", "Личная отметка"), "effects", !state.control, `data-ability-index="${index}" aria-pressed="${on}"`) : ""}${entry.area && adapter.showArea ? button("show-area", text("area", "Показать область"), "areas", !state.control, `data-ability-index="${index}"`) : ""}</div></details>`;
+      return `<details data-entry-id="${escape(entry.id)}" data-manual-ability="${index}" ${expandProfile || expanded.has(String(index)) ? "open" : ""}><summary>${escape(entry.name)}${entry.meta ? `<small>${escape(entry.meta)}</small>` : ""}</summary><div class="scene-manual-ability-text">${escape(entry.text || entry.description || "")}</div>${adapter.statusHints && entry.hint ? `<p class="scene-manual-hint">${escape(entry.hint)}</p>` : ""}<div class="scene-manual-ability-tools">${entry.toggle ? button("technique-toggle", on ? text("marked", "Личная отметка ✓") : text("mark", "Личная отметка"), "effects", !state.control, `data-ability-index="${index}" aria-pressed="${on}"`) : ""}${counterTools(actor,entry,index,state.control)}${entry.area && adapter.showArea ? button("show-area", text("area", "Показать область"), "areas", !state.control, `data-ability-index="${index}"`) : ""}</div></details>`;
     }).join("") || `<p class="scene-manual-empty">${escape(text("noAbilities", "Способности этого участника не добавлены."))}</p>`}</div>` : ""}`;
+    if (focused) {
+      const root = focused.entry ? Array.from(reader.querySelectorAll('[data-entry-id]')).find(node=>node.dataset.entryId===focused.entry) : reader;
+      const target = focused.counter ? root?.querySelector('[data-manual-counter]') : Array.from(root?.querySelectorAll('[data-manual-action]') || []).find(node=>node.dataset.manualAction===focused.action);
+      if (target && !target.disabled) {
+        if (focused.draft !== null && focused.counter) target.value=focused.draft;
+        target.focus({preventScroll:true});
+      }
+    }
   }
   function paint() {
     if (!adapter || !footer) return;
@@ -92,6 +117,21 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       if (!Number.isSafeInteger(amount) || amount < 0 || amount > (actor.maxHp ?? 9999)) { paint(); return false; }
       if (adapter.editResource) adapter.editResource(actor, {field:"hp",value:amount}); else adapter.commit(text("exactHp", "Записать здоровье"), [{type:"table.command",actorId:actor.id,payload:{kind:"resource",values:{hp:amount}}}]); return true;
     }
+    if (actor && action.startsWith("counter-") && state.control && adapter.editCounter) {
+      const index = typeof value === "object" ? value.index : value;
+      const entry = abilities(actor)[Number(index)];
+      if (!entry?.counter) return false;
+      const operation = ({"counter-create":"create","counter-remove":"remove","counter-up":"adjust","counter-down":"adjust","counter-set":"set"})[action];
+      if (!operation) return false;
+      const change = {operation};
+      if (operation === "adjust") change.delta = action === "counter-up" ? 1 : -1;
+      if (operation === "set") {
+        change.value = String(value.value).trim() === "" ? NaN : Number(value.value);
+        if (!Number.isSafeInteger(change.value) || change.value < 0 || change.value > 999) { paintReader(state, false); return false; }
+      }
+      if (operation !== "create" && !Number.isSafeInteger(actor.manualTechniqueCounters?.[entry.id])) return false;
+      adapter.editCounter(actor,entry,change); return true;
+    }
     if (actor && (action === "technique-toggle" || action === "show-area")) {
       const entry = abilities(actor)[Number(value)];
       if (!entry) return false;
@@ -118,6 +158,9 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       });
     }
     footer.addEventListener("change", event => { if (event.target.matches("[data-manual-hp]")) act("hp", event.target.value); });
+    reader.addEventListener("change", event => {
+      if (event.target.matches("[data-manual-counter]")) act("counter-set", {index:event.target.dataset.manualCounter,value:event.target.value});
+    });
     reader.addEventListener("keydown", event => { if (event.key === "Escape") { event.stopPropagation(); act("close-reader"); footer.querySelector('[data-manual-action="read"]')?.focus(); } });
     return true;
   }

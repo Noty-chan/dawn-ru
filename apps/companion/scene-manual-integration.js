@@ -354,13 +354,28 @@ function renderManualTable(){
   renderManualAreaDraft();
   renderManualClocks();
   renderManualMapTools();
+  renderManualJournal();
   const manual=manualTableActive(),crowdAdd=$("scene-add-crowd-auto"),crowdBrush=$("scene-add-crowd-brush"),trait=$("scene-enemy-trait");
   if(crowdAdd){crowdAdd.textContent=manual?manualTableCopy("Добавить на свободные клетки","Add to empty cells"):manualTableCopy("Добавить автоматически","Add automatically");}
   if(crowdBrush)crowdBrush.hidden=manual;
   if(trait?.closest("label"))trait.closest("label").hidden=manual;
 
   document.body.dataset.tablePolicy=manualTableActive()?"manual":"rules";
+  const stageHead=document.querySelector('#scene-workbench .scene-stage-head');
+  let status=$("scene-manual-context");
+  if(stageHead&&!status){status=document.createElement("div");status.id="scene-manual-context";stageHead.prepend(status);}
+  if(status){
+    status.hidden=!manual;
+    if(manual){const space=activeSceneSpace(),current=Scene.actors.find(a=>a.id===Scene.manualTable?.actorId&&(activeSceneView()==="gm"||!a.hidden));
+      status.innerHTML=`<strong>${esc(Scene.name||manualTableCopy("Стол","Table"))}</strong><span>${esc(space?.name||manualTableCopy("Поле","Board"))} · ${esc(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"))}</span>`;
+    }
+  }
   const sizeLabel=$("scene-space-size-label");if(sizeLabel?.firstChild)sizeLabel.firstChild.textContent=manualTableCopy("Размер нового поля","New board size");
+  if(manual){
+    const current=Scene.actors.find(a=>a.id===Scene.manualTable?.actorId&&(activeSceneView()==="gm"||!a.hidden));
+    if($("scene-active-turn"))$("scene-active-turn").textContent=current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Участник не назначен","No current participant");
+    if($("scene-encounter-status"))$("scene-encounter-status").textContent=manualTableCopy("Раунд ","Round ")+Math.max(1,Number(Scene.manualTable?.round)||1);
+  }
   const selector=$("scene-control-mode");if(selector)selector.value=manualTableActive()?"manual":"rules";
   const hints=$("scene-manual-status-processing");if(hints){hints.checked=Boolean(Scene.tablePolicy?.processStatuses);hints.closest("label").hidden=!manualTableActive();}
   for(const button of document.querySelectorAll('#scene-dock [data-scene-panel="director"],#scene-dock [data-scene-panel="sheet"],#scene-dock [data-scene-panel="utility"],#scene-dock [data-scene-panel="entities"]'))button.hidden=manualTableActive();
@@ -370,12 +385,17 @@ function renderManualTable(){
     canRead:actor=>activeSceneView()==="gm"||!actor.hidden,
     commit:commitSceneEvents,readAbilities:manualTableAbilities,
     beforeRead:()=>{for(const menu of document.querySelectorAll(".scene-chrome-menu[open]"))menu.open=false;closeAllScenePanels();},
-    selectActor:actor=>{Scene.selectedActor=actor.id;persist();renderScene()},
+    selectActor:actor=>{
+      const areaTools=$("manual-table-area-tools");if(areaTools)areaTools.areaDraft=null;
+      clearManualAreaPreview();window.DAWN_SCENE_BOARD_TOOLS?.select?.("tokens");
+      Scene.selectedActor=actor.id;persist();renderScene();
+    },
     roll:openManualTableDice,
     openClocks:openManualTableClocks,
     showArea:openManualTableArea,
     statuses:actor=>(actor.manualStatuses||[]).map(id=>{const effect=sceneEffectList().find(e=>e.id===id);return{id,name:effect?.name||id,icon:"effects",hint:effect?.text||""}}),
     statusHints:Boolean(Scene.tablePolicy?.processStatuses),
+    editCounter:(actor,entry,change)=>commitSceneEvents(manualTableCopy("Ручной счётчик приёма","Manual ability counter"),[{id:uid(),type:"table.command",actorId:actor.id,payload:{kind:"technique-counter",key:entry.id,...change}}]),
     toggleTechnique:(actor,entry,on)=>commitSceneEvents(manualTableCopy("Пометка Техники","Technique note"),[{type:"table.command",actorId:actor.id,payload:{kind:"technique",key:entry.id,enabled:on}}])
   });
 }
@@ -386,12 +406,34 @@ document.addEventListener("keydown",event=>{
   document.querySelectorAll(".scene-cell.preview,.scene-erase-preview").forEach(node=>node.classList.remove("preview","scene-erase-preview"));
   document.querySelectorAll(".scene-wall-preview,.scene-erase-label").forEach(node=>node.remove());
 },true);
+function manualEventText(scene,event,{english=false,entries=()=>[],effects=[]}={}){
+  const copy=(ru,en)=>english?en:ru,p=event.payload||{},actor=scene.actors.find(a=>a.id===event.actorId),name=actor?.name||copy("Стол","Table");
+  const entry=actor&&entries(actor).find(row=>row.id===p.key),ability=entry?.name||copy("Приём","Ability");
+  const resourceNames={hp:copy("ЗД","HP"),maxHp:copy("Макс. ЗД","Max HP"),focus:copy("Фокус","Focus"),influence:copy("Влияние","Influence"),stress:copy("Стресс","Stress"),wounds:copy("Раны","Wounds"),ap:copy("ОД","AP"),baseAp:copy("Базовые ОД","Base AP"),armor:copy("Броня","Armor"),evasion:copy("Уклонение","Evasion"),speed:copy("Скорость","Speed")};
+  if(p.kind==="resource")return `${name}: ${Object.entries(p.values||{}).map(([key,value])=>`${resourceNames[key]||copy("Ресурс","Resource")} → ${value}`).join(" · ")}`;
+  if(p.kind==="move")return `${name}: ${copy("перемещение","moved")} → ${String.fromCharCode(65+p.x)}${p.y+1}`;
+  if(p.kind==="status")return `${name}: ${effects.find(row=>row.id===p.effectId)?.name||copy("Статус","Status")} · ${p.enabled?copy("добавлен","added"):copy("убран","removed")}`;
+  if(p.kind==="technique")return `${name}: ${ability} · ${p.enabled?copy("отмечено","marked"):copy("отметка снята","mark cleared")}`;
+  if(p.kind==="technique-counter"){
+    const action=p.operation==="create"?copy("счётчик добавлен","counter added"):p.operation==="remove"?copy("счётчик убран","counter removed"):p.operation==="adjust"?`${copy("счётчик","counter")} ${p.delta>0?"+":""}${p.delta}`:`${copy("счётчик","counter")} → ${p.value}`;
+    return `${name}: ${ability} · ${action}`;
+  }
+  if(p.kind==="pointer")return `${copy("Сейчас играет","Playing now")}: ${scene.actors.find(a=>a.id===p.actorId)?.name||scene.manualInitiative?.find(a=>a.id===p.actorId)?.name||copy("никто","nobody")}`;
+  if(p.kind==="round")return p.delta!==undefined?`${copy("Ручной Раунд","Manual Round")} ${p.delta>0?"+":""}${p.delta}`:`${copy("Ручной Раунд","Manual Round")} → ${p.value}`;
+  if(p.kind==="roll"){const roll=p.roll||{};return `${name}: ${roll.formula||copy("бросок","roll")} · ${(roll.rolls||[]).join(", ")} → ${roll.successes??0} ${copy("успехов","hits")}`;}
+  const label=(ru,en)=>`${name}: ${copy(ru,en)}`;
+  const labels={"area/create":label("показана область","area shown"),"area/remove":label("область убрана","area removed"),"wall/create":label("добавлена стена","wall added"),"wall/remove":label("стена убрана","wall removed"),"marker/create":label("поставлена метка","marker placed"),"marker/remove":label("метка убрана","marker removed"),"marker/move":label("метка перемещена","marker moved"),"marker/clock-set":label("изменены часы метки","marker clock changed"),"object/remove":label("обозначение убрано","annotation removed"),"actor/remove":label("участник убран","participant removed"),"clock/create":label("добавлены часы","clock added"),"clock/remove":label("часы убраны","clock removed"),"clock/set":label("часы изменены","clock changed"),"movement/clear":label("линии передвижения очищены","movement traces cleared"),"layout/replace":label("расстановка заменена","layout replaced"),"policy":label("изменён режим стола","table mode changed")};
+  const detail=p.area?.label||p.wall?.label||p.marker?.label||p.clock?.name;
+  return (labels[p.kind]||label("изменение ручного стола","manual table change"))+(detail?` · ${detail}`:"");
+}
+function renderManualJournal(){
+  const log=$("scene-log");if(!log||!manualTableActive())return;
+  const scene=activeSceneView()==="gm"?Scene:SceneEngine.projectScene(Scene,{role:"player",actorIds:Scene.actors.filter(canControlSceneActor).map(a=>a.id)});
+  log.innerHTML=(scene.log||[]).map(row=>{const date=new Date(row.at),at=Number.isNaN(date.getTime())?row.at||"":date.toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"});return `<li><time>${esc(at)}</time>${esc(row.text||eventText(row))}</li>`;}).join("")||`<li class="autosave">${manualTableCopy("Здесь появятся ручные изменения стола.","Manual table changes will appear here.")}</li>`;
+}
 const sceneEventTextWithRules=eventText;
 eventText=function(event){
-  if(event.type==="table.command"&&event.payload?.kind==="roll"){
-    const roll=event.payload.roll,actor=Scene.actors.find(a=>a.id===event.actorId);
-    return `${actor?.name||manualTableCopy("Стол","Table")}: ${roll.formula} · ${roll.rolls.join(", ")} → ${roll.successes} ${manualTableCopy("успехов","hits")}`;
-  }
+  if(event.type==="table.command")return manualEventText(Scene,event,{english:isEnglishPreview(),entries:manualTableAbilities,effects:sceneEffectList()});
   return sceneEventTextWithRules(event);
 };
 const renderSceneWithRules=renderScene;

@@ -235,6 +235,7 @@ function sceneCore(raw){
     actor.manualStatuses=[...new Set(cleanArray(source.manualStatuses))].slice(0,80);
     if(typeof source.manualInitiativeVisible==="boolean")actor.manualInitiativeVisible=source.manualInitiativeVisible;
     if(source.manualMovementTrace&&typeof source.manualMovementTrace==="object")actor.manualMovementTrace=JSON.parse(JSON.stringify(source.manualMovementTrace));
+    if(source.manualTechniqueCounters&&typeof source.manualTechniqueCounters==="object"&&!Array.isArray(source.manualTechniqueCounters))actor.manualTechniqueCounters=Object.fromEntries(Object.entries(source.manualTechniqueCounters).filter(([key,value])=>key.trim()&&key.length<=160&&!/[\u0000-\u001f]/u.test(key)&&!["__proto__","constructor","prototype"].includes(key)&&Number.isSafeInteger(value)&&value>=0&&value<=999).slice(0,120));
     if(source.manualTechniqueState&&typeof source.manualTechniqueState==="object"&&!Array.isArray(source.manualTechniqueState))actor.manualTechniqueState=JSON.parse(JSON.stringify(source.manualTechniqueState));
     actor.rulesEdition=["ru-v0.9","lionwing"].includes(source.rulesEdition)?source.rulesEdition:String(source.profileId||"").startsWith("lionwing.")?"lionwing":"ru-v0.9";
     if(actor.rulesEdition==="lionwing"){actor.guts=null;actor.wounds=clamp(source.wounds,0,3);actor.focus=Math.max(0,Number(source.focus)||0)}

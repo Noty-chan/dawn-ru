@@ -58,7 +58,7 @@ returns jsonb language sql immutable set search_path = '' as $$
     where item->>'visibility'='public' and item->>'definitionId' in (select key from definitions)
       and public.scene_metadata_visible(item,hidden_ids)
   )
-  select (actor - 'notes' - 'privateNotes' - 'ownerId' - 'characterId' - 'profileId' - 'antagonistTraitId' - 'attrs' - 'skills' - 'ability' - 'taintedAbility' - 'techniques' - 'inventory')
+  select (actor - 'notes' - 'privateNotes' - 'manualTechniqueState' - 'manualTechniqueCounters' - 'ownerId' - 'characterId' - 'profileId' - 'antagonistTraitId' - 'attrs' - 'skills' - 'ability' - 'taintedAbility' - 'techniques' - 'inventory')
     || coalesce((select jsonb_object_agg(key,coalesce(public.scene_metadata_redacted(value,hidden_ids),'{}'::jsonb)) from jsonb_each(actor) where key in ('effectStates','ruleState','techniqueState','modifierState','ruleResources','ruleClocks','lionwing')),'{}'::jsonb)
     || case when jsonb_typeof(actor->'lionwing'->'inventory')='object' then jsonb_build_object('lionwing',
       coalesce(public.scene_metadata_redacted((actor->'lionwing') - 'inventory',hidden_ids),'{}'::jsonb) || jsonb_build_object('inventory',jsonb_build_object(

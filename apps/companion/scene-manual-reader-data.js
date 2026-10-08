@@ -38,10 +38,10 @@
       const ability = actor[key];
       if (!ability?.enabled) continue;
       add(key, ability.name || copy(key === "ability" ? "Способность" : "Способность Порченого тела", key === "ability" ? "Ability" : "Tainted Body Ability"),
-        [formula(ability, key), ability.desc].filter(Boolean).join("\n\n"), {area:true,meta: `${copy("Ранг", "Rank")} ${ability.rank || 1}`});
+        [formula(ability, key), ability.desc].filter(Boolean).join("\n\n"), {toggle:true,counter:true,area:true,meta: `${copy("Ранг", "Rank")} ${ability.rank || 1}`});
     }
     for (const entry of options.techniqueEntries?.(actor) || []) {
-      add(entry.id, `${entry.displayTechniqueName} · ${entry.displayLevelName}`, entry.displayText, {toggle: true,area:true});
+      add(entry.id, `${entry.displayTechniqueName} · ${entry.displayLevelName}`, entry.displayText, {toggle: true,counter:true,area:true});
     }
     const profile = actor.profileId ? options.enemyProfile?.(actor.profileId) : null;
     if (profile) {
@@ -53,7 +53,7 @@
       const rules = Array.isArray(profile.rules) ? profile.rules : [...(profile.actions || []), ...(profile.ace ? [profile.ace] : [])];
       rules.forEach((rule, index) => {
         const id = `${prefix}:${rule.id || index}`;
-        add(id, rule.name, rule.text,{area:true});
+        add(id, rule.name, rule.text,{toggle:true,counter:true,area:true});
         add(`${id}:reward`, copy("Награда", "Reward"), rule.reward);
       });
       add(`${prefix}:reward`, copy("Награда", "Reward"), profile.reward);

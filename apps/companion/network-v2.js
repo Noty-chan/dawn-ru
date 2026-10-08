@@ -272,7 +272,7 @@
       if(!["table","public-roll"].includes(intent.kind))throw new Error("Автоматические команды выключены в ручном столе");
       const owner=ownedActor(scene,intent.actorId,ownerId);
       const request=intent.kind==="public-roll"?{kind:"roll",roll:safeObject(intent.payload)}:safeObject(intent.request);
-      if(!["move","resource","status","technique","roll","area/create","area/remove","clock/create","clock/set","clock/remove"].includes(request.kind))throw new Error("Эта ручная команда доступна только Нарратору");
+      if(!["move","resource","status","technique","technique-counter","roll","area/create","area/remove","clock/create","clock/set","clock/remove"].includes(request.kind))throw new Error("Эта ручная команда доступна только Нарратору");
       if(intent.kind==="table"&&(!Number.isSafeInteger(intent.policyEpoch)||intent.policyEpoch!==tablePolicy.normalizePolicy(scene.tablePolicy).epoch))throw new Error("Политика стола изменилась: отправьте команду заново");
       if(["area/remove","clock/set","clock/remove"].includes(request.kind)){
         const rows=request.kind==="area/remove"?scene.objects:scene.sessionClocks;

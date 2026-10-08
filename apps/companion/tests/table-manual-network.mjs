@@ -61,3 +61,23 @@ for(const eventId of [null,'',12,{}])assert.throws(()=>materialize(rollStart,{..
 const legacy=plain(rollIntent);delete legacy.eventId;assert.equal(typeof materialize(rollStart,legacy)[0].id,'string');
 
 }
+
+// Control-owned notebook commands share the normal authority boundary.
+let notes=fixture();
+const counter=(operation,extra={})=>({kind:"technique-counter",key:"PRIVATE_COUNTER_RULE",operation,...extra});
+const submit=payload=>{notes=Engine.dispatchMany(notes,materialize(notes,asIntent(notes,"mine",payload))).scene;};
+submit(counter("create"));submit(counter("adjust",{delta:1}));submit(counter("adjust",{delta:1}));
+assert.equal(notes.actors[0].manualTechniqueCounters.PRIVATE_COUNTER_RULE,2,'increments use authority state, not stale UI values');
+submit(counter("create"));assert.equal(notes.actors[0].manualTechniqueCounters.PRIVATE_COUNTER_RULE,2,'repeated add never resets a counter');
+const stable=JSON.stringify(notes);
+for(const p of [counter("set",{value:-1}),counter("set",{value:1000}),counter("set",{value:1.5}),counter("adjust",{delta:7}),{...counter("create"),key:"__proto__"}])assert.throws(()=>materialize(notes,asIntent(notes,"mine",p)));
+assert.equal(JSON.stringify(notes),stable,'invalid changes are atomic');
+assert.throws(()=>materialize(notes,asIntent(notes,"other",counter("create"))),/владеет/);
+const ownerView=Engine.projectScene(notes,{role:"player",actorIds:["mine"]}),otherView=Engine.projectScene(notes,{role:"player",actorIds:["other"]});
+assert.equal(ownerView.actors[0].manualTechniqueCounters.PRIVATE_COUNTER_RULE,2);
+assert.ok(!JSON.stringify(otherView).includes('PRIVATE_COUNTER_RULE'),'foreign actors and event logs never reveal private rule IDs');
+assert.equal(Engine.projectScene(notes,{role:"gm"}).actors[0].manualTechniqueCounters.PRIVATE_COUNTER_RULE,2);
+submit(counter("remove"));assert.deepEqual(plain(notes.actors[0].manualTechniqueCounters),{});
+assert.throws(()=>materialize(notes,asIntent(notes,"mine",counter("adjust",{delta:1}))),/добавьте/);
+for(const field of ["hp","ap","focus","wounds","stress"])assert.equal(notes.actors[0][field],fixture().actors[0][field],'notebook never invokes mechanics');
+console.log('Manual counters: owned authority commands, concurrent increments, bounds, privacy, removal and frozen resources passed.');

@@ -114,3 +114,33 @@ body.scene-mode:not(.scene-interface-next) .manual-area-tools{width:min(280px,10
 #manual-layout-preview::backdrop{background:#0c0c1280}
 #manual-layout-preview [data-layout-summary]{white-space:pre-line;line-height:1.6}
 #manual-layout-preview output{display:block;color:var(--accent);margin-top:8px}
+
+/* Optional per-entry notebook; no rule limits, costs or reset are inferred. */
+.scene-manual-counter{display:flex;align-items:center;gap:4px;flex-wrap:wrap;max-width:100%;padding:4px;border:1px solid var(--line);border-radius:8px}
+#scene-manual-reader .scene-manual-counter input{width:64px;min-width:48px;min-height:44px;padding:4px;text-align:center;margin:0}
+#scene-manual-reader .scene-manual-counter button[data-manual-action="counter-remove"]{min-width:44px}
+#scene-manual-reader .scene-manual-counter button[data-manual-action="counter-remove"]>span{display:none}
+
+/* Manual desktop: initiative and side panels have separate columns.
+   The idle palette floats; opened options reserve temporary space beside the board. */
+#scene-manual-context[hidden]{display:none}
+#scene-manual-context{display:flex;gap:12px;align-items:center;min-width:0;flex:1;overflow:hidden}
+#scene-manual-context strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#scene-manual-context span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-workbench.scene-workbench{
+ --manual-tool-options:min(260px,22vw);--manual-tools:0px;--manual-palette:112px;
+ grid-template-columns:56px var(--scene-left-used) var(--manual-tools) minmax(0,1fr) var(--scene-right-used) 54px;
+}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-workbench:has(.scene-board-tool-panel:not([hidden])>.scene-area-controls:not([hidden])){--manual-tools:calc(112px + var(--manual-tool-options));--manual-palette:var(--manual-tools)}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-workbench:has(#scene-manual-reader:not([hidden])){--scene-right-used:min(360px,30vw)}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow).scene-panel-open-both #scene-workbench{--scene-left-used:min(var(--scene-left-panel),20vw);--scene-right-used:min(var(--scene-right-panel),20vw)}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-workbench .scene-stage-head{min-height:42px;padding:4px 8px;box-sizing:border-box}
+body.scene-mode.scene-interface-next[data-table-policy="manual"] #scene-workbench .scene-title-block{display:none}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-rail-left.scene-rail{grid-column:2!important}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-rail-right.scene-rail{grid-column:5!important}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-dock.scene-dock{grid-column:6}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-workbench #scene-board-wrap{grid-column:4;padding:12px}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-workbench .scene-toolbar.scene-board-tools-ready{grid-column:3/5;left:0;top:0;width:var(--manual-palette);height:100%;max-height:100%;padding:8px;box-sizing:border-box;background:transparent;border:0;overflow:auto}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) .scene-board-tool-panel .scene-area-controls{left:108px;top:8px;width:calc(100% - 116px);max-width:none;max-height:calc(100% - 16px);box-sizing:border-box;box-shadow:none}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-manual-footer{grid-column:3/5}
+body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-manual-reader{position:static;grid-column:5;grid-row:2/4;width:auto;max-height:none;min-height:0;inset:auto;border-radius:0;box-shadow:none;border-width:0 0 0 1px;padding:10px}

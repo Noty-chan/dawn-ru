@@ -28,10 +28,11 @@ let narrator = true, control = true;
 const options = {scene,canNarrate:()=>narrator,canControl:actor=>control&&actor.id==='hero',canRead:actor=>actor.id!=='secret',
   scopeId:'room-one',
   commit:(label,events)=>calls.push({label,events}),
-  readAbilities:()=>[{id:'stance',name:'Стойка',text:'Первый абзац.\nВторой абзац. <script>',toggle:true,area:true,hint:'Только подсказка'}],
+  readAbilities:()=>[{id:'stance',name:'Стойка',text:'Первый абзац.\nВторой абзац. <script>',toggle:true,counter:true,area:true,hint:'Только подсказка'}],
   statuses:actor=>actor.effects||[],
   selectActor:actor=>{scene.selectedActor=actor.id; calls.push({selected:actor.id});},
   openSheet:actor=>calls.push({sheet:actor.id}),roll:args=>calls.push({roll:args}),openClocks:actor=>calls.push({clock:actor?.id}),
+  editCounter:(actor,ability,change)=>calls.push({counter:ability.id,change}),
   showArea:(actor,ability)=>calls.push({area:ability.id,actor:actor.id}),toggleTechnique:(actor,ability,on)=>calls.push({toggle:ability.id,on}),
 };
 const snapshot = JSON.stringify(scene);
@@ -85,9 +86,19 @@ assert.equal(calls.at(-1).events[0].payload.kind,'round');
 assert.equal(calls.at(-1).events[0].payload.delta,1);
 assert.equal(JSON.stringify(scene),snapshot,'shared changes are requested through host commit, never applied locally');
 
+assert.equal(ui.act('counter-create',0),true);
+assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1).change)),{operation:'create'});
+assert.equal(ui.act('counter-up',0),false,'no unconfirmed optimistic counter');
+scene.actors[0].manualTechniqueCounters={stance:2};ui.render(options);
+assert.ok(reader.innerHTML.includes('data-manual-counter="0"'));
+assert.equal(ui.act('counter-up',0),true);assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1).change)),{operation:'adjust',delta:1});
+assert.equal(ui.act('counter-set',{index:0,value:'8'}),true);assert.equal(calls.at(-1).change.value,8);
+for(const value of ['', '-1','1.5','1000','NaN'])assert.equal(ui.act('counter-set',{index:0,value}),false);
+assert.equal(ui.act('counter-remove',0),true);assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1).change)),{operation:'remove'});
+assert.equal(scene.actors[0].manualTechniqueCounters.stance,2,'only confirmed state is displayed');
 const count = calls.length;
 narrator=false; control=false;
-for (const action of ['point','round','hp','technique-toggle']) assert.equal(ui.act(action,0),false,'permissions are rechecked while the old UI remains open');
+for (const action of ['point','round','hp','technique-toggle','counter-create','counter-up','counter-remove']) assert.equal(ui.act(action,0),false,'permissions are rechecked while the old UI remains open');
 assert.equal(calls.length,count);
 ui.act('select','npc');
 assert.equal(scene.manualTable.actorId,'npc','local selection never changes the shared pointer');
@@ -99,7 +110,7 @@ ui.act('close-reader');ui.open('npc');
 assert.ok(reader.innerHTML.includes('data-manual-ability="0" open'),'reopening NPC description expands its rules again');
 assert.equal(ui.act('select','secret'),false);
 scene.tablePolicy.mode='rules';
-for (const action of ['read','dice','clocks','sheet','show-area','point','round','hp','technique-toggle','select']) assert.equal(ui.act(action,'hero'),false,'stale manual controls stop immediately in rules mode');
+for (const action of ['read','dice','clocks','sheet','show-area','point','round','hp','technique-toggle','counter-create','counter-up','counter-remove','select']) assert.equal(ui.act(action,'hero'),false,'stale manual controls stop immediately in rules mode');
 ui.render(options);
 for(const id of ['scene-manual-footer','scene-manual-initiative','scene-manual-reader']) assert.equal(nodes.get(id).hidden,true);
 assert.equal(ui.model({scene:{actors:[]}}).manual,false,'old scene without tablePolicy remains a rules scene');
@@ -135,3 +146,16 @@ const privacy=ui.render({...options,canNarrate:false,canRead:actor=>!actor.hidde
 const card=privacy.initiativeActors.find(actor=>actor.id==='vanished');assert.equal(card.initiativeOnly,true);assert.equal(card.tokenImage,undefined);assert.equal(card.hp,undefined);
 assert.ok(!nodes.get('scene-manual-initiative').innerHTML.includes('private-image'));
 scene.actors.at(-1).manualInitiativeVisible=false;assert.ok(!ui.render(options).initiativeActors.some(actor=>actor.id==='vanished'));
+
+// Exercise the real formatter, rather than matching its source labels.
+const integration=fs.readFileSync(new URL('../scene-manual-integration.js',import.meta.url),'utf8');
+const formatter=vm.createContext({});vm.runInContext(integration.slice(integration.indexOf('function manualEventText'),integration.indexOf('function renderManualJournal')),formatter);
+const logScene={actors:[{id:'h',name:'Hero'}]},fmt=(p,en=false)=>formatter.manualEventText(logScene,{actorId:'h',payload:p},{english:en,entries:()=>[{id:'rule',name:'Named ability'}]});
+assert.equal(fmt({kind:'resource',values:{hp:0,stress:3}}),'Hero: ЗД → 0 · Стресс → 3');
+assert.equal(fmt({kind:'resource',values:{hp:0,stress:3}},true),'Hero: HP → 0 · Stress → 3');
+assert.ok(fmt({kind:'technique-counter',key:'rule',operation:'adjust',delta:1}).includes('Named ability · счётчик +1'));
+assert.ok(fmt({kind:'technique-counter',key:'unknown-private-rule',operation:'remove'}).includes('счётчик убран'));
+assert.ok(!fmt({kind:'technique-counter',key:'unknown-private-rule',operation:'remove'}).includes('unknown-private-rule'));
+assert.equal(fmt({kind:'move',x:0,y:1}),'Hero: перемещение → A2');
+assert.ok(!fmt({kind:'unknown-event'}).includes('unknown-event'));
+console.log('Manual journal: actual RU/EN summaries, explicit zero, coordinates and no raw command/private rule IDs passed.');

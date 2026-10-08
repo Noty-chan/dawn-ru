@@ -17,6 +17,7 @@ try{
     auras:[{id:'private-aura',ownerActorId:'secret'}],subscriptions:[{id:'private-sub',entityId:'private-entity'}]};
   state.actors[0].lionwing={inventory:{schema:1,actorId:'visible',definitions:{pub:{id:'pub',active:true,visibility:'public'},secret:{id:'PRIVATE_ITEM',active:true,visibility:'narrator'}},
     records:{pub:{definitionId:'pub',visibility:'public',value:2},secret:{definitionId:'secret',visibility:'public',label:'PRIVATE_INVENTORY',value:37}},journal:[{before:'PRIVATE_JOURNAL'}],reservations:{secret:{value:'PRIVATE_RESERVATION'}}}};
+  state.actors[0].manualTechniqueCounters={PRIVATE_COUNTER_RULE:2};state.actors[0].manualTechniqueState={PRIVATE_MARK_RULE:true};
   state.actors[0].inventory={pub:2,secret:37};
   state.actors[0].effects=['visible-effect'];state.actors[0].effectStates={'visible-effect':{appliedEventId:'PRIVATE_EFFECT_EVENT',sources:[{actorId:'secret',sourceId:'secret',eventId:'PRIVATE_EFFECT_EVENT'},{actorId:'visible',sourceId:'visible',eventId:'public-effect'}]}};
   await db.query('insert into public.scenes values($1,$2,$3::jsonb)',['test',9,JSON.stringify(state)]);

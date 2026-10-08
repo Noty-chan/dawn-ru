@@ -45,7 +45,7 @@ for (const profile of profiles) {
     assert.ok(rows.some(row => row.text === rule.text), `${profile.id}: canonical action/ace is readable`);
     if (rule.reward) assert.ok(rows.some(row => row.text === rule.reward));
   }
-  assert.ok(rows.every(row => !row.toggle && !('apCost' in row) && !('automation' in row)), 'NPC text has no automated controls or AP metadata');
+  assert.ok(rows.every(row => !('apCost' in row) && !('automation' in row)), 'NPC text has no automated controls or AP metadata');
   assert.equal(JSON.stringify(profile), snapshot);
 }
 const customOptions = {
@@ -54,7 +54,7 @@ const customOptions = {
 };
 rows = reader.entries({profileId: 'fixture', notes: 'Own notes'}, customOptions);
 for (const text of ['Passive', 'Defense prose', 'Action prose', 'Action reward', 'Profile reward', 'Own notes']) assert.ok(rows.some(row => row.text === text));
-assert.equal(rows.filter(row => row.toggle).length, 1, 'Only the personal technique note is toggleable');
+assert.equal(rows.filter(row => row.toggle && row.counter).length, 2, 'Technique and NPC action allow explicit notes; prose/rewards do not');
 assert.equal(reader.entries(null).length, 0);
 assert.equal(reader.entries({ability: {enabled: false, desc: 'Disabled'}}).length, 0);
 assert.ok(reader.entries({ability: {enabled: true, words: {}, desc: 'Incomplete'}})[0].text.includes('[Глагол]'), 'Incomplete saved ability remains readable');

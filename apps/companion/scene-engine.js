@@ -55,7 +55,7 @@ function projectScene(scene, viewer = {}) {
     projected.manualInitiative=manual?[...(projected.actors||[]).filter(actor=>actor.hidden&&actor.manualInitiativeVisible===true),...(projected.manualInitiative||[]).filter(row=>!(projected.actors||[]).some(actor=>actor.id===row.id))].map(actor=>({id:actor.id,name:actor.name,space:actor.space,hidden:true,initiativeOnly:true})):[];
     projected.actors = (projected.actors || []).filter(actor => !actor.hidden).map(actor => {
       if (ownActorIds.has(actor.id)) return actor;
-      const { notes, privateNotes, ownerId, ...publicActor } = actor;
+      const { notes, privateNotes, ownerId, manualTechniqueState, manualTechniqueCounters, ...publicActor } = actor;
       return publicActor;
     });
     const visibleActorIds = new Set(projected.actors.map(actor => actor.id));

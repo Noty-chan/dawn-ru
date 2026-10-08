@@ -666,6 +666,7 @@ function syncScenePanels(previous=null){
 }
 function setScenePanel(panel,toggle=false){
   if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene)&&["director","sheet"].includes(panel)){closeAllScenePanels();return openManualActorReader(Scene.selectedActor||Scene.manualTable?.actorId);}
+  if(panel&&globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene))window.DAWN_MANUAL_WORKSPACE?.closeReader?.();
   if(panel&&activeSceneView()==="player"&&document.querySelector(`[data-scene-panel-content="${panel}"]`)?.classList.contains("gm-only"))panel=null;
   const previous=activeScenePanel;
   if(!usingNextSceneInterface()){

@@ -41,6 +41,13 @@
     if (typeof value !== "string" || !value.trim() || value.length > 160 || /[\u0000-\u001f]/u.test(value) || ["__proto__", "constructor", "prototype"].includes(value)) fail("Некорректный ID.");
     return value;
   }
+  function validCounters(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length > 120) fail("Некорректные ручные счётчики.");
+    for (const [key, count] of Object.entries(value)) {
+      safeId(key);
+      if (!Number.isSafeInteger(count) || count < 0 || count > 999) fail("Некорректное значение ручного счётчика.");
+    }
+  }
   function cell(scene, spaceId, x, y) {
     const space = (scene.spaces || []).find(row => row.id === spaceId);
     if (!space || !Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x < 0 || y < 0 || x >= space.width || y >= space.height) fail("Клетка находится вне поля.");
@@ -87,7 +94,7 @@
       if (!["receipts", "history", "journal", "entityReceipts", "specialJournal", "boundaryReceipts", "afterEventReceipts"].includes(key)) detachReferences(value, ids);
     }
   }
-  const LAYOUT_ACTOR_FIELDS = ["id","kind","team","profileId","rulesEdition","name","tier","space","x","y","gmRole","notes","tokenSymbol","tokenColor","tokenImage","portraitImage","hidden","manualInitiativeVisible",...RESOURCE_FIELDS,"attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState"];
+  const LAYOUT_ACTOR_FIELDS = ["id","kind","team","profileId","rulesEdition","name","tier","space","x","y","gmRole","notes","tokenSymbol","tokenColor","tokenImage","portraitImage","hidden","manualInitiativeVisible",...RESOURCE_FIELDS,"attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState","manualTechniqueCounters"];
   function replaceLayout(scene,event){
     const p=event.payload;exactKeys(p,["kind","layout","expectedVersion","policyEpoch"]);
     if(event.actorId)fail("Расстановку меняет Нарратор.");
@@ -132,7 +139,8 @@
       if(row.hp>row.maxHp)fail("Здоровье превышает максимум.");
       for(const key of ["hidden","manualInitiativeVisible"])if(row[key]!==undefined&&typeof row[key]!=="boolean")fail("Некорректная видимость участника.");
       for(const key of ["profileId","gmRole","notes","tokenSymbol","tokenColor","tokenImage","portraitImage"])if(row[key]!==undefined&&row[key]!==null&&typeof row[key]!=="string")fail("Некорректное описание участника.");
-      for(const key of ["attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState"])if(row[key]!==undefined&&JSON.stringify(row[key]).length>16000)fail("Описание участника слишком большое.");
+      for(const key of ["attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState","manualTechniqueCounters"])if(row[key]!==undefined&&JSON.stringify(row[key]).length>16000)fail("Описание участника слишком большое.");
+      if(row.manualTechniqueCounters!==undefined)validCounters(row.manualTechniqueCounters);
       scene.actors.push({...copy(row),heroId:null,ownerId:null,characterId:null,effects:[],usedActions:[],usedTrump:false,acted:row.kind==="crowd",knockedOut:false});
     }
     for(const [key,kind] of [["objects","area/create"],["walls","wall/create"],["markers","marker/create"]]){
@@ -201,6 +209,28 @@
       if (typeof p.enabled !== "boolean") fail("Пометка приёма требует enabled.");
       const target = requiredActor(scene, event.actorId); target.manualTechniqueState ||= {};
       target.manualTechniqueState[p.key] = p.enabled;
+    } else if (p.kind === "technique-counter") {
+      exactKeys(p, ["kind", "key", "operation", "value", "delta"]); safeId(p.key);
+      const target = requiredActor(scene, event.actorId);
+      const counters = target.manualTechniqueCounters || {};
+      validCounters(counters);
+      const present = Object.hasOwn(counters, p.key);
+      if (p.operation === "remove") {
+        if (p.value !== undefined || p.delta !== undefined) fail("Удаление счётчика не принимает значение.");
+        delete counters[p.key];
+      } else if (p.operation === "create") {
+        if (p.value !== undefined || p.delta !== undefined) fail("Новый счётчик начинается с нуля.");
+        if (!present && Object.keys(counters).length >= 120) fail("Удалите лишние ручные счётчики.", "TABLE_CAPACITY");
+        if (!present) counters[p.key] = 0;
+      } else if (["set", "adjust"].includes(p.operation)) {
+        if (!present) fail("Сначала добавьте счётчик.");
+        if (p.operation === "adjust" && (p.value !== undefined || ![-1, 1].includes(p.delta))) fail("Шаг счётчика должен быть +1 или −1.");
+        if (p.operation === "set" && p.delta !== undefined) fail("Укажите только новое значение.");
+        const value = p.operation === "adjust" ? counters[p.key] + p.delta : p.value;
+        if (!Number.isSafeInteger(value) || value < 0 || value > 999) fail("Счётчик принимает целое число от 0 до 999.");
+        counters[p.key] = value;
+      } else fail("Неизвестная операция счётчика.");
+      target.manualTechniqueCounters = counters;
     } else if (p.kind === "roll") {
       exactKeys(p, ["kind", "roll"]);
       exactKeys(p.roll, ["formula", "rolls", "successes", "crits", "outcome", "payment", "target", "dice", "targetIds", "label", "count", "rollKind", "scope", "attribute", "advantage", "hindrance", "criticalAt", "criticalValue", "baseCount", "kept", "dropped", "total"]);
@@ -308,6 +338,7 @@
       const collection={"clock/set":"sessionClocks","clock/remove":"sessionClocks","actor/remove":"actors","object/remove":"objects","area/remove":"objects","marker/remove":"markers","marker/clock-set":"markers","marker/move":"markers","wall/remove":"walls"}[event.payload.kind];
       const target=collection?(next[collection]||[]).find(row=>row.id===event.payload.id):null;
       const privateTarget=target?.hidden||target?.kind==="hidden"||target?.manual&&target.ownerActorId&&(!actor(next,target.ownerActorId)||actor(next,target.ownerActorId).hidden);
+      if(["technique","technique-counter"].includes(event.payload.kind))event.visibility="owner";
       if(privateTarget)event.visibility="gm";
       if (actor(next, event.actorId)?.hidden || event.payload?.kind === "marker/create" && (event.payload.marker?.hidden||event.payload.marker?.kind==="hidden") || event.payload?.kind === "area/create" && event.payload.area?.hidden || event.payload.kind==="wall/create"&&event.payload.wall?.hidden) event.visibility = "gm";
       if(event.payload.kind==="layout/replace")event.visibility="gm";
@@ -324,6 +355,7 @@
   function validateSnapshot(before,after,options={}){
     if(!isManual(before)&&!isManual(after))return true;
     if(!isManual(before)||!isManual(after)||JSON.stringify(normalizePolicy(before.tablePolicy))!==JSON.stringify(normalizePolicy(after.tablePolicy)))fail("Снимок и отмена не могут менять Ведение стола.","TABLE_SNAPSHOT_POLICY");
+    for(const row of after.actors||[])if(row.manualTechniqueCounters!==undefined)validCounters(row.manualTechniqueCounters);
     if(options.restore===true){if(pendingWork(before)||pendingWork(after))fail("Сначала завершите ожидающее действие.","TABLE_PENDING_WORK");return true;}
     if((after.actors||[]).length>120)fail("На столе уже слишком много участников. Лимит — 120; освободите место перед добавлением.","TABLE_CAPACITY");
     if(new Set((after.actors||[]).map(row=>row.id)).size!==(after.actors||[]).length)fail("ID участника уже занят.","TABLE_COMMAND_INVALID");
@@ -338,7 +370,7 @@
     for(const key of ["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","topology","movementTraces","challengeRequest","opposedRoll"]){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
     if(!history)for(const key of ["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"]){if(!same(before[key],after[key]))fail("Используйте явные команды ручного стола.","TABLE_SNAPSHOT_RUNTIME");}
     const editable=new Set(["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","manualInitiativeVisible","ownerId"]);
-    if(history)for(const key of [...RESOURCE_FIELDS,"space","x","y","manualMovementTrace","manualStatuses","manualTechniqueState"])editable.add(key);
+    if(history)for(const key of [...RESOURCE_FIELDS,"space","x","y","manualMovementTrace","manualStatuses","manualTechniqueState","manualTechniqueCounters"])editable.add(key);
     const stored=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!editable.has(key)));
     if(history){
       // History is a restoration of a saved step, not a second mutation API.
