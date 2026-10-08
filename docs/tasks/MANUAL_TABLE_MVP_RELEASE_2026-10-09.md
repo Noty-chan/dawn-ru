@@ -56,3 +56,27 @@ Post-application public API probe (disposable anonymous QA identity, signed out 
 Do not rerun migration002 unchanged: its table/functions/policies now exist. Next: actual multi-client private Realtime acceptance, including topic forgery, isolation, membership revocation on an already-open socket, and presentation latency. Availability is verified; these network gates remain open. Main merge/deployment not performed.
 
 Stop point: weekly usage reached 100%; five-hour remaining 52%. No reset redeemed. SQL dashboard tab is retained for continuation.
+
+## Приёмка после сброса лимитов — текущий статус
+
+Эта секция заменяет прежние сообщения об отсутствующих RPC/серверном блокере. Пользователь явно согласовал выпуск MVP с ограничением cached revocation: «проблема не так велика, можем пока жить и с ней». N02 revocation остаётся FAIL, а не искусственно закрытым gate.
+
+- SDK сайта и live QA теперь одинаковый: supabase-js2.117.3. Подписка ожидает фактической готовности Postgres Changes (wait:true,timeout15000). Прежний SDK сайта2.110.3 этот параметр не поддерживал.
+- Core live rules:5 кампаний×5 игроков,50 команд,10 тактов,25 подписок; публичная проекция, exact retries, altered retry PT409, race1 commit/4 conflicts, восстановление5 сессий — PASS. Первый cold-start прогон потерял часть уведомлений; warm повтор PASS. После readiness wait повтор PASS.
+- Core live manual: тот же5×5 сценарий, но реальные table/move intents, Policy materialize/dispatch. PASS;50 команд,10 тактов; Realtime median1037ms/max1077ms от начала settle RPC, не время от клика. Кампании всех прогонов удалены. Receipt: ignored output/live-network-20261009.json; повторяемый скрипт сохранён в tools/qa.
+- Private Broadcast: trusted own send PASS; forged author send=error; foreign RPC42501 и subscribe CHANNEL_ERROR; независимый public observer не получает private сообщения, private receiver получает. Revoked member на старом socket send=ok и доставка подтверждена: FAIL, принятый известный дефект.
+- Презентационный live test сначала имел ошибки проверки (self:false на одном socket, повторный topic): low reviewer обнаружил, исправлено до получения окончательных результатов. Не использовать первый receipt как gate.
+- Browser smoke через CUA: видимая форма добавления Убийцы, HUD -3/Enter меняет18→15, reader открывает все4 блока. Снимок ignored output/mvp-release-reader-20261009.png. Только локальная UI проверка, не два сетевых браузера.
+- Настоящий UI→Sync→socket двух браузеров и длительный jitter/loss прогон показов остаются непроверенными. Короткий SDK core test и VM7500 кадров не заменяют их. Start-rules initializer и полный UI backlog тоже не объявляются завершёнными.
+
+Полный npm test на неизменных executable sync/index и прежних production модулях запущен; receipt output/mvp-release-final-20261009.log. Итог будет записан перед merge.
+
+Окончательный независимый socket test подтверждает оба направления cached revocation: удалённый участник всё ещё отправляет и получает Broadcast на старом соединении. Fresh positive controls выполнены до отзыва; owner отправлял в собственный topic. Обе проверки false. Тестовая кампания удалена, все сессии signOut; Auth-записи остаются (public key не admin). Ограничение принято пользователем; не обозначать его исправленным.
+
+## Готовый пакет к merge
+
+Повторный полный `npm test` завершился **PASS exit0**: output/mvp-release-final2-20261009.log. Первый release-final остановился только на старом проверочном pin SDK2.110.3 в qa.mjs; ожидаемый pin обновлён до2.117.3, затем полный прогон повторён на неизменном исполняемом коде и тестах.
+
+Настоящие два браузерных клиента через CUA, origin127.0.0.1 и localhost (раздельные гостевые сессии), production HTML clone/cache QA: ведущий создал Disposable UI MVP QA20261009, второй вошёл по видимому приглашению; добавленный Убийца и HP18→15 через HUD появились у игрока. Линия B3→E3 и пинг C4 через инструменты видны игроку с автором QA ведущий; подтверждены скриншотами output/mvp-shared-line-player-20261009.png и output/mvp-shared-ping-player-20261009.png. Это закрывает короткий UI→Sync→socket smoke пинга/линии; остальные lifecycle и длительный loss/jitter показов остаются отдельной проверкой. Кампания браузерного прогона ожидает отдельного подтверждения UI удаления.
+
+Readonly low reviewer не обнаружил блокеров в sync/index/QA diff. Зафиксированное ограничение revocation остаётся принято пользователем. Ручной MVP готов к публикации; это не обещание завершённого start-rules initializer, всего UI backlog или всей автоматизации LionWing.

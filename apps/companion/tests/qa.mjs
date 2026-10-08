@@ -670,7 +670,7 @@ assert.doesNotMatch(app, /Math\.floor\(attrValue/);
 assert.match(html, /Метки слов:/);
 assert.match(html, /id="builtin-gifts"/);
 assert.match(html, /Новая Способность «Порченого тела»/);
-assert.match(html, /supabase-js@2\.110\.3/);
+assert.match(html, /supabase-js@2\.117\.3/);
 assert.match(html, /data-scene-tool="marker"/);
 assert.match(html, /scene-add-free-token/);
 assert.match(html, /scene-marker-kind/);

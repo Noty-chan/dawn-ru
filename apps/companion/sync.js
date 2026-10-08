@@ -148,7 +148,7 @@
     const canNarrate=["owner","narrator"].includes(state.role);
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
     const sceneFilter=canNarrate?`id=eq.${subscribedSceneId}`:`scene_id=eq.${subscribedSceneId}`;
-    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId},broadcast:{self:false}}})
+    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId},broadcast:{self:false},postgres_changes_options:{wait:true,timeout:15000}}})
       .on("presence",{event:"sync"},()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)})
       .on("presence",{event:"join"},()=>setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0))
       .on("presence",{event:"leave"},()=>{setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0);setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},10100)})
