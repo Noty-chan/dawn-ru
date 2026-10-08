@@ -135,6 +135,7 @@ function opposedParticipantFromChoice(value){
   return null;
 }
 $("freeplay-request-roll").onclick=()=>{
+  if(toolsManualMode())return;
   const context=toolsSyncContext(),role=toolsRole(),kind=$("freeplay-request-kind").value;
   if(kind==="opposed"){
     const first=role==="local-table"?opposedParticipantFromChoice(`hero:${S.id}`):opposedParticipantFromChoice(`actor:${$("freeplay-request-actor").value}`),second=opposedParticipantFromChoice($("freeplay-opponent").value);
@@ -144,8 +145,9 @@ $("freeplay-request-roll").onclick=()=>{
   const actor=Scene.actors.find(item=>item.id===$("freeplay-request-actor").value),target=clamp($("dice-target").value,1,99);if(!context.shared||!context.canEdit)return toast("Запрос броска доступен сетевому Нарратору");if(!actor)return toast("Выберите героя игрока");if(!requireChallengeTarget($("dice-target")))return;const payload={id:uid(),actorId:actor.id,target,requestedBy:context.displayName||"Нарратор"},event={type:"challenge.request",payload},result=commitSceneEvents(`Запрошен бросок у ${actor.name} · цель ${target}`,[event]);if(!result)return;resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([event]);renderFreeplayDirector();toast(`Запрос отправлен: ${actor.name}, цель ${target}`)
 };
 $("tools-view-switch").addEventListener("click",event=>{const button=event.target.closest("[data-tools-view]");if(!button||toolsRole()==="network-player")return;freeplayState().view=button.dataset.toolsView==="narrator"?"narrator":"player";resetToolsRollResult();persistAfterPaint();renderToolsWorkspace()});
-$("freeplay-request-clear").onclick=()=>{const request=Scene.challengeRequest,opposed=Scene.opposedRoll;if(!request&&!opposed)return;const event=opposed?{type:"opposed.clear",payload:{requestId:opposed.id}}:{type:"challenge.clear",payload:{requestId:request.id}},result=commitSceneEvents(opposed?"Встречный бросок отменён":"Запрос броска отменён",[event]);if(!result)return;resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([event]);renderToolsWorkspace();toast(opposed?"Встречный бросок закрыт":"Запрос броска закрыт")};
+$("freeplay-request-clear").onclick=()=>{if(toolsManualMode())return;const request=Scene.challengeRequest,opposed=Scene.opposedRoll;if(!request&&!opposed)return;const event=opposed?{type:"opposed.clear",payload:{requestId:opposed.id}}:{type:"challenge.clear",payload:{requestId:request.id}},result=commitSceneEvents(opposed?"Встречный бросок отменён":"Запрос броска отменён",[event]);if(!result)return;resetToolsRollResult();if(result.pending)applyOptimisticToolsEvents([event]);renderToolsWorkspace();toast(opposed?"Встречный бросок закрыт":"Запрос броска закрыт")};
 $("freeplay-opposed-status").addEventListener("click",event=>{
+  if(toolsManualMode())return;
   const open=event.target.closest("[data-opposed-open-hero]"),rollButton=event.target.closest("[data-opposed-roll]"),reroll=event.target.closest("[data-opposed-reroll]"),both=event.target.closest("[data-opposed-both]"),close=event.target.closest("[data-opposed-close]"),request=Scene.opposedRoll;if(!request)return;
   if(open){const index=store.heroes.findIndex(hero=>hero.id===open.dataset.opposedOpenHero);if(index>=0){store.heroes[store.current]=S;store.current=index;S=normalizeHero(store.heroes[index]);resetToolsRollResult();renderAll()}return}
   let sceneEvent,label;
@@ -183,6 +185,7 @@ $("freeplay-bonds").addEventListener("change",event=>{
   if(!tag){renderFreeplayBonds();return}if(/\s/.test(tag))return toast("Тег Связи должен быть одним словом");if(bond.tags.length>=bond.rank)return toast("Число тегов уже равно Рангу Связи");if(!bond.tags.includes(tag))bond.tags.push(tag);persist();renderFreeplayBonds();renderDiceComposer();
 });
 $("freeplay-risk-actions").addEventListener("click",event=>{
+  if(toolsManualMode())return;
   const button=event.target.closest("[data-freeplay-risk='stress']");if(!button)return;const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast("Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return;setToolsResource("influence",toolsResourceValue("influence")+1,"Влияние");button.disabled=true;button.textContent="Базовый Риск применён";
 });
 $("sheet").addEventListener("click",event=>{const attr=event.target.closest("[data-sheet-tool-attr]"),skill=event.target.closest("[data-sheet-tool-skill]"),ability=event.target.closest("[data-sheet-tool-ability]");if(attr)openToolsDicePreset({attr:attr.dataset.sheetToolAttr});else if(skill)openToolsDicePreset({skillId:skill.dataset.sheetToolSkill});else if(ability)openToolsDicePreset({abilityKey:ability.dataset.sheetToolAbility})});

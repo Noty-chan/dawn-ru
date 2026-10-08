@@ -240,7 +240,7 @@ const heroUiSource=read("hero-ui.js");
 vm.runInContext(heroUiSource.slice(heroUiSource.indexOf("function heroSheetLinkedActor("),heroUiSource.indexOf("function heroSheetTableButton(")),context);
 vm.runInContext(identitySource.slice(identitySource.indexOf("function lwSubmit("),identitySource.indexOf("function lwDiceHtml(")),context);
 const playUi=read("play-ui.js");
-Object.assign(context,{toolsRuntimeActor:()=>context.Scene.actors[0],toolsSyncContext:()=>({shared:Boolean(shared),canEdit:true}),refreshFreeplayResourceUi:()=>{},updateAllInAvailability:()=>{},renderStressTrackers:()=>{}});
+Object.assign(context,{toolsManualMode:()=>false,toolsRuntimeActor:()=>context.Scene.actors[0],toolsSyncContext:()=>({shared:Boolean(shared),canEdit:true}),refreshFreeplayResourceUi:()=>{},updateAllInAvailability:()=>{},renderStressTrackers:()=>{}});
 vm.runInContext(playUi.slice(playUi.indexOf("function toolsResourceCorrectionReason("),playUi.indexOf("function toolsResourceValue(")),context);
 vm.runInContext(playUi.slice(playUi.indexOf("function setToolsResource("),playUi.indexOf("function freeplayBondStatus(")),context);
 const playEvents=read("app-play-events.js");

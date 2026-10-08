@@ -9,7 +9,7 @@ let en=false,canEdit=true,currentId='a';
 const history=[{actor:'User Имя',formula:'4D6 ≥4',rolls:[6,4,2,1],successes:3,crits:1,outcome:'Крайний успех',payment:'Влияние, флэшбек +4'}];
 const request={attempt:2,status:'tied',participants:[{id:'a',name:'User Имя',heroId:'hero',controller:'participant',pool:4},{id:'b',name:'Other',controller:'narrator',pool:6}],results:{a:{successes:3,crits:1,rolls:[6,4],payment:'Влияние'},b:{successes:3,crits:0,rolls:[4,4]}}};
 const c=vm.createContext({
-  $:node,isEnglishPreview:()=>en,esc:value=>String(value).replaceAll('<','&lt;').replaceAll('>','&gt;'),
+  toolsManualMode:()=>false,$:node,isEnglishPreview:()=>en,esc:value=>String(value).replaceAll('<','&lt;').replaceAll('>','&gt;'),
   Scene:{opposedRoll:request,rollFeed:history},S:{runtime:{diceHistory:history}},store:{heroes:[{id:'hero'}]},
   toolsSyncContext:()=>({shared:false,canEdit}),toolsRole:()=> 'local-table',toolsView:()=> 'narrator',
   currentOpposedParticipant:()=>request.participants.find(p=>p.id===currentId),opposedParticipantResult:(p,r)=>r.results[p.id],activeSceneView:()=> 'gm',

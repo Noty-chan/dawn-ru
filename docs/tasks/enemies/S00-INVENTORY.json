@@ -298,6 +298,7 @@
             "apps/companion/tests/table-manual-roll-route.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/tools-support-workspace.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -1322,6 +1323,7 @@
             "apps/companion/tests/table-manual-roll-route.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -1626,6 +1628,7 @@
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -2821,6 +2824,7 @@
           "apps/companion/tests/scene-token-hud.mjs",
           "apps/companion/tests/table-manual-policy.mjs",
           "apps/companion/tests/table-manual-snapshots.mjs",
+          "apps/companion/tests/table-manual-tools.mjs",
           "apps/companion/tests/tools-workspace.mjs"
         ],
         "notRun": [
@@ -2894,6 +2898,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
@@ -2957,6 +2962,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
           "notRun": [
@@ -3023,6 +3029,7 @@
             "apps/companion/tests/scene-token-hud.mjs",
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
           ],
@@ -3487,6 +3494,7 @@
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -4249,6 +4257,7 @@
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"
@@ -4725,6 +4734,7 @@
           "apps/companion/tests/scene-core-contracts.mjs",
           "apps/companion/tests/scene-engine.mjs",
           "apps/companion/tests/scene-token-hud.mjs",
+          "apps/companion/tests/table-manual-tools.mjs",
           "apps/companion/tests/table-manual-workspace.mjs",
           "apps/companion/tests/technique-engine.mjs",
           "apps/companion/tests/tools-support-workspace.mjs"
@@ -4840,6 +4850,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-support-workspace.mjs"
@@ -4949,6 +4960,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-support-workspace.mjs"
@@ -5058,6 +5070,7 @@
             "apps/companion/tests/scene-core-contracts.mjs",
             "apps/companion/tests/scene-engine.mjs",
             "apps/companion/tests/scene-token-hud.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-support-workspace.mjs"
@@ -9114,6 +9127,7 @@
             "apps/companion/tests/table-manual-roll-route.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs"
           ],
@@ -10923,6 +10937,7 @@
             "apps/companion/tests/table-manual-policy.mjs",
             "apps/companion/tests/table-manual-snapshots.mjs",
             "apps/companion/tests/table-manual-surfaces.mjs",
+            "apps/companion/tests/table-manual-tools.mjs",
             "apps/companion/tests/table-manual-workspace.mjs",
             "apps/companion/tests/technique-engine.mjs",
             "apps/companion/tests/tools-workspace.mjs"

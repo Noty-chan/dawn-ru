@@ -1,4 +1,5 @@
 import './table-manual-roll-route.mjs';
+import './table-manual-tools.mjs';
 import './table-manual-clock-route.mjs';
 import './table-manual-deletion-route.mjs';
 import './table-manual-reader-data.mjs';

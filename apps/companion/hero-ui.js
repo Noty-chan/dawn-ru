@@ -194,6 +194,7 @@ function heroSheetConsequenceMarkup(){
   return`<section class="hero-sheet-card hero-sheet-consequences"><header><div><span class="eyebrow">06</span><h2>${esc(heroSheetCopy("Последствия Уязвимости", "Vulnerability consequences"))}</h2></div><small>${esc(actor?heroSheetCopy("История связана с участником Стола и доступна только для чтения.","History is linked to the Table actor and is read-only."):heroSheetCopy("История пришла из экспорта и ещё не привязана к участнику Стола.","History came from an export and is not linked to a Table actor yet."))}</small></header>${rows||legacy?`<ul>${rows}${legacy}</ul>`:`<p>${esc(heroSheetCopy("Записанных последствий пока нет.","No recorded consequences yet."))}</p>`}<button type="button" data-hero-sheet-table>${esc(t("heroView.openTable"))}</button></section>`;
 }
 function heroSheetResourceCorrectionReason(){
+  if(window.DAWN_TABLE_POLICY?.isManual(Scene)&&typeof toolsResourceCorrectionReason==="function")return toolsResourceCorrectionReason();
   if(!heroSheetLinkedActor())return"";
   if(typeof lwCanNarrate==="function"&&!lwCanNarrate())return heroSheetCopy("Изменяет Нарратор","Only the Narrator can edit.");
   return typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";

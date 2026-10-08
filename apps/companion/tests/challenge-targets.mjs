@@ -19,9 +19,9 @@ function fixture(){
  const hero={id:'local',name:'Local',tier:3,rulesEdition:'lionwing',runtime:{freeplay:{target:null},funding:0}};
  const ownActor={id:'own',heroId:'local',name:'Local actor',tier:3,rulesEdition:'lionwing',team:'hero'};
  const recipient={id:'recipient',name:'Recipient',tier:5,rulesEdition:'lionwing',team:'hero',heroId:'other',attrs:{body:3},gifts:[],skills:[]};
- context={window:{},console,S:hero,Scene:{actors:[recipient,ownActor],challengeRequest:null,opposedRoll:null,rollFeed:[]},store:{mode:'tools',heroes:[hero],current:0},role:'local-table',view:'player',activeUtilityPreset:{},utilityActor:recipient,
+ context={window:{},console,toolsManualMode:()=>false,S:hero,Scene:{actors:[recipient,ownActor],challengeRequest:null,opposedRoll:null,rollFeed:[]},store:{mode:'tools',heroes:[hero],current:0},role:'local-table',view:'player',activeUtilityPreset:{},utilityActor:recipient,
   $:get,esc:String,isLionwingEdition:()=>context.S.rulesEdition==='lionwing',isEnglishPreview:()=>false,
-  document:{activeElement:null,body:{classList:{toggle(){}}},querySelector:selector=>get(selector)},
+  document:{activeElement:null,body:{classList:{toggle(){},remove(){}}},querySelector:selector=>get(selector)},
   toolsRole:()=>context.role,toolsView:()=>context.view,toolsSyncContext:()=>({shared:context.role!=='local-table',canEdit:context.role!=='network-player',displayName:'Narrator'}),
   currentHeroActor:()=>context.Scene.actors.find(actor=>actor.heroId===context.S.id),currentOpposedParticipant:()=>null,opposedParticipantResult:()=>null,opposedResultSummary:()=>'',challengeResultSummary:()=>'',
   challengeActors:()=>context.Scene.actors,opposedActorChoices:()=>[],renderEnglishToolsDirector(){},renderOpposedStatus(){},renderToolsSyncState(){},persists:0,persistAfterPaint(){context.persists++;},pendingAllIn:null,resolved:[],toolsDiceRequest:()=>({baseCount:3,advantage:0,hindrance:0}),toolsRollContext:()=>({scene:context.Scene,actor:context.currentHeroActor()}),resolveDice:(count,threshold,payment,request,scenario)=>{context.resolved.push({count,scenario});return true},updateAllInAvailability(){},resetToolsRollResult(){},renderDiceComposer(){},renderAll(){},

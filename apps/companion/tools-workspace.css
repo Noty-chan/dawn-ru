@@ -128,3 +128,9 @@ body.tools-mode.tools-interface-next .tools-overview-clock{display:flex;align-it
   body.tools-mode.tools-interface-next .tools-next-overview{grid-row:3}
   body.tools-mode.tools-interface-next .tools-next-pool{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
+
+/* Manual Tools has one roll workspace, without the mechanical request composer. */
+body.tools-mode.tools-manual-mode #tools-context .tools-step,
+body.tools-mode.tools-manual-mode #dice-hook-controls,
+body.tools-mode.tools-manual-mode #tools-context .subpanel-head{display:none}
+body.tools-mode.tools-manual-mode.tools-interface-next #tools-context{display:none}
