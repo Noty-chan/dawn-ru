@@ -27,7 +27,7 @@ const clocks=Array.from({length:40},(_,index)=>({id:`clock-${index}`,name:`${'Д
 const bonds=Array.from({length:35},(_,index)=>({id:`bond-${index}`,name:`${'Длинное имя персонажа '.repeat(12)}${index}`,rank:2,tags:['Партнёр','Союзник'],quick:index%2===0}));
 const history=Array.from({length:70},(_,index)=>({id:`roll-${index}`,actor:`${'Длинное имя '.repeat(8)}${index}`,count:4,successes:2,crits:0,rolls:[1,4,5,2],target:2,visibility:index%2?'gm':'public'}));
 const S={bonds,runtime:{diceHistory:history}};
-const context={window:{DAWN_TOOLS_WORKSPACE:{refresh:()=>refreshes++}},$:id=>roots[id],S,Scene:{rollFeed:history},toolsSyncContext:()=>({shared,canEdit:editable}),sessionClocks:()=>clocks,isEnglishPreview:()=>false,renderToolsSyncState:()=>{},activeSceneView:()=> 'player',esc:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'),D:{bonds:{actions:[{tag:'Партнёр'},{tag:'Союзник'}]}},freeplayBondStatus:()=>({amount:2})};
+const context={toolsManualMode:()=>false,window:{DAWN_TOOLS_WORKSPACE:{refresh:()=>refreshes++}},$:id=>roots[id],S,Scene:{rollFeed:history},toolsSyncContext:()=>({shared,canEdit:editable}),sessionClocks:()=>clocks,isEnglishPreview:()=>false,renderToolsSyncState:()=>{},activeSceneView:()=> 'player',esc:value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'),D:{bonds:{actions:[{tag:'Партнёр'},{tag:'Союзник'}]}},freeplayBondStatus:()=>({amount:2})};
 vm.createContext(context);
 for(const[name,next]of [['renderClocks','renderStressTrackers'],['renderDiceHistory','renderClocks'],['renderFreeplayBonds','renderAllInControls']])vm.runInContext(slice(name,next),context);
 const rawState=JSON.stringify({S,clocks,history});

@@ -727,7 +727,7 @@
     const intro = "<details class=\"lw-technique-help\"><summary>" + escapeHtml(copy("help", model)) + "</summary><p class=\"lw-technique-intro\">" + escapeHtml(copy("intro", { locale: model.locale })) + "</p></details>";
     const actionHtml = directActions.length ? "<div class=\"lw-technique-action-list\" aria-label=\"Действия Техник\">" + directActions.map(action => renderActionControl(action, { canRespond: model.manual.available, reason: model.manual.reason })).join("") + "</div>" : "";
     const summary = [["enabled", activeCount], ["disabled", offCount], ["manualCount", manualCount]].filter(([, count]) => count).map(([key, count]) => copy(key, model) + ": " + count).join(" · ");
-    const enable = ["owner", "narrator", "gm"].includes(model.viewer.role) && enableOperations(model.actor, scene).length ? '<button type="button" data-lw-enable-techniques data-lw-actor="' + escapeHtml(model.actor.id) + '">' + escapeHtml(copy("enableAll", model)) + '</button>' : '';
+    const enable = ""; // Mode is selected only in the table menu.
     return "<details class=\"lw-technique-surface\" data-lw-technique-surface data-lw-technique-actor=\"" + escapeHtml(model.actor.id) + "\"" + (outerOpen ? " open" : "") + "><summary><strong>" + escapeHtml(copy("title", model)) + " · " + groups.size + "</strong><small>" + model.entries.length + " " + escapeHtml(copy("levels", model)) + " · " + escapeHtml(summary) + (offerCount ? " · " + offerCount + " требует решения" : "") + "</small></summary>" + intro + enable + actionHtml + "<div class=\"lw-technique-groups\">" + groupHtml + "</div></details>";
   }
 

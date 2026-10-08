@@ -21,7 +21,7 @@ function assertPausedUi(scene) {
   const roots = new Map(["scene-flow", "scene-roll-feed", "scene-action-tray"].map(id => [id, { dataset: {}, classList: { toggle() {} }, innerHTML: "" }]));
   const ui = {
     window: {}, Scene: core.reload(JSON.stringify(scene)), SceneEngine: engine, D: data, S: { id: "hero" },
-    $: id => roots.get(id), esc: value => String(value ?? ""), activeSceneView: () => "gm",
+    $: id => roots.get(id), esc: value => String(value ?? ""), isEnglishPreview:()=>false,activeSceneView: () => "gm",
     sceneTurnApprovalMode: () => "self", matchMedia: () => ({ matches: false }),
     sceneTrayHeroActor: () => scene.actors[0], sceneResourceChips: () => "", sceneBattleComplete: () => false,
     sceneUsesLionwing: () => true,

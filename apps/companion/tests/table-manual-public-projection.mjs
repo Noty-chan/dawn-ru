@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {PGlite} from '@electric-sql/pglite';
+const migrations=new URL('../../../supabase/migrations/',import.meta.url);
+const read=name=>fs.readFileSync(new URL(name,migrations),'utf8');
+const db=new PGlite();
+try{
+  await db.exec('create table public.scenes(id text primary key,version bigint,state jsonb);create table public.scene_public_snapshots(scene_id text primary key,version bigint,state jsonb,updated_at timestamptz);');
+  await db.exec(read('202609080001_harden_lionwing_private_state.sql'));
+  const state={version:9,actors:[{id:'visible',hidden:false},{id:'secret',hidden:true}],sessionClocks:[{id:'public',manual:true,ownerActorId:null,name:'Public'},{id:'owned',manual:true,ownerActorId:'visible',name:'Visible'},{id:'private-clock',manual:true,ownerActorId:'secret',name:'Hidden ritual plan'},{id:'orphan',manual:true,ownerActorId:'missing',name:'Missing owner'},{id:'legacy',name:'Legacy'}],manualTable:{actorId:'secret',round:2},eventReceipts:[{secret:'receipt'}],log:[{id:'private-event',type:'table.command',payload:{kind:'clock/set',id:'private-clock',value:4}},{id:'public-event',type:'table.command',payload:{kind:'clock/set',id:'public',value:2}}]};
+  state.walls=[{id:'wall-public'},{id:'wall-hidden',manual:true,hidden:true},{id:'wall-owned',manual:true,ownerActorId:'secret'}];
+  state.markers=[{id:'marker-public',kind:'mark'},{id:'marker-hidden',manual:true,kind:'custom',hidden:true},{id:'marker-orphan',manual:true,ownerActorId:'missing'}];
+  state.objects=[{id:'private-area',manual:true,type:'manual-area',hidden:true,cells:['1,1'],label:'PRIVATE_MAP_LABEL'}];
+  state.log.push({id:'private-map-event',payload:{objectId:'private-area',label:'PRIVATE_MAP_LABEL'}});
+  state.lionwing={boundaryReceipts:[{ownerActorId:'secret',sourceDigest:'PRIVATE_BOUNDARY'}],entityReceipts:[{after:{private:'PRIVATE_ENTITY_RECEIPT'}}],
+    entities:{private:{id:'private-entity',visibility:'narrator'},linked:{id:'linked',visibility:'public',backing:{objectId:'private-area'}}},
+    auras:[{id:'private-aura',ownerActorId:'secret'}],subscriptions:[{id:'private-sub',entityId:'private-entity'}]};
+  state.actors[0].lionwing={inventory:{schema:1,actorId:'visible',definitions:{pub:{id:'pub',active:true,visibility:'public'},secret:{id:'PRIVATE_ITEM',active:true,visibility:'narrator'}},
+    records:{pub:{definitionId:'pub',visibility:'public',value:2},secret:{definitionId:'secret',visibility:'public',label:'PRIVATE_INVENTORY',value:37}},journal:[{before:'PRIVATE_JOURNAL'}],reservations:{secret:{value:'PRIVATE_RESERVATION'}}}};
+  state.actors[0].manualTechniqueCounters={PRIVATE_COUNTER_RULE:2};state.actors[0].manualTechniqueState={PRIVATE_MARK_RULE:true};
+  state.actors[0].inventory={pub:2,secret:37};
+  state.actors[0].effects=['visible-effect'];state.actors[0].effectStates={'visible-effect':{appliedEventId:'PRIVATE_EFFECT_EVENT',sources:[{actorId:'secret',sourceId:'secret',eventId:'PRIVATE_EFFECT_EVENT'},{actorId:'visible',sourceId:'visible',eventId:'public-effect'}]}};
+  await db.query('insert into public.scenes values($1,$2,$3::jsonb)',['test',9,JSON.stringify(state)]);
+  await db.exec("insert into public.scene_public_snapshots select id,version,public.public_scene_projection(state),now() from public.scenes;");
+  const before=(await db.query('select state from public.scene_public_snapshots')).rows[0].state;
+  assert.equal(before.sessionClocks.length,5,'baseline reproduces raw public snapshot leak');
+  const migration=read('202610080001_manual_table_public_records.sql');
+  await db.exec(migration);
+  const projected=(await db.query('select state from public.scene_public_snapshots')).rows[0].state;
+  assert.deepEqual(projected.sessionClocks.map(c=>c.id),['public','owned','legacy']);
+  assert.deepEqual(projected.walls.map(w=>w.id),['wall-public']);
+  assert.deepEqual(projected.markers.map(m=>m.id),['marker-public']);
+  assert.equal(projected.lionwing.boundaryReceipts,undefined);assert.equal(projected.lionwing.entityReceipts,undefined);
+  assert.deepEqual(projected.lionwing.entities,{});assert.deepEqual(projected.lionwing.auras,[]);assert.deepEqual(projected.lionwing.subscriptions,[]);
+  assert.deepEqual(Object.keys(projected.actors[0].lionwing.inventory.definitions),['pub']);assert.deepEqual(Object.keys(projected.actors[0].lionwing.inventory.records),['pub']);
+  assert.equal(projected.actors[0].lionwing.inventory.journal,undefined);assert.equal(projected.actors[0].lionwing.inventory.reservations,undefined);assert.deepEqual(projected.actors[0].inventory,{pub:2});
+  assert.deepEqual(projected.actors[0].effects,['visible-effect']);assert.deepEqual(projected.actors[0].effectStates['visible-effect'].sources,[{actorId:'visible',sourceId:'visible',eventId:'public-effect'}]);
+  assert.ok(!JSON.stringify(projected).includes('PRIVATE_'),'raw public JSON contains no private receipt, inventory or map metadata');
+  assert.equal(projected.manualTable.actorId,null);assert.equal(projected.manualTable.round,2);
+  assert.equal(projected.eventReceipts,undefined);
+  assert.deepEqual(projected.log.map(e=>e.id),['public-event'],'old public event referencing private clock is removed');
+  assert.ok(!JSON.stringify(projected).includes('Hidden ritual plan'));
+  assert.equal((await db.query('select state from public.scenes')).rows[0].state.sessionClocks.length,5,'authoritative data untouched');
+  const deleted=structuredClone(state);deleted.actors=deleted.actors.filter(row=>row.id!=='secret');
+  deleted.lionwing.auras[0].label='PRIVATE_ORPHAN_AURA';deleted.lionwing.subscriptions.push({id:'orphan-sub',ownerActorId:'secret',label:'PRIVATE_ORPHAN_SUB'});
+  deleted.lionwing.selections=[{actorId:'missing',label:'PRIVATE_ORPHAN_SELECTION'}];deleted.lionwing.choices=[{actorId:'secret',label:'PRIVATE_ORPHAN_CHOICE'}];
+  deleted.log.push({id:'orphan-audit',actorId:'secret',text:'PRIVATE_ORPHAN_AUDIT'});
+  const orphanProjection=(await db.query('select public.public_scene_projection($1::jsonb) as state',[JSON.stringify(deleted)])).rows[0].state;
+  assert.ok(!JSON.stringify(orphanProjection).includes('PRIVATE_'),'deleted typed actor references do not make frozen state or audit public');
+  assert.deepEqual(orphanProjection.lionwing.auras,[]);assert.deepEqual(orphanProjection.lionwing.subscriptions,[]);assert.deepEqual(orphanProjection.lionwing.selections,[]);assert.deepEqual(orphanProjection.lionwing.choices,[]);
+  await db.exec(migration);
+  assert.deepEqual((await db.query('select state from public.scene_public_snapshots')).rows[0].state,projected,'repeat migration remains stable');
+  const known={...state,tablePolicy:{mode:'manual'},actors:[{id:'secret',name:'Known vanished enemy',space:'main',hidden:true,manualInitiativeVisible:true,hp:18,x:4,privateNotes:'classified'},{id:'never-seen',name:'Ambush secret',hidden:true}]};
+  const knownProjection=(await db.query('select public.public_scene_projection($1::jsonb) as state',[JSON.stringify(known)])).rows[0].state;
+  assert.equal(knownProjection.actors.length,0);
+  assert.deepEqual(knownProjection.manualInitiative,[{id:'secret',name:'Known vanished enemy',space:'main',hidden:true,initiativeOnly:true}]);
+  assert.equal(knownProjection.manualTable.actorId,'secret');
+  assert.ok(!JSON.stringify(knownProjection).includes('Ambush secret'));
+  assert.equal(knownProjection.manualInitiative[0].hp,undefined);
+  const twice=(await db.query('select public.public_scene_projection($1::jsonb) as state',[JSON.stringify(knownProjection)])).rows[0].state;assert.deepEqual(twice.manualInitiative,knownProjection.manualInitiative);assert.equal(twice.manualTable.actorId,'secret');
+  console.log('Manual table SQL projection: raw leak reproduced, hidden/orphan clocks filtered, pointer/receipts private, backfill and repeat apply passed');
+}finally{await db.close()}

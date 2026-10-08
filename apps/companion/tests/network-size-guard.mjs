@@ -9,7 +9,7 @@ assert.ok(start>=0&&end>start&&historyStart>=0&&historyEnd>historyStart);
 let id=0,queued=0,rendered=0,legacyQueued=0;
 const messages=[];
 const initial={rulesEdition:"lionwing",version:4,actors:[{id:"hero",name:"Герой"},{id:"enemy",name:"Враг"}],artworks:[{id:"art",image:"x".repeat(1900000)}],log:[],undo:[],redo:[],turnUndo:[]};
-const context={
+const context={activeSceneView:()=>"gm",window:{},
   initial,TextEncoder,structuredClone,NetworkV2:{networkSceneState:scene=>scene},
   Sync:{state:()=>({sceneId:"shared-scene",canNarrate:true}),queueScene:()=>{legacyQueued++}},
   sceneSnapshot:()=>structuredClone(context.Scene),sceneCore:scene=>structuredClone(scene),normalizeScene:scene=>structuredClone(scene),

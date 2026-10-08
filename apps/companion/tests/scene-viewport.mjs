@@ -12,11 +12,11 @@ const elements=new Map([
   ["scene-board-wrap",wrap],
   ["scene-board",{style:{setProperty:(key,value)=>properties.set(key,value)}}],
   ["scene-zoom",{}],["scene-zoom-value",{}],
-  ["scene-zoom-fit",{classList:{toggle(){}},setAttribute:(key,value)=>attributes.set(key,value)}],
+  ["scene-zoom-fit",{classList:{remove(){}},removeAttribute:key=>attributes.delete(key),setAttribute:(key,value)=>attributes.set(key,value)}],
 ]);
 const context={Scene:scene,store:{mode:"play"},$ :id=>elements.get(id),
   clamp:(value,min,max)=>Math.max(min,Math.min(max,Number(value))),
-  activeSceneSpace:()=>space,usingNextSceneInterface:()=>true,
+  isEnglishPreview:()=>false,activeSceneSpace:()=>space,usingNextSceneInterface:()=>true,
   requestAnimationFrame:callback=>{frames.push(callback);return frames.length;},
   persist:()=>saved.push(vm.runInContext("({zoom:sceneZoom,mode:sceneZoomMode})",context)),
 };
@@ -35,8 +35,7 @@ assert.ok(wide*615/100<=wrap.clientHeight-40,"the new toolbar has its own column
 
 wrap.clientWidth=540;
 run("scheduleSceneViewportFit()");flush();
-assert.ok(run("sceneZoom")<wide,"opening both panels shrinks a fitted board");
-assert.ok(run("sceneZoom")*820/100<=wrap.clientWidth-40);
+assert.equal(run("sceneZoom"),wide,"opening panels preserves the initial fit instead of changing the camera");
 
 run("scheduleSceneViewportFit();applySceneZoom(110,{manual:true})");flush();
 assert.equal(run("sceneZoom"),110,"a manual zoom wins over an already queued automatic fit");
@@ -44,11 +43,15 @@ wrap.clientWidth=900;
 run("scheduleSceneViewportFit();applySceneZoom()");flush();
 assert.equal(run("sceneZoom"),110,"renders, panel changes and desktop resizes preserve manual zoom");
 assert.equal(saved.at(-1).mode,"manual","the local preference survives persistence");
-assert.equal(attributes.get("aria-pressed"),"false");
+assert.equal(attributes.has("aria-pressed"),false,"Fit is a one-shot command, not a toggle");
+assert.equal(attributes.get("aria-label"),"Вписать поле один раз","screen readers describe the same one-shot command as the tooltip");
+context.isEnglishPreview=()=>true;run("applySceneZoom()");
+assert.equal(attributes.get("aria-label"),"Fit the field once");
+assert.equal(elements.get("scene-zoom-fit").title,attributes.get("aria-label"));
 
 run("fitSceneZoom()");
-assert.equal(run("sceneZoomMode"),"fit","the explicit fit control resumes automatic fitting");
-assert.equal(attributes.get("aria-pressed"),"true");
+assert.equal(run("sceneZoomMode"),"manual","the explicit fit control fixes the resulting zoom");
+assert.equal(attributes.has("aria-pressed"),false);
 const visibleZoom=run("sceneZoom");
 wrap.clientWidth=0;wrap.clientHeight=0;
 run("scheduleSceneViewportFit()");flush();

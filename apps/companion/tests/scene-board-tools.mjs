@@ -17,6 +17,7 @@ class Element {
   getAttribute(name) { return this.attrs[name] ?? null; }
   removeAttribute(name) { delete this.attrs[name]; }
   addEventListener(type, fn) { this.listeners[type] = fn; }
+  dispatchEvent(event) { this.listeners[event.type]?.(event); }
   closest() { return stage; }
 }
 const candidate = new Element(), stage = new Element(), oldPrimary = new Element(), oldActions = new Element(), body = new Element();
@@ -41,6 +42,7 @@ for (const id of ["scene-zoom-fit", "scene-undo", "scene-redo", "scene-clear-tar
 for (const id of ["scene-area-controls", "scene-wall-controls", "scene-marker-controls", "scene-topology-controls"]) { const node = new Element(); node.hidden = true; controls.set(`#${id}`, node); candidate.append(node); }
 candidate.querySelector = selector => selector === ".scene-tool-group" ? oldPrimary : selector === ".scene-tool-actions" ? oldActions : controls.get(selector);
 candidate.querySelectorAll = selector => operations.get(selector) || [];
+operations.set('[data-scene-tool="area"][data-scene-area-type="terrain"]', operations.get('[data-scene-tool="area"]'));
 const documentListeners = [];
 let lateMount = true;
 const mapTools = new Element();
@@ -49,19 +51,20 @@ const observers = [];
 class Observer { constructor(callback) { this.callback = callback; observers.push(this); } observe(target, options) { this.target = target; this.options = options; } }
 let next = false;
 const Scene = { tool: "select", history: ["existing"] };
-const context = vm.createContext({ document, Scene, usingNextSceneInterface: () => next, window: { DAWN_UI_ICONS: { html: name => `<svg class="dawn-control-icon" data-icon="${name}"></svg>` } }, MutationObserver: Observer });
+class CustomEvent { constructor(type,options){this.type=type;this.detail=options.detail;} }
+const context = vm.createContext({ CustomEvent, document, Scene, usingNextSceneInterface: () => next, window: { DAWN_UI_ICONS: { html: name => `<svg class="dawn-control-icon" data-icon="${name}"></svg>` } }, MutationObserver: Observer });
 vm.runInContext(fs.readFileSync(path.join(root, "scene-board-tools.js"), "utf8"), context);
 const api = context.window.DAWN_SCENE_BOARD_TOOLS;
 assert.equal(api.isEnabled(), false, "Classic startup does not mount experimental controls");
 assert.equal(oldPrimary.hidden, false);
 next = true; api.setEnabled(true);
 const strip = candidate.children[0], panels = candidate.children[1];
-assert.equal(strip.children.length, 4, "First render can precede real GM tool mounting");
+assert.equal(strip.children.length, 3, "First render can precede real GM tool mounting");
 lateMount = false;
 const childObserver = observers.find(item => item.options.childList);
 childObserver.callback();
-assert.equal(strip.children.length, 8, "Only eight supported DAWN categories");
-assert.equal(panels.children.length, 8);
+assert.equal(strip.children.length, 5, "Five useful categories; environment combines areas/walls/erase");
+assert.equal(panels.children.length, 5);
 assert.equal(oldPrimary.parentNode, candidate, "Original published primary container remains available for restoration");
 assert.equal(oldPrimary.hidden, true);
 const tokens = panels.children[0], measure = panels.children[1];
@@ -70,14 +73,15 @@ assert.equal(tokens.children[4], operations.get("#scene-clear-targets")[0]);
 assert.equal(headerTarget.parentNode, stage, "The header's contextual quick Target action is never reparented into the palette");
 assert.equal(tokens.children.filter(node => node.dataset?.sceneTool === "target").length, 1, "Token category contains exactly the original toolbar Target button");
 assert.equal(measure.children[2], operations.get("#scene-clear-movement-traces")[0], "Route and target clearing remain separate");
-const walls = panels.children[3];
-assert.equal(controls.get("#scene-wall-controls").parentNode, mapTools, "Parameters use the real Map task panel, so two-column toolbar cannot clip them");
+const walls = panels.children[2];
+assert.equal(controls.get("#scene-wall-controls").parentNode, walls, "Parameters use the real environment flyout");
 const mapDrawer = new Element(); mapDrawer.append(controls.get("#scene-wall-controls"));
 childObserver.callback();
-assert.equal(controls.get("#scene-wall-controls").parentNode, mapTools, "A later mount converges to the single Map parameter owner");
+assert.equal(controls.get("#scene-wall-controls").parentNode, walls, "A later mount converges to the single flyout parameter owner");
 childObserver.callback();
-assert.equal(strip.children.length, 8, "Repeated late-mount enhancement converges without duplicate categories");
-api.select("walls"); controls.get("#scene-wall-controls").hidden = false;
+assert.equal(strip.children.length, 5, "Repeated late-mount enhancement converges without duplicate categories");
+let lastCategory=null;candidate.addEventListener("scene-board-category-change",event=>{lastCategory=event.detail.id});
+api.select("areas");assert.equal(lastCategory,"areas"); controls.get("#scene-wall-controls").hidden = false;
 api.select("tokens"); assert.equal(walls.hidden, true, "Browsing another category hides the wall controls even when the Scene's wall tool remains active");
 tokens.children[1].listeners.click(); assert.equal(gameClicks, 1, "Original tool listeners survive relocation");
 api.select("history");
@@ -86,7 +90,7 @@ assert.equal(operations.get("#scene-undo")[0].disabled, true, "Existing disabled
 assert.equal(operations.get('[data-scene-tool="select"]')[0].attrs["aria-pressed"], "true", "Category browsing does not change the active Scene tool");
 const toolObserver = observers.find(item => item.target === candidate);
 toolObserver.callback();
-assert.equal(panels.children[7].hidden, false, "An unchanged active tool does not override browsing History");
+assert.equal(panels.children[4].hidden, false, "An unchanged active tool does not override browsing History");
 operations.get('[data-scene-tool="select"]')[0].setAttribute("aria-pressed", "false");
 operations.get('[data-scene-tool="measure"]')[0].setAttribute("aria-pressed", "true");
 toolObserver.callback();
@@ -112,11 +116,14 @@ for (let cycle = 0; cycle < 3; cycle++) {
   assert.deepEqual(oldPrimary.children.filter(node => node.dataset?.sceneTool).map(node => node.dataset.sceneTool), originalPrimaryOrder, "Original operation order survives cycles");
   childObserver.callback(); assert.equal(selectButton.parentNode, oldPrimary, "Disabled observer cannot steal classic nodes");
   next = true; api.setEnabled(true);
-  assert.equal(controls.get("#scene-wall-controls").parentNode,mapTools,"Switching back retains visible parameter controls in Map");
+  assert.equal(controls.get("#scene-wall-controls").parentNode,walls,"Switching back restores the same flyout parameter controls");
   assert.equal(selectButton.parentNode, tokens);
   assert(selectButton.innerHTML.includes("data-icon=\"select\""));
   assert.equal(selectButton.listeners.click, originalListener);
   assert.equal(operations.get("#scene-undo")[0].disabled, true);
   assert.equal(JSON.stringify(Scene), sceneBefore, "Interface toggles do not write Scene.tool/history");
 }
-console.log("PASS: actual controls/listeners/state preserved, separate clears, eight real categories, player gating, idempotent lifecycle, no Escape interception.");
+context.t=key=>key==="scene.boardTools.categoriesLabel"?"Board tool categories":key;api.enhance();
+assert.equal(strip.getAttribute("aria-label"),"Board tool categories","Live locale change updates category navigation label without replacing controls");
+assert.equal(JSON.stringify(Scene),sceneBefore);
+console.log("PASS: actual controls/listeners/state preserved, separate clears, five real categories, player gating, idempotent lifecycle, no Escape interception.");

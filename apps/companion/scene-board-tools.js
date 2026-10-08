@@ -7,15 +7,14 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     const value = typeof t === "function" ? t(key) : key;
     return value && value !== key ? value : fallback;
   };
-  const labelFor = group => copy(`scene.boardTools.category.${group.id}`, group.label);
+  const labelFor = group => group.id === "present" ? (typeof isEnglishPreview === "function" && isEnglishPreview() ? "Show" : "Показ") : group.id === "highlights" ? (typeof isEnglishPreview === "function" && isEnglishPreview() ? "Ability highlights" : "Подсветки способностей") : copy(`scene.boardTools.category.${group.id}`, group.label);
   const groups = [
     { id: "tokens", label: "Жетоны", icon: "●", selectors: ['[data-scene-tool="select"]','[data-scene-tool="place"]','[data-scene-tool="target"]','#scene-clear-targets'] },
     { id: "measure", label: "Измерение", icon: "↔", selectors: ['[data-scene-tool="measure"]','#scene-clear-movement-traces'] },
-    { id: "areas", label: "Области", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"]'], controls: "scene-area-controls" },
-    { id: "walls", label: "Стены", icon: "┃", gm: true, selectors: ['[data-scene-tool="wall"]'], controls: "scene-wall-controls" },
-    { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: "scene-marker-controls" },
-    { id: "edit", label: "Правка", icon: "✎", gm: true, selectors: ['[data-scene-tool="topology"]','[data-scene-tool="erase"]'], controls: "scene-topology-controls" },
-    { id: "view", label: "Обзор", icon: "⛶", selectors: ['#scene-zoom-fit'] },
+    { id: "present", label: "Показ", icon: "✦", selectors: ["#scene-present-ping","#scene-present-line","#scene-present-rectangle","#scene-present-cells","#scene-present-cancel"], controls: ["scene-presentation-status"] },
+    { id: "areas", label: "Окружение", icon: "▧", gm: true, selectors: ['[data-scene-tool="area"][data-scene-area-type="terrain"]','[data-scene-tool="wall"]','[data-scene-tool="erase"]'], controls: ["scene-area-controls","scene-wall-controls"] },
+    { id: "markers", label: "Маркеры", icon: "◆", gm: true, selectors: ['[data-scene-tool="marker"]'], controls: ["scene-marker-controls"] },
+    { id: "highlights", label: "Подсветки способностей", icon: "✦", selectors: ["#manual-table-area-tool"], controls: ["manual-table-area-tools"] },
     { id: "history", label: "История", icon: "↶", gm: true, selectors: ['#scene-undo','#scene-redo'] }
   ];
   let toolbar = null, strip = null, tools = null, oldPrimary = null, primaryHidden = false, enabled = false, selected = "tokens";
@@ -27,12 +26,13 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     if (homes.has(node)) return homes.get(node);
     const anchor = document.createComment("board tool home");
     node.before(anchor);
-    const record = { anchor, html: button ? node.innerHTML : null, label: button ? node.textContent.trim() : "", aria: button ? node.getAttribute("aria-label") : null };
+    const record = { anchor, html: button ? node.innerHTML : null, label: button ? node.textContent.trim() : "", aria: button ? node.getAttribute("aria-label") : null, help:node.dataset?.toolHelp };
     homes.set(node, record); return record;
   }
   function decorate(node) {
     const home = remember(node, true);
-    const operation = ({area:"areas",wall:"walls",marker:"markers",topology:"edit",erase:"clear"})[node.dataset?.sceneTool] || node.dataset?.sceneTool || ({"scene-zoom-fit":"view","scene-undo":"undo","scene-redo":"redo","scene-clear-targets":"clear","scene-clear-movement-traces":"traces"})[node.id];
+    if(node.dataset?.sceneTool==="erase"){const label=copy("scene.boardTools.eraseEnvironment","Удалить окружение; участники сохраняются");node.dataset.toolHelp=label;node.setAttribute("aria-label",label);node.title=label;}
+    const operation = ({area:"areas",wall:"walls",marker:"markers",topology:"edit",erase:"clear"})[node.dataset?.sceneTool] || node.dataset?.sceneTool || ({"scene-zoom-fit":"view","scene-undo":"undo","scene-redo":"redo","scene-clear-targets":"clear","scene-clear-movement-traces":"traces"})[node.id] || node.dataset?.boardIcon;
     const svg = icon(operation);
     if (svg && !node.querySelector(".scene-board-tool-original-label")) node.innerHTML = svg + `<span class="scene-board-tool-original-label">${escape(home.label)}</span>`;
     if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", home.label);
@@ -43,7 +43,9 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   function select(id) {
     const group = groups.find(item => item.id === id);
     if (!enabled || !group || !categories.has(id) || group.gm && player()) return false;
+    const changed = selected !== id;
     selected = id;
+    if(changed)toolbar.dispatchEvent(new CustomEvent("scene-board-category-change",{detail:{id}}));
     for (const [key, button] of categories) button.setAttribute("aria-pressed", String(key === selected));
     for (const [key, panel] of panels) panel.hidden = key !== selected;
     return true;
@@ -64,6 +66,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   }
   function enhance() {
     if (!enabled || !toolbar || !strip || !tools) return;
+    const stripLabel=copy("scene.boardTools.categoriesLabel","Категории инструментов поля");if(strip.getAttribute("aria-label")!==stripLabel)strip.setAttribute("aria-label",stripLabel);
     for (const group of groups) {
       const nodes = group.selectors.flatMap(selector => [...document.querySelectorAll(selector)]).filter(node => !node.classList.contains("scene-stage-quick-action"));
       if (!nodes.length) continue;
@@ -90,15 +93,16 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       categories.set(group.id, button); panels.set(group.id, panel);
       strip.append(button); tools.append(panel);
       }
+      const label=labelFor(group);if(button.title!==label){button.title=label;button.setAttribute("aria-label",label);panel.children[0].textContent=label;}
       for (const node of nodes) { decorate(node); if (node.parentNode !== panel) panel.append(node); }
-      if (group.controls) {
-        const controls = document.getElementById(group.controls);
-        // Parameters belong to the existing Map task panel, which is opened
-        // by the tool controller. They cannot fit in the two square columns.
-        const destination = document.getElementById('scene-map-tools') || panel;
-        if (controls) { remember(controls); if (controls.parentNode !== destination) destination.append(controls); }
+      for (const id of group.controls || []) {
+        const controls = document.getElementById(id);
+        if (controls) { remember(controls); if (controls.parentNode !== panel) panel.append(controls); }
       }
+
     }
+    const fit=document.getElementById("scene-zoom-fit"),map=document.getElementById("scene-map-tools");
+    if(fit&&map){remember(fit,true);if(fit.parentNode!==map)map.append(fit);}
     const orderedCategories = groups.map(group => categories.get(group.id)).filter(Boolean);
     const orderedPanels = groups.map(group => panels.get(group.id)).filter(Boolean);
     if (orderedCategories.some((node, index) => strip.children[index] !== node)) strip.append(...orderedCategories);
@@ -151,6 +155,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
       if (home.anchor.parentNode) home.anchor.after(node);
       if (home.html !== null) {
         node.innerHTML = home.html;
+        if(home.help!==undefined)node.dataset.toolHelp=home.help;
         if (home.aria === null) node.removeAttribute("aria-label"); else node.setAttribute("aria-label", home.aria);
       }
     }

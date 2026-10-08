@@ -7,6 +7,7 @@ function renderSync(){
   if(typeof refreshHeroSheetResourceControls==="function")refreshHeroSheetResourceControls();
 }
 function renderSceneHeroSheet(){
+  if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene)){const root=$("play-kit");if(root)root.innerHTML="";return;}
   const playKit=$("play-kit");if(!playKit)return;
   const sceneIdentity=typeof lwGeometrySceneIdentity==="function"?lwGeometrySceneIdentity():JSON.stringify([Scene.id||null,Scene.rulesEdition,Scene.name]);
   const preserve=playKit.dataset.sceneSheetIdentity===sceneIdentity;
@@ -40,30 +41,91 @@ function renderPlay(){
 }
 
 let pendingAllIn=null;
+let pendingManualToolsRoll=null;
 function resetToolsRollResult(){
   pendingAllIn=null;
+  pendingManualToolsRoll=null;
   const result=$("dice-result"),risks=$("freeplay-risk-actions");
   if(result){result.className="dice-result";result.innerHTML=""}
   if(risks)risks.innerHTML="";
   if($("all-in-reroll"))updateAllInAvailability();
 }
 function toolsSyncContext(){const state=Sync?.state?.()||{};return{shared:Boolean(state.sceneId),canEdit:!state.sceneId||Boolean(state.canNarrate),status:state.status||"offline",role:state.role||"",displayName:state.displayName||S.player||"Нарратор"}}
+function toolsManualMode(){return Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene))}
+function manualToolsRollScope(){return JSON.stringify([toolsSyncContext().sceneId||(typeof Sync!=="undefined"?Sync?.state?.().sceneId:null)||null,Scene.tablePolicy?.epoch||0,S.id]);}
+function showManualToolsRoll(roll){
+  const output=$("dice-result");output.className="dice-result";
+  output.innerHTML=`<strong>${esc(roll.formula)} · ${Number(roll.successes)||0} ${isEnglishPreview()?"Successes":"Успехов"}</strong><p>${(roll.rolls||[]).map(value=>esc(value)).join(" · ")}</p>`;
+}
+function reconcileManualToolsRoll(command){
+  const pending=pendingManualToolsRoll;if(!pending)return;
+  if(!toolsManualMode()||pending.scope!==manualToolsRollScope()||!toolsSyncContext().canEdit&&!canControlSceneActor(toolsHeroActor())){pendingManualToolsRoll=null;$("dice-result").textContent="";return;}
+  const accepted=(Scene.rollFeed||[]).find(row=>row.id===pending.eventId&&row.manual);
+  if(accepted){pendingManualToolsRoll=null;showManualToolsRoll(accepted);return;}
+  const commandIntent=command?.client_intent_id||command?.payload?.clientIntentId;
+  const rejected=command?.status==="rejected"&&pending.clientIntentId&&commandIntent===pending.clientIntentId;
+  const authorityFailed=typeof networkV2Authority!=="undefined"&&networkV2Authority?.failed?.some(item=>item.events?.some(event=>event.id===pending.eventId));
+  if(rejected||authorityFailed){pending.failed=true;$("dice-result").textContent=isEnglishPreview()?"The table did not accept this roll. Check the connection or permissions before rolling again.":"Стол не принял бросок. Проверьте связь или права перед повторным броском.";}
+}
+function rejectManualToolsRollEvents(events){
+  if(!pendingManualToolsRoll||!events?.some(event=>event.id===pendingManualToolsRoll.eventId))return;
+  pendingManualToolsRoll.failed=true;$("dice-result").textContent=isEnglishPreview()?"The table did not accept this roll.":"Стол не принял бросок.";
+}
+function rejectManualToolsRollIntent(row){
+  if(pendingManualToolsRoll?.clientIntentId===row?.clientIntentId)reconcileManualToolsRoll({status:"rejected",client_intent_id:row.clientIntentId});
+}
+function manualToolsPoolStatus(request){
+  const sources=(request.hooks||[]).filter(source=>source.type==="advantage"&&/^freeplay\.(skill|ability|bond):/.test(source.ruleId));
+  return{available:true,count:Math.min(200,Math.max(1,request.baseCount+request.advantage-request.hindrance+sources.reduce((total,source)=>total+Number(source.amount||0),0))),sources};
+}
+function renderManualToolsDirector(){
+  const role=toolsRole(),en=isEnglishPreview(),copy=toolsCopy(),target=$("dice-target"),local=$("freeplay-local-hero"),grid=document.querySelector(".freeplay-grid");
+  document.body.classList.add("tools-manual-mode");document.body.classList.remove("tools-narrator-mode");
+  grid.dataset.toolsRole=role;grid.dataset.toolsRequestActive="false";
+  for(const selector of [".freeplay-hero-tool",".dice-tool",".freeplay-bonds-tool"])document.querySelector(selector).hidden=false;
+  for(const id of ["tools-view-switch","freeplay-request-kind-wrap","freeplay-request-actor-wrap","freeplay-opponent-wrap","freeplay-opponent-name-wrap","freeplay-request-actions","freeplay-request-state","freeplay-opposed-status"])$(id).hidden=true;
+  $("freeplay-target-wrap").hidden=false;$("freeplay-local-hero-wrap").hidden=role==="network-player";
+  if(role!=="network-player")local.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||copy.unnamed)} · ${copy.tier} ${hero.tier}</option>`).join("");
+  if(document.activeElement!==target)target.value=freeplayState().target??defaultChallengeTarget()??"";
+  target.disabled=false;$("dice-target-default").hidden=false;$("dice-target-default").disabled=defaultChallengeTarget()==null;
+  $("freeplay-director-kind").textContent=en?"MANUAL TABLE":"РУЧНОЙ СТОЛ";
+  $("freeplay-director-title").textContent=en?"Roll settings":"Настройка броска";
+  $("freeplay-director-help").textContent="";
+  $("dice-tool-kind").textContent=en?"MANUAL ROLL":"РУЧНОЙ БРОСОК";
+  $("dice-tool-title").textContent=en?"Build a pool":"Соберите пул";
+  $("roll-dice").textContent=en?"Roll dice":"Бросить кубы";$("roll-dice").disabled=false;
+  renderOutcomeGuide();renderToolsSyncState();reconcileManualToolsRoll();
+}
+function rollManualToolsDice(){
+  if(!toolsManualMode()||!requireChallengeTarget($("dice-target")))return null;
+  const actor=toolsHeroActor(),sync=toolsSyncContext();
+  if(!sync.canEdit&&(!actor||!canControlSceneActor(actor)))return toast(isEnglishPreview()?"Publish your hero to roll at this table.":"Опубликуйте своего героя, чтобы бросать за этим столом.");
+  const request=toolsDiceRequest(),pool=manualToolsPoolStatus(request),target=freeplayTarget(),roll=Logic.rollXd6({count:pool.count}),outcomeId=Logic.challengeOutcome({successes:roll.successes,target}).id,outcome=toolsCopy()[({failure:"failure",minimal:"minimal",extreme:"extreme"})[outcomeId]];
+  const payload={kind:"roll",roll:{formula:`${pool.count}D6`,rolls:roll.rolls,successes:roll.successes,crits:roll.crits,count:pool.count,target,outcome,scope:"challenge",attribute:request.attribute||undefined}};
+  const eventId=uid(),result=commitSceneEvents(isEnglishPreview()?"Manual roll":"Ручной бросок",[{id:eventId,type:"table.command",actorId:actor?.id||null,payload}]);
+  if(!result)return null;
+  pendingAllIn=null;const output=$("dice-result");output.className="dice-result";
+  if(result.pending){pendingManualToolsRoll={eventId,clientIntentId:result.clientIntentId||null,scope:manualToolsRollScope()};output.textContent=isEnglishPreview()?"Roll sent. Waiting for the table to confirm.":"Бросок отправлен. Ожидаем подтверждения стола.";return result;}
+  pendingManualToolsRoll=null;showManualToolsRoll(payload.roll);
+  S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"}),actor:S.name||toolsCopy().unnamed,formula:payload.roll.formula,rolls:roll.rolls,count:pool.count,successes:roll.successes,crits:roll.crits,outcome,target,allIn:false,payment:""});
+  S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persistAfterPaint();renderDiceHistory();return result;
+}
 function toolsRole(){const context=toolsSyncContext();return context.shared?(context.canEdit?"network-narrator":"network-player"):"local-table"}
 function toolsView(){const role=toolsRole();if(role==="network-player")return"player";const state=freeplayState();return state.view==="narrator"?"narrator":state.view==="player"?"player":role==="network-narrator"?"narrator":"player"}
 function toolsCopy(){return isEnglishPreview()?{
   sharedNarrator:"Shared Table · Narrator",sharedPlayer:"Shared Table · Player",local:"One table · one device",unnamed:"Unnamed hero",tier:"Tier",system:"System",roll:"Roll",opposed:"Opposed Roll",failure:"Failure",minimal:"Minimal Success",extreme:"Extreme Success",tie:"Tie",pool:"Final pool",fromAttribute:"from Attribute",otherAdvantage:"other Advantage",hindrance:"Hindrance",noSkill:"No Skill",noAbility:"No Ability",noBond:"No Bond",rolling:"Rolling",rollChallenge:"Roll challenge",rollSide:"Roll for your side",resolve:"Resolve action",buildSide:"Build your side's pool",sheet:"CHARACTER SHEET",attributes:"Attributes",skills:"Skills",ability:"Ability",boons:"Outlooks and Boons",techniques:"Techniques",influence:"Influence",stress:"Stress",noSkills:"No Skills recorded.",noBoons:"No Boons selected.",noTechniques:"No Techniques selected.",allInFirst:"Make a normal roll first.",allInInfluence:"Reroll with 3+ counting as Successes by spending 1 Influence.",allInStress:"No Influence remains, but a Boon allows 1 Stress instead.",allInBlocked:"Not enough Influence to go All In.",successes:"Successes",crits:"Crits",successTarget:"Success Target",localKind:"LOCAL TABLE",networkKind:"SHARED TABLE",freeRoll:"FREE ROLL",request:"NARRATOR REQUEST",challengeRoll:"CHALLENGE ROLL",opposedRoll:"OPPOSED ROLL"
 }:{sharedNarrator:"Общий стол · Нарратор",sharedPlayer:"Общий стол · Игрок",local:"Один стол · одно устройство",unnamed:"Безымянный герой",tier:"Ступень",system:"Система",roll:"Бросок",opposed:"Встречный бросок",failure:"Провал",minimal:"Минимальный успех",extreme:"Крайний успех",tie:"Ничья",pool:"Итоговый пул",fromAttribute:"от Атрибута",otherAdvantage:"прочее Преимущество",hindrance:"Помеха",noSkill:"Без Навыка",noAbility:"Без Способности",noBond:"Без Связи",rolling:"Бросок",rollChallenge:"Бросить испытание",rollSide:"Бросить за свою сторону",resolve:"Разрешить действие",buildSide:"Собрать пул своей стороны",sheet:"ЛИСТ ПЕРСОНАЖА",attributes:"Атрибуты",skills:"Навыки",ability:"Способность",boons:"Мировоззрения и Дары",techniques:"Техники",influence:"Влияние",stress:"Стресс",noSkills:"Навыки не записаны.",noBoons:"Дары не выбраны.",noTechniques:"Техники не выбраны.",allInFirst:"Сначала совершите обычный бросок.",allInInfluence:"Переброс за 1 Влияние: тройки и выше считаются Успехами.",allInStress:"Влияния нет, но Дар позволяет получить Стресс вместо оплаты.",allInBlocked:"Для Ва-банк недостаточно Влияния.",successes:"Успехов",crits:"Критов",successTarget:"Цель Успехов",localKind:"ЛОКАЛЬНЫЙ СТОЛ",networkKind:"СЕТЕВОЙ СТОЛ",freeRoll:"СВОБОДНЫЙ БРОСОК",request:"ЗАПРОС НАРРАТОРА",challengeRoll:"БРОСОК ИСПЫТАНИЯ",opposedRoll:"ВСТРЕЧНЫЙ БРОСОК"}}
 function renderToolsSyncState(){const context=toolsSyncContext(),output=$("tools-sync-state"),role=toolsRole(),copy=toolsCopy();output.classList.toggle("online",context.shared);output.textContent=role==="network-narrator"?copy.sharedNarrator:role==="network-player"?copy.sharedPlayer:copy.local}
-function sessionClocks(){Scene.sessionClocks||=[];Scene.tools||={clocksMigrated:false};const context=toolsSyncContext();if(!Scene.tools.clocksMigrated&&!context.shared&&context.canEdit){Scene.sessionClocks=S.runtime.clocks.map(clock=>({...clock,kind:clock.kind==="progress"?"progress":"danger"}));Scene.tools.clocksMigrated=true;persist()}return Scene.sessionClocks}
+function sessionClocks(){if(window.DAWN_TABLE_POLICY?.isManual(Scene))return Scene.sessionClocks||[];Scene.sessionClocks||=[];Scene.tools||={clocksMigrated:false};const context=toolsSyncContext();if(!Scene.tools.clocksMigrated&&!context.shared&&context.canEdit){Scene.sessionClocks=S.runtime.clocks.map(clock=>({...clock,kind:clock.kind==="progress"?"progress":"danger"}));Scene.tools.clocksMigrated=true;persist()}return Scene.sessionClocks}
 function freeplayState(){S.runtime.freeplay||={target:null};return S.runtime.freeplay}
 function defaultChallengeTarget(actor=S){return Logic.standardChallengeTarget({edition:actor.rulesEdition||(isLionwingEdition()?"lionwing":"ru-v0.9"),tier:actor.tier})}
 function requireChallengeTarget(input){const target=Number(input?.value);if(input?.value!==""&&Number.isInteger(target)&&target>=1&&target<=99)return true;toast(isEnglishPreview()?"Set a Success Target from 1 to 99.":"Задайте Цель Успехов от 1 до 99.");input?.focus();return false}
-function currentChallengeRequest(){const request=Scene.challengeRequest,actor=(Scene.actors||[]).find(item=>item.heroId===S.id||item.characterId===S.id);return request&&actor&&request.actorId===actor.id?request:null}
-function currentOpposedRoll(){return Scene.opposedRoll||null}
-function opposedParticipantForHero(request=Scene.opposedRoll,hero=S){if(!request||!hero)return null;const actor=Scene.actors.find(item=>item.heroId===hero.id);return request.participants.find(item=>item.heroId===hero.id||actor&&item.actorId===actor.id)||null}
+function currentChallengeRequest(){if(toolsManualMode())return null;const request=Scene.challengeRequest,actor=(Scene.actors||[]).find(item=>item.heroId===S.id||item.characterId===S.id);return request&&actor&&request.actorId===actor.id?request:null}
+function currentOpposedRoll(){return toolsManualMode()?null:Scene.opposedRoll||null}
+function opposedParticipantForHero(request=currentOpposedRoll(),hero=S){if(!request||!hero)return null;const actor=Scene.actors.find(item=>item.heroId===hero.id);return request.participants.find(item=>item.heroId===hero.id||actor&&item.actorId===actor.id)||null}
 function currentOpposedParticipant(){return opposedParticipantForHero()}
 function opposedParticipantResult(participant,request=Scene.opposedRoll){return participant&&request?.results?.[participant.id]||null}
-function activeToolsRollKind(){return Scene.opposedRoll?"opposed":"challenge"}
+function activeToolsRollKind(){return currentOpposedRoll()?"opposed":"challenge"}
 function freeplayTarget(){const context=toolsSyncContext(),request=currentChallengeRequest();return context.shared&&!context.canEdit&&request?clamp(request.target,1,99):clamp($("dice-target").value,1,99)}
 function freeplayScenario(){return{target:freeplayTarget()}}
 function toolsRollContext(){
@@ -75,6 +137,12 @@ function toolsRollContext(){
 function toolsHeroActor(){return (Scene.actors||[]).find(actor=>(actor.heroId===S.id||actor.characterId===S.id)&&(Scene.rulesEdition!=="lionwing"||actor.team==="hero"||actor.kind==="hero"))||null}
 function toolsRuntimeActor(){return Scene.rulesEdition==="lionwing"||toolsSyncContext().shared?toolsHeroActor():null}
 function toolsResourceCorrectionReason(){
+  if(toolsManualMode()){
+    const actor=toolsHeroActor(),context=toolsSyncContext();
+    if(context.shared&&!actor)return isEnglishPreview()?"Add your hero to the Table first.":"Сначала добавьте своего героя на Стол.";
+    if(actor&&!context.canEdit&&!canControlSceneActor(actor))return isEnglishPreview()?"You cannot edit this hero.":"Вы не можете изменять этого героя.";
+    return typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";
+  }
   const actor=toolsRuntimeActor(),context=toolsSyncContext();
   if(context.shared&&!actor)return typeof t==="function"?t("tools.resources.addHero"):isEnglishPreview()?"Add your hero to the Table first.":"Сначала добавьте своего героя на Стол.";
   if(actor&&Scene.rulesEdition==="lionwing"){
@@ -84,11 +152,20 @@ function toolsResourceCorrectionReason(){
   return "";
 }
 function toolsResourceValue(key){const actor=toolsRuntimeActor(),owner=actor||S;return clamp(actor?.[key]??S.runtime[key],0,key==="stress"?stressMaximumFor(owner):999)}
+function toolsResourceValueMarkup(key,value,maximum,locked=false){
+  if(key!=="stress")return String(value);
+  const count=Math.max(1,Math.min(12,Number(maximum)||3));
+  return `<span class="tools-stress-segments" role="group" aria-label="${esc(isEnglishPreview()?`Stress: ${value} of ${maximum}`:`Стресс: ${value} из ${maximum}`)}">${Array.from({length:count},(_,i)=>{const next=value>=i+1?i:i+1;return `<button type="button" class="${i<value?"filled":""}" data-freeplay-resource="stress" data-freeplay-value="${next}" data-stress-segment="${i}" aria-pressed="${i<value}" aria-label="${esc(isEnglishPreview()?`Set Stress to ${next}`:`Установить Стресс: ${next}`)}" ${locked?"disabled":""}></button>`}).join("")}</span>`;
+}
+
 function refreshFreeplayResourceUi(){
   for(const key of ["influence","stress"]){
     const value=toolsResourceValue(key),maximum=key==="stress"?stressMaximumFor(toolsRuntimeActor()||S):null,group=document.querySelector(`[data-freeplay-resource-group="${key}"]`);
     if(!group)continue;
-    group.querySelector("strong").textContent=maximum?`${value} / ${maximum}`:String(value);
+    const focused=document.activeElement?.dataset?.stressSegment;
+    group.querySelector("strong").innerHTML=toolsResourceValueMarkup(key,value,maximum,Boolean(toolsResourceCorrectionReason()));
+    if(focused!=null&&key==="stress")group.querySelector(`[data-stress-segment="${focused}"]`)?.focus({preventScroll:true});
+    const warning=group.querySelector(".tools-stress-warning");if(warning)warning.hidden=value<maximum;
     const down=group.querySelector(`[data-freeplay-delta="-1"]`),up=group.querySelector(`[data-freeplay-delta="1"]`);
     const reason=toolsResourceCorrectionReason();
     if(down){down.disabled=Boolean(reason)||value<=0;down.title=reason}if(up){up.disabled=Boolean(reason)||maximum!=null&&value>=maximum;up.title=reason}
@@ -98,6 +175,16 @@ function refreshFreeplayResourceUi(){
 }
 function setToolsResource(key,value,label,{correction=false}={}){
   if(!["influence","stress"].includes(key))return false;
+  if(toolsManualMode()){
+    if(!correction)return false;
+    const reason=toolsResourceCorrectionReason(),actor=toolsHeroActor(),next=Number(value);
+    if(reason){toast(reason);return false;}
+    if(!Number.isSafeInteger(next)||next<0||next>999)return false;
+    if(actor){if(!commitSceneEvents(`${actor.name}: ${label} → ${next}`,[{type:"table.command",actorId:actor.id,payload:{kind:"resource",values:{[key]:next}}}]))return false;}
+    else {S.runtime[key]=next;persistAfterPaint();}
+    refreshFreeplayResourceUi();renderStressTrackers();return true;
+  }
+
   const actor=toolsRuntimeActor(),context=toolsSyncContext(),maximum=key==="stress"?stressMaximumFor(actor||S):999,next=clamp(value,0,maximum);
   if(context.shared&&!actor){toast(toolsResourceCorrectionReason());return false}
   if(correction){const reason=toolsResourceCorrectionReason();if(reason){toast(reason);return false}
@@ -121,16 +208,18 @@ function setToolsResource(key,value,label,{correction=false}={}){
 }
 function freeplayBondStatus(bond){
   if(!bond)return{amount:0,parts:[]};
-  const standardTags=D.bonds.actions.map(action=>action.tag),base=Logic.freeplayBondAdvantage({rank:bond.rank,tags:bond.tags,standardTags}),parts=[`Ранг ${base.rank}`];
+  const standardTags=D.bonds.actions.map(action=>action.tag),base=Logic.freeplayBondAdvantage({rank:bond.rank,tags:bond.tags,standardTags}),parts=[`${isEnglishPreview()?"Rank":"Ранг"} ${base.rank}`];
+  if(toolsManualMode())return{amount:base.total,parts};
   let amount=base.total;
-  if(base.customTagBonus){parts.push("нестандартный тег +1");}
-  if(S.gifts.includes("wolf.guard-dog")&&S.bonds.length===1){amount+=2;parts.push("Сторожевой пес +2");}
-  if(S.gifts.includes("mentor.perspective-of-a-teacher")&&bond.tags.includes("Ученик")){amount+=2;parts.push("Взгляд учителя +2");}
+  if(base.customTagBonus){parts.push(isEnglishPreview()?"custom tag +1":"нестандартный тег +1");}
+  if(S.gifts.includes("wolf.guard-dog")&&S.bonds.length===1){amount+=2;parts.push(isEnglishPreview()?"Guard Dog +2":"Сторожевой пес +2");}
+  if(S.gifts.includes("mentor.perspective-of-a-teacher")&&bond.tags.includes("Ученик")){amount+=2;parts.push(isEnglishPreview()?"Perspective Of A Teacher +2":"Взгляд учителя +2");}
   const partner=(bond.tags||[]).some(tag=>["partner","партнер"].includes(String(tag).trim().toLocaleLowerCase("ru-RU").replace(/ё/g,"е")));
-  if(S.gifts.includes("beacon.perspective-of-a-friend")&&partner){amount+=1;parts.push("Взгляд друга: Ранг +1");}
-  if(S.gifts.includes("rebel.supernatural-deafness")){amount*=2;parts.push("Глухота к сверхъестественному ×2");}
+  if(S.gifts.includes("beacon.perspective-of-a-friend")&&partner){amount+=1;parts.push(isEnglishPreview()?"Perspective Of A Friend: Rank +1":"Взгляд друга: Ранг +1");}
+  if(S.gifts.includes("rebel.supernatural-deafness")){amount*=2;parts.push(isEnglishPreview()?"Supernatural Deafness ×2":"Глухота к сверхъестественному ×2");}
   return{amount,parts};
 }
+function toolsSkillRank(skill){return toolsManualMode()?Number(skill.rank||0):effectiveSkillRank(skill)}
 function toolSkillId(skill){return skill?.definitionId||skill?.id||""}
 function toolsSelectedAbility(key=$("dice-ability").value){
   if(key==="main")return S.ability?.enabled?S.ability:null;
@@ -140,17 +229,17 @@ function toolsSelectedAbility(key=$("dice-ability").value){
 }
 function toolsDiceRequest(){
   const abilityKey=$("dice-ability").value,skill=S.skills.find(item=>toolSkillId(item)===$("dice-skill").value),ability=toolsSelectedAbility(abilityKey),bond=S.bonds.find(item=>item.id===$("dice-bond").value),bondStatus=freeplayBondStatus(bond),hooks=[];
-  if(skill)hooks.push({type:"advantage",ruleId:`freeplay.skill:${toolSkillId(skill)}`,label:`Навык: ${skillDisplayName(skill)}`,amount:effectiveSkillRank(skill)});
-  if(ability?.enabled)hooks.push({type:"advantage",ruleId:`freeplay.ability:${abilityKey.replace("|",":")}`,label:`Способность: ${ability.name||"без названия"}`,amount:ability.rank});
-  if(bond&&bondStatus.amount)hooks.push({type:"advantage",ruleId:`freeplay.bond:${bond.id}`,label:`Связь: ${bond.name} (${bondStatus.parts.join(", ")})`,amount:bondStatus.amount});
-  if($("dice-outgunned")?.checked)hooks.push({type:"advantage",ruleId:"freeplay.wolf.outgunned",label:"В меньшинстве · подтверждено по нарративу",amount:2});
+  if(skill)hooks.push({type:"advantage",ruleId:`freeplay.skill:${toolSkillId(skill)}`,label:`${isEnglishPreview()?"Skill":"Навык"}: ${skillDisplayName(skill)}`,amount:toolsSkillRank(skill)});
+  if(ability?.enabled)hooks.push({type:"advantage",ruleId:`freeplay.ability:${abilityKey.replace("|",":")}`,label:`${isEnglishPreview()?"Ability":"Способность"}: ${ability.name||(isEnglishPreview()?"unnamed":"без названия")}`,amount:ability.rank});
+  if(bond&&bondStatus.amount)hooks.push({type:"advantage",ruleId:`freeplay.bond:${bond.id}`,label:`${isEnglishPreview()?"Bond":"Связь"}: ${bond.name} (${bondStatus.parts.join(", ")})`,amount:bondStatus.amount});
+  if($("dice-outgunned")?.checked)hooks.push({type:"advantage",ruleId:"freeplay.wolf.outgunned",label:isEnglishPreview()?"Outgunned · condition confirmed":"В меньшинстве · подтверждено по нарративу",amount:2});
   if($("dice-saint")?.checked)hooks.push({type:"advantage",ruleId:"boon.beacon.saint",label:isEnglishPreview()?"Saint · condition confirmed":"Святой · условие подтверждено",amount:2});
   const fundingSpend=clamp($("dice-trust-fund")?.value||0,0,Math.max(0,Number(S.runtime.funding||0)));if(fundingSpend)hooks.push({type:"advantage",ruleId:"boon.blessed.trust-fund",label:isEnglishPreview()?`Trust Fund · ${fundingSpend} Funding`:`Родовое состояние · ${fundingSpend} финансирования`,amount:fundingSpend});
   return{scope:"challenge",sceneContext:false,baseCount:clamp($("dice-count").value,1,40),advantage:clamp($("dice-adv").value,0,30),hindrance:clamp($("dice-dis").value,0,30),attribute:$("dice-attr").value==="manual"?null:$("dice-attr").value,usesAbility:Boolean(ability?.enabled),abilityKey:ability?.enabled?abilityKey:null,selectedHookIds:$("dice-dark-urge")?.checked?["wolf.dark-urge"]:[],targetIds:[],hooks};
 }
 function renderOutcomeGuide(){
   const copy=toolsCopy();
-  if($("freeplay-request-kind")?.value==="opposed"||Scene.opposedRoll){
+  if(!toolsManualMode()&&($("freeplay-request-kind")?.value==="opposed"||Scene.opposedRoll)){
     $("dice-outcome-guide").innerHTML=isEnglishPreview()?`<span><b>${copy.opposed}</b> · the side with more Successes wins</span><span><b>${copy.tie}</b> · reroll, or the Narrator may allow both compatible Rewards</span>`:`<span><b>${copy.opposed}</b> · побеждает большее число Успехов</span><span><b>${copy.tie}</b> · переброс, либо обе совместимые Награды по решению Нарратора</span>`;
     return;
   }
@@ -164,20 +253,32 @@ function challengeActors(){
 }
 function opposedActorChoices(role=toolsRole()){
   if(role!=="local-table")return Scene.actors.filter(actor=>actor.kind!=="token"&&!actor.knockedOut).map(actor=>({value:`actor:${actor.id}`,name:actor.name,actor,pool:actor.team==="enemy"?actor.tier+5:Math.max(1,actor.tier+3)}));
-  const heroIds=new Set(store.heroes.map(hero=>hero.id)),heroes=store.heroes.map(hero=>({value:`hero:${hero.id}`,name:hero.name||"Безымянный герой",hero,pool:Math.max(1,hero.tier+3)})),actors=Scene.actors.filter(actor=>actor.kind!=="token"&&!actor.knockedOut&&(!actor.heroId||!heroIds.has(actor.heroId))).map(actor=>({value:`actor:${actor.id}`,name:actor.name,actor,pool:actor.team==="enemy"?actor.tier+5:Math.max(1,actor.tier+3)}));
-  return[...heroes,...actors,{value:"custom",name:"Другой NPC…",pool:6}];
+  const heroIds=new Set(store.heroes.map(hero=>hero.id)),heroes=store.heroes.map(hero=>({value:`hero:${hero.id}`,name:hero.name||(isEnglishPreview()?"Unnamed hero":"Безымянный герой"),hero,pool:Math.max(1,hero.tier+3)})),actors=Scene.actors.filter(actor=>actor.kind!=="token"&&!actor.knockedOut&&(!actor.heroId||!heroIds.has(actor.heroId))).map(actor=>({value:`actor:${actor.id}`,name:actor.name,actor,pool:actor.team==="enemy"?actor.tier+5:Math.max(1,actor.tier+3)}));
+  return[...heroes,...actors,{value:"custom",name:isEnglishPreview()?"Other NPC…":"Другой НПС…",pool:6}];
 }
 function opposedResultSummary(request){
   if(!request)return"";
-  const winner=request.participants.find(item=>item.id===request.winnerParticipantId);
-  if(request.resolution==="both")return"Ничья: Нарратор разрешил обе совместимые Награды.";
-  if(winner)return`Побеждает ${winner.name} и получает свою Награду.`;
-  if(request.status==="tied")return"Ничья: стороны должны перебросить. Нарратор может разрешить обе Награды, только если они не исключают друг друга.";
+  const en=isEnglishPreview(),winner=request.participants.find(item=>item.id===request.winnerParticipantId);
+  if(request.resolution==="both")return en?"Tie: the Narrator allowed both compatible Rewards.":"Ничья: Нарратор разрешил обе совместимые Награды.";
+  if(winner)return en?`${winner.name} wins and gains their Reward.`:`Побеждает ${winner.name} и получает свою Награду.`;
+  if(request.status==="tied")return en?"Tie: both sides must reroll. The Narrator may allow both Rewards only if they are compatible.":"Ничья: стороны должны перебросить. Нарратор может разрешить обе Награды, только если они не исключают друг друга.";
   const ready=request.participants.filter(item=>request.results?.[item.id]).length;
-  return ready?`Получен ${ready} из 2 результатов.`:"Обе стороны собирают свои пулы и бросают.";
+  return ready?(en?`${ready} of 2 results received.`:`Получен ${ready} из 2 результатов.`):(en?"Both sides build their pools and roll.":"Обе стороны собирают свои пулы и бросают.");
 }
-function opposedCountLabel(value,one,few,many){const number=Math.abs(Number(value)||0)%100,last=number%10;return`${value} ${number>10&&number<20?many:last===1?one:last>=2&&last<=4?few:many}`}
-function challengeResultSummary(result){return result?`${opposedCountLabel(result.successes,"Успех","Успеха","Успехов")} · ${opposedCountLabel(result.crits,"Крит","Крита","Критов")}${result.outcome?` · ${result.outcome}`:""}${result.payment?` · Ва-банк: ${result.payment}`:""}`:""}
+function opposedCountLabel(value,one,few,many){
+  if(isEnglishPreview()&&["Успех","Крит"].includes(one))return`${value} ${one==="Успех"?(Number(value)===1?"Success":"Successes"):(Number(value)===1?"Crit":"Crits")}`;
+  const number=Math.abs(Number(value)||0)%100,last=number%10;return`${value} ${number>10&&number<20?many:last===1?one:last>=2&&last<=4?few:many}`;
+}
+function toolsOutcomeLabel(value){
+  const pairs=[["Провал","Failure"],["Минимальный успех","Minimal Success"],["Крайний успех","Extreme Success"],["Ничья","Tie"],["Встречный бросок","Opposed Roll"]],pair=pairs.find(item=>item.includes(value));
+  return pair?pair[isEnglishPreview()?1:0]:value;
+}
+function toolsPaymentLabel(value){
+  const text=String(value??""),pairs=[["Влияние","Influence"],["Стресс","Stress"]];
+  for(const [ru,en]of pairs){if(text===ru||text===en)return isEnglishPreview()?en:ru;for(const suffix of [", флэшбек +4",", flashback +4"])if(text===ru+suffix||text===en+suffix)return`${isEnglishPreview()?en:ru}, ${isEnglishPreview()?"flashback":"флэшбек"} +4`;}
+  return text;
+}
+function challengeResultSummary(result){return result?`${opposedCountLabel(result.successes,"Успех","Успеха","Успехов")} · ${opposedCountLabel(result.crits,"Крит","Крита","Критов")}${result.outcome?` · ${toolsOutcomeLabel(result.outcome)}`:""}${result.payment?` · ${isEnglishPreview()?"All In":"Ва-банк"}: ${toolsPaymentLabel(result.payment)}`:""}`:""}
 function renderEnglishToolsDirector(role,kind,request,opposed){
   if(!isEnglishPreview())return;
   const state=$("freeplay-request-state"),actor=Scene.actors.find(item=>item.id===request?.actorId),own=currentChallengeRequest(),side=currentOpposedParticipant(),sideResult=opposedParticipantResult(side,opposed);
@@ -187,16 +288,18 @@ function renderEnglishToolsDirector(role,kind,request,opposed){
   $("dice-tool-kind").textContent=kind==="opposed"?"OPPOSED ROLL":"CHALLENGE ROLL";$("dice-tool-title").textContent=kind==="opposed"?"Build your side's pool":"Resolve action";$("roll-dice").textContent=kind==="opposed"?(sideResult?"Side result saved":"Roll for your side"):request?.result?"Result accepted by Narrator":"Roll challenge";
 }
 function renderOpposedStatus(){
-  const root=$("freeplay-opposed-status"),request=Scene.opposedRoll,context=toolsSyncContext(),role=toolsRole(),director=toolsView()==="narrator";
+  const root=$("freeplay-opposed-status"),request=Scene.opposedRoll,context=toolsSyncContext(),role=toolsRole(),director=toolsView()==="narrator",en=isEnglishPreview();
   root.hidden=!request;if(!request){root.innerHTML="";return}
   const current=currentOpposedParticipant(),cards=request.participants.map(participant=>{
     const result=opposedParticipantResult(participant,request),isCurrent=current?.id===participant.id,hero=participant.heroId&&store.heroes.find(item=>item.id===participant.heroId),manual=context.canEdit&&director&&!result;
-    return`<article class="opposed-side ${isCurrent?"current":""}"><div><span>${isCurrent?"ВАША СТОРОНА":participant.controller==="narrator"?"СТОРОНА НАРРАТОРА":"УЧАСТНИК"}</span><strong>${esc(participant.name)}</strong><small>${result?`${opposedCountLabel(result.successes,"Успех","Успеха","Успехов")} · ${opposedCountLabel(result.crits,"Крит","Крита","Критов")}${result.payment?` · Ва-банк: ${esc(result.payment)}`:""}`:"Результат ещё не получен"}</small></div>${result?`<div class="opposed-dice">${result.rolls.map(value=>`<i class="${value>=6?"crit":value>=4?"success":""}">${value}</i>`).join("")}</div>`:""}<div class="opposed-side-actions">${role==="local-table"&&hero&&!result?`<button type="button" data-opposed-open-hero="${esc(hero.id)}">Открыть лист</button>`:""}${manual?`<label>Ручной пул<input type="number" min="1" max="99" value="${participant.pool}" data-opposed-pool="${esc(participant.id)}"></label><button type="button" data-opposed-roll="${esc(participant.id)}">Бросить за участника</button>`:""}</div></article>`;
+    return`<article class="opposed-side ${isCurrent?"current":""}"><div><span>${isCurrent?(en?"YOUR SIDE":"ВАША СТОРОНА"):participant.controller==="narrator"?(en?"NARRATOR’S SIDE":"СТОРОНА НАРРАТОРА"):(en?"PARTICIPANT":"УЧАСТНИК")}</span><strong>${esc(participant.name)}</strong><small>${result?`${opposedCountLabel(result.successes,"Успех","Успеха","Успехов")} · ${opposedCountLabel(result.crits,"Крит","Крита","Критов")}${result.payment?` · ${en?"All In":"Ва-банк"}: ${esc(toolsPaymentLabel(result.payment))}`:""}`:(en?"No result yet":"Результат ещё не получен")}</small></div>${result?`<div class="opposed-dice">${result.rolls.map(value=>`<i class="${value>=6?"crit":value>=4?"success":""}">${value}</i>`).join("")}</div>`:""}<div class="opposed-side-actions">${role==="local-table"&&hero&&!result?`<button type="button" data-opposed-open-hero="${esc(hero.id)}">${en?"Open sheet":"Открыть лист"}</button>`:""}${manual?`<label>${en?"Manual pool":"Ручной пул"}<input type="number" min="1" max="99" value="${participant.pool}" data-opposed-pool="${esc(participant.id)}"></label><button type="button" data-opposed-roll="${esc(participant.id)}">${en?"Roll for participant":"Бросить за участника"}</button>`:""}</div></article>`;
   }).join("");
-  const actions=context.canEdit?`<div class="opposed-resolution-actions">${request.status==="tied"?`<button type="button" class="primary" data-opposed-reroll>Перебросить ничью</button><button type="button" data-opposed-both>Разрешить обе Награды</button>`:""}<button type="button" data-opposed-close>${request.status==="resolved"?"Завершить":"Отменить"} встречный бросок</button></div>`:"";
-  root.innerHTML=`<header><div><span>ВСТРЕЧНЫЙ БРОСОК · ПОПЫТКА ${request.attempt}</span><strong>${esc(opposedResultSummary(request))}</strong></div></header><div class="opposed-sides">${cards}</div>${actions}`;
+  const actions=context.canEdit?`<div class="opposed-resolution-actions">${request.status==="tied"?`<button type="button" class="primary" data-opposed-reroll>${en?"Reroll the tie":"Перебросить ничью"}</button><button type="button" data-opposed-both>${en?"Allow both Rewards":"Разрешить обе Награды"}</button>`:""}<button type="button" data-opposed-close>${request.status==="resolved"?(en?"Finish Opposed Roll":"Завершить встречный бросок"):(en?"Cancel Opposed Roll":"Отменить встречный бросок")}</button></div>`:"";
+  root.innerHTML=`<header><div><span>${en?"OPPOSED ROLL · ATTEMPT":"ВСТРЕЧНЫЙ БРОСОК · ПОПЫТКА"} ${request.attempt}</span><strong>${esc(opposedResultSummary(request))}</strong></div></header><div class="opposed-sides">${cards}</div>${actions}`;
 }
 function renderFreeplayDirector(){
+  if(toolsManualMode())return renderManualToolsDirector();
+  document.body.classList.remove("tools-manual-mode");
   const context=toolsSyncContext(),role=toolsRole(),view=toolsView(),director=view==="narrator",request=Scene.challengeRequest,opposed=Scene.opposedRoll,kindSelect=$("freeplay-request-kind"),kind=opposed?"opposed":request?"challenge":kindSelect.value,localSelect=$("freeplay-local-hero"),actorSelect=$("freeplay-request-actor"),opponent=$("freeplay-opponent"),target=$("dice-target"),requestActorWrap=$("freeplay-request-actor-wrap"),localHeroWrap=$("freeplay-local-hero-wrap"),kindWrap=$("freeplay-request-kind-wrap"),opponentWrap=$("freeplay-opponent-wrap"),opponentNameWrap=$("freeplay-opponent-name-wrap"),targetWrap=$("freeplay-target-wrap"),actions=$("freeplay-request-actions"),state=$("freeplay-request-state"),requestButton=$("freeplay-request-roll"),clearButton=$("freeplay-request-clear"),defaultButton=$("dice-target-default"),switcher=$("tools-view-switch");
   switcher.hidden=role==="network-player";switcher.querySelectorAll("[data-tools-view]").forEach(button=>button.setAttribute("aria-pressed",button.dataset.toolsView===view?"true":"false"));
   kindSelect.value=kind;kindSelect.disabled=Boolean(request||opposed);kindWrap.hidden=!director||role==="network-player";targetWrap.hidden=kind==="opposed";opponentWrap.hidden=kind!=="opposed"||!director||role==="network-player";opponentNameWrap.hidden=opponentWrap.hidden||opponent.value!=="custom";
@@ -209,14 +312,14 @@ function renderFreeplayDirector(){
   document.querySelector(".freeplay-bonds-tool").hidden=false;
   localHeroWrap.hidden=role==="network-player";requestActorWrap.hidden=!director||role!=="network-narrator";actions.hidden=!director||role==="network-player"||role==="local-table"&&kind!=="opposed";defaultButton.hidden=false;target.disabled=false;
   if(role!=="network-player")$("roll-dice").disabled=false;
-  if(role!=="network-player")localSelect.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||"Безымянный герой")} · Ст.${hero.tier}</option>`).join("");
+  if(role!=="network-player")localSelect.innerHTML=store.heroes.map((hero,index)=>`<option value="${index}" ${index===store.current?"selected":""}>${esc(hero.name||(isEnglishPreview()?"Unnamed hero":"Безымянный герой"))} · ${isEnglishPreview()?"Tier":"Ст."}${hero.tier}</option>`).join("");
   if(role==="local-table"){
-    $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent=kind==="opposed"?"Встречный бросок за одним устройством":"Испытание за одним устройством";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Герои используют свои листы, за NPC Нарратор может бросить вручную.":"Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
+    $("freeplay-director-kind").textContent="ЛОКАЛЬНЫЙ СТОЛ";$("freeplay-director-title").textContent=kind==="opposed"?"Встречный бросок за одним устройством":"Испытание за одним устройством";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Герои используют свои листы, за НПС Нарратор может бросить вручную.":"Нарратор выбирает героя и сложность, затем игрок собирает пул и бросает.";
     if(kind==="opposed"){const selected=opponent.value,choices=opposedActorChoices(role).filter(choice=>choice.value!==`hero:${S.id}`);opponent.innerHTML=choices.map(choice=>`<option value="${esc(choice.value)}">${esc(choice.name)}</option>`).join("");if(choices.some(choice=>choice.value===selected))opponent.value=selected;opponentNameWrap.hidden=opponent.value!=="custom";}
     if(document.activeElement!==target)target.value=freeplayState().target??defaultChallengeTarget()??"";
     state.innerHTML=kind==="opposed"?opposed?`<strong>${esc(opposed.participants.map(item=>item.name).join(" против "))}</strong><span>Результаты сохраняются по сторонам; при ничьей нужен новый совместный переброс.</span>`:"<strong>Подготовьте две стороны</strong><span>У встречного броска нет Цели Успехов: побеждает сторона с большим числом Успехов.</span>":"<strong>Локальная игра</strong><span>Все герои и броски остаются на этом устройстве; переключение героя использует его настоящий лист.</span>";
   }else if(role==="network-narrator"){
-    $("freeplay-director-kind").textContent="СЕТЕВОЙ СТОЛ";$("freeplay-director-title").textContent="Пульт Нарратора";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Владельцы героев получат запросы, за NPC можно бросить с пульта.":"Выберите героя и назначьте Цель Успехов. Игрок получит запрос на своём устройстве.";
+    $("freeplay-director-kind").textContent="СЕТЕВОЙ СТОЛ";$("freeplay-director-title").textContent="Пульт Нарратора";$("freeplay-director-help").textContent=kind==="opposed"?"Выберите две стороны. Владельцы героев получат запросы, за НПС можно бросить с пульта.":"Выберите героя и назначьте Цель Успехов. Игрок получит запрос на своём устройстве.";
     const actors=kind==="opposed"?opposedActorChoices(role).map(choice=>choice.actor):challengeActors(),selected=actorSelect.value||request?.actorId||opposed?.participants?.[0]?.actorId;actorSelect.innerHTML=actors.map(actor=>`<option value="${actor.id}">${esc(actor.name)}</option>`).join("")||`<option value="">Нет доступных участников</option>`;if(actors.some(actor=>actor.id===selected))actorSelect.value=selected;
     if(kind==="opposed"){const opponentSelected=opponent.value||opposed?.participants?.[1]?.actorId,available=actors.filter(actor=>actor.id!==actorSelect.value);opponent.innerHTML=available.map(actor=>`<option value="actor:${actor.id}">${esc(actor.name)}</option>`).join("")||`<option value="">Нужен второй участник</option>`;if(available.some(actor=>`actor:${actor.id}`===opponentSelected||actor.id===opponentSelected))opponent.value=opponentSelected?.startsWith("actor:")?opponentSelected:`actor:${opponentSelected}`;}
     if(document.activeElement!==target)target.value=request?.target??freeplayState().target??defaultChallengeTarget(actors.find(actor=>actor.id===actorSelect.value)||S)??"";
@@ -236,8 +339,9 @@ function renderFreeplayDirector(){
   renderOutcomeGuide();renderOpposedStatus();renderToolsSyncState();
 }
 function renderChallengeRequestDock(){
+  if(toolsManualMode()){$("challenge-request-dock").hidden=true;return;}
   const dock=$("challenge-request-dock"),context=toolsSyncContext(),request=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),result=opposedParticipantResult(participant,opposed),opponent=opposed?.participants.find(item=>item.id!==participant?.id),visible=context.shared&&!context.canEdit&&Boolean(request||participant)&&store.mode!=="tools";
-  const resolved=Boolean(participant?result:request?.result);dock.hidden=!visible;dock.classList.toggle("resolved",resolved);if(visible)$("challenge-request-dock-text").textContent=participant?(result?`Запрос → Ответ · ${result.successes} Успехов · ${opposedResultSummary(opposed)}`:`Запрос · встречный бросок против ${opponent?.name||"соперника"}`):request.result?`Запрос → Ответ · ${challengeResultSummary(request.result)}`:`Запрос · ${request.requestedBy} просит бросок · цель ${request.target}`;
+  const resolved=Boolean(participant?result:request?.result),en=isEnglishPreview();dock.hidden=!visible;dock.classList.toggle("resolved",resolved);if(visible)$("challenge-request-dock-text").textContent=participant?(result?`${en?"Request → Result":"Запрос → Ответ"} · ${opposedCountLabel(result.successes,"Успех","Успеха","Успехов")} · ${opposedResultSummary(opposed)}`:(en?`Request · Opposed Roll against ${opponent?.name||"opponent"}`:`Запрос · встречный бросок против ${opponent?.name||"соперника"}`)):request.result?`${en?"Request → Result":"Запрос → Ответ"} · ${challengeResultSummary(request.result)}`:(en?`Request · ${request.requestedBy} requests a roll · target ${request.target}`:`Запрос · ${request.requestedBy} просит бросок · цель ${request.target}`);
 }
 function syncToolsSourceSelection(){
   for(const [selector,key,control] of [["[data-freeplay-attr]","freeplayAttr","dice-attr"],["[data-freeplay-skill]","freeplaySkill","dice-skill"],["[data-freeplay-ability]","freeplayAbility","dice-ability"],["[data-bond-use]","bondUse","dice-bond"]]){
@@ -246,21 +350,22 @@ function syncToolsSourceSelection(){
   }
 }
 function updateDicePoolTotal(){
-  const request=toolsDiceRequest(),context=toolsRollContext(),status=SceneEngine.diceHookStatus(context.scene,context.actor.id,request),total=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance),dark=$("dice-dark-urge"),copy=toolsCopy();
+  const request=toolsDiceRequest(),context=toolsRollContext(),status=toolsManualMode()?manualToolsPoolStatus(request):SceneEngine.diceHookStatus(context.scene,context.actor.id,request),total=status.available?status.count:Math.max(1,request.baseCount+request.advantage-request.hindrance),dark=$("dice-dark-urge"),copy=toolsCopy();
   if(dark){dark.disabled=!request.usesAbility;if(!request.usesAbility)dark.checked=false}
   const automatic=status.sources?.filter(source=>["advantage","hindrance"].includes(source.type)).map(source=>`${source.type==="hindrance"?"−":"+"}${source.amount} ${source.label}`)||[];
-  $("dice-pool-total").innerHTML=`<span>${copy.pool}</span><strong>${total}D6</strong><small>${esc([`${request.baseCount} ${copy.fromAttribute}`,request.advantage?`+${request.advantage} ${copy.otherAdvantage}`:"",request.hindrance?`−${request.hindrance} ${copy.hindrance}`:"",...automatic].filter(Boolean).join(" · "))}</small>`;
+  $("dice-pool-total").innerHTML=`<span>${copy.pool}</span><strong>${total}D6</strong><small>${esc([`${request.baseCount} ${$("dice-attr").value==="manual"?(isEnglishPreview()?"base dice":"базовых костей"):copy.fromAttribute}`,request.advantage?`+${request.advantage} ${copy.otherAdvantage}`:"",request.hindrance?`−${request.hindrance} ${copy.hindrance}`:"",...automatic].filter(Boolean).join(" · "))}</small>`;
   $$("[data-dice-count]").forEach(button=>button.classList.toggle("on",+$("dice-count").value===+button.dataset.diceCount));renderOutcomeGuide();syncToolsSourceSelection();
 }
 function recalculateDicePool(){const attr=$("dice-attr").value,count=$("dice-count");count.readOnly=attr!=="manual";if(attr!=="manual")count.value=Math.max(1,attrValue(attr));updateDicePoolTotal();if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh()}
 function renderDiceComposer(){
   const skill=$("dice-skill"),ability=$("dice-ability"),bond=$("dice-bond"),skillValue=skill.value,abilityValue=ability.value,bondValue=bond.value,darkChecked=$("dice-dark-urge")?.checked,outgunnedChecked=$("dice-outgunned")?.checked,saintChecked=$("dice-saint")?.checked,fundingValue=$("dice-trust-fund")?.value||0,copy=toolsCopy();
-  skill.innerHTML=`<option value="">${copy.noSkill}</option>${S.skills.filter(item=>skillDisplayName(item).trim()).map(item=>`<option value="${esc(toolSkillId(item))}">${esc(skillDisplayName(item))} · +${effectiveSkillRank(item)}D6</option>`).join("")}`;if([...skill.options].some(option=>option.value===skillValue))skill.value=skillValue;
+  skill.innerHTML=`<option value="">${copy.noSkill}</option>${S.skills.filter(item=>skillDisplayName(item).trim()).map(item=>`<option value="${esc(toolSkillId(item))}">${esc(skillDisplayName(item))} · +${toolsSkillRank(item)}D6</option>`).join("")}`;if([...skill.options].some(option=>option.value===skillValue))skill.value=skillValue;
   ability.innerHTML=`<option value="">${copy.noAbility}</option>${S.ability.enabled?`<option value="main">${esc(S.ability.name||copy.ability)} · +${S.ability.rank}D6</option>`:""}${S.mods.taintedBody&&S.taintedAbility.enabled?`<option value="tainted">${esc(S.taintedAbility.name||(isEnglishPreview()?"Tainted Body":"Порченое тело"))} · +${S.taintedAbility.rank}D6</option>`:""}${(typeof heroGadgetDiceSources==="function"?heroGadgetDiceSources():[]).map(source=>`<option value="${esc(source.value)}">${esc(source.label)} · +${source.count}D6</option>`).join("")}`;if([...ability.options].some(option=>option.value===abilityValue))ability.value=abilityValue;
   bond.innerHTML=`<option value="">${copy.noBond}</option>${S.bonds.map(item=>{const status=freeplayBondStatus(item);return`<option value="${item.id}">${esc(item.name)} · +${status.amount}D6</option>`}).join("")}`;if([...bond.options].some(option=>option.value===bondValue))bond.value=bondValue;
-  const opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opponent=opposed?.participants.find(item=>item.id!==participant?.id);
+  const opposed=currentOpposedRoll(),participant=currentOpposedParticipant(),opponent=opposed?.participants.find(item=>item.id!==participant?.id);
   $("dice-hero-context").innerHTML=`<span>${isEnglishPreview()?"Rolling":"Бросает"}</span><strong>${esc(S.name||copy.unnamed)}</strong><small>${participant?(isEnglishPreview()?`Opposed Roll against ${esc(opponent?.name||"opponent")} · attempt ${opposed.attempt}`:`Встречный бросок против ${esc(opponent?.name||"соперника")} · попытка ${opposed.attempt}`):`${copy.tier} ${S.tier} · ${copy.successTarget.toLowerCase()} ${freeplayTarget()}`}</small>`;
-  $("dice-hook-controls").innerHTML=`${S.gifts.includes("beacon.saint")?`<label class="switch"><input id="dice-saint" type="checkbox" ${saintChecked?"checked":""}><span><b>${isEnglishPreview()?"Saint":"Святой"}</b> · ${isEnglishPreview()?"+2 Advantage when the related characters hold no negative feelings toward you":"+2 Преимущества, если связанные с броском персонажи не испытывают к вам негативных чувств"}</span></label>`:""}${S.gifts.includes("blessed.trust-fund")?`<label><span><b>${isEnglishPreview()?"Trust Fund":"Родовое состояние"}</b> · ${isEnglishPreview()?`spend Funding (${S.runtime.funding||0} left)`:`потратить финансирование (осталось ${S.runtime.funding||0})`}</span><input id="dice-trust-fund" type="number" min="0" max="${Math.max(0,Number(S.runtime.funding||0))}" value="${clamp(fundingValue,0,Math.max(0,Number(S.runtime.funding||0)))}"></label>`:""}${S.gifts.includes("wolf.outgunned")?`<label class="switch"><input id="dice-outgunned" type="checkbox" ${outgunnedChecked?"checked":""}><span><b>В меньшинстве</b> · +2 Преимущества, если это верно в текущем повествовании</span></label>`:""}${S.gifts.includes("wolf.dark-urge")?`<label class="switch"><input id="dice-dark-urge" type="checkbox" ${darkChecked?"checked":""}><span><b>Тёмный порыв</b> · +4 Преимущества со Способностью; нечётные Успехи дают Нарратору право сменить цель</span></label>`:""}`;
+  $("dice-hook-controls").innerHTML=`${S.gifts.includes("beacon.saint")?`<label class="switch"><input id="dice-saint" type="checkbox" ${saintChecked?"checked":""}><span><b>${isEnglishPreview()?"Saint":"Святой"}</b> · ${isEnglishPreview()?"+2 Advantage when the related characters hold no negative feelings toward you":"+2 Преимущества, если связанные с броском персонажи не испытывают к вам негативных чувств"}</span></label>`:""}${S.gifts.includes("blessed.trust-fund")?`<label><span><b>${isEnglishPreview()?"Trust Fund":"Родовое состояние"}</b> · ${isEnglishPreview()?`spend Funding (${S.runtime.funding||0} left)`:`потратить финансирование (осталось ${S.runtime.funding||0})`}</span><input id="dice-trust-fund" type="number" min="0" max="${Math.max(0,Number(S.runtime.funding||0))}" value="${clamp(fundingValue,0,Math.max(0,Number(S.runtime.funding||0)))}"></label>`:""}${S.gifts.includes("wolf.outgunned")?`<label class="switch"><input id="dice-outgunned" type="checkbox" ${outgunnedChecked?"checked":""}><span><b>${isEnglishPreview()?"Outgunned":"В меньшинстве"}</b> · ${isEnglishPreview()?"+2 Advantage when the condition holds in the current narrative":"+2 Преимущества, если это верно в текущем повествовании"}</span></label>`:""}${S.gifts.includes("wolf.dark-urge")?`<label class="switch"><input id="dice-dark-urge" type="checkbox" ${darkChecked?"checked":""}><span><b>${isEnglishPreview()?"Dark Urge":"Тёмный порыв"}</b> · ${isEnglishPreview()?"+4 Advantage with an Ability; odd Successes allow the Narrator to change the target":"+4 Преимущества со Способностью; нечётные Успехи дают Нарратору право сменить цель"}</span></label>`:""}`;
+  if(toolsManualMode())$("dice-hook-controls").replaceChildren();
   recalculateDicePool();
 }
 function openToolsDicePreset({attr="",skillId="",abilityKey=""}={}){setMode("tools");renderDiceComposer();if(attr&&[...$("dice-attr").options].some(option=>option.value===attr))$("dice-attr").value=attr;if(skillId&&[...$("dice-skill").options].some(option=>option.value===skillId))$("dice-skill").value=skillId;if(abilityKey&&[...$("dice-ability").options].some(option=>option.value===abilityKey))$("dice-ability").value=abilityKey;recalculateDicePool();requestAnimationFrame(()=>$("roll-dice").focus())}
@@ -269,10 +374,10 @@ function renderFreeplayHeroPanel(){
   const opened=new Set(sameHero?[...root.querySelectorAll("details[open][data-tools-feature]")].map(detail=>detail.dataset.toolsFeature):[]);
   const focused=sameHero&&root.contains(document.activeElement)?document.activeElement:null;
   const focusKey=focused&&["freeplayAttr","freeplaySkill","freeplayAbility","freeplayResource"].find(key=>focused.dataset[key]);
-  const focusValue=focusKey&&focused.dataset[focusKey],focusDelta=focused?.dataset.freeplayDelta;
+  const focusValue=focusKey&&focused.dataset[focusKey],focusDelta=focused?.dataset.freeplayDelta,focusSegment=focused?.dataset.stressSegment;
   const actor=toolsRuntimeActor(),stressMaximum=stressMaximumFor(actor||S),stress=clamp(actor?.stress??S.runtime.stress,0,stressMaximum),influence=Math.max(0,Number(actor?.influence??S.runtime.influence)||0),gifts=selectedGifts(),techniques=Object.entries(S.techniques).filter(([,level])=>level>0).map(([id,level])=>({tech:techById(id),level})).filter(item=>item.tech),locked=toolsSyncContext().shared&&!actor||(typeof toolsResourceCorrectionReason==="function"&&Boolean(toolsResourceCorrectionReason())),copy=toolsCopy(),attrs=activeAttrs();
-  const resource=(key,label,value,maximum="")=>`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${value}${maximum?` / ${maximum}`:""}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button></div>`;
-  $("freeplay-hero-panel").innerHTML=`<header class="freeplay-hero-head">${S.media.portrait?`<img src="${S.media.portrait}" alt="">`:`<i>✦</i>`}<div><span class="kind">${copy.sheet}</span><h2>${esc(S.name||copy.unnamed)}</h2><p>${esc(S.concept||(isEnglishPreview()?"No concept recorded":"Концепция не записана"))} · ${copy.tier} ${S.tier}</p></div><div class="freeplay-resources">${resource("influence",copy.influence,influence)}${resource("stress",copy.stress,stress,stressMaximum)}</div></header><div class="freeplay-sheet-picks"><section><h3>${copy.attributes}</h3><div>${attrs.map(([key,label])=>`<button type="button" data-freeplay-attr="${key}"><span>${label}</span><b>${attrValue(key)}D6</b></button>`).join("")}</div></section><section><h3>${copy.skills}</h3><div>${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-freeplay-skill="${esc(toolSkillId(skill))}"><span>${esc(skillDisplayName(skill))}</span><b>+${effectiveSkillRank(skill)}D6</b></button>`).join("")||`<p class="autosave">${copy.noSkills}</p>`}</div></section>${S.ability.enabled?`<section><h3>${copy.ability}</h3><button type="button" class="freeplay-ability-pick" data-freeplay-ability="main"><span><b>${esc(S.ability.name||abilityFormula())}</b><small>${esc(abilityFormula())}</small></span><strong>+${S.ability.rank}D6</strong></button></section>`:""}</div><div class="freeplay-features"><details><summary>${copy.boons} <small>${gifts.length}</small></summary>${gifts.map(gift=>`<article><strong>${esc(gift.name)}</strong><p>${md(gift.text)}</p></article>`).join("")||`<p class="autosave">${copy.noBoons}</p>`}</details><details><summary>${copy.techniques} <small>${techniques.reduce((sum,item)=>sum+item.level,0)} ${isEnglishPreview()?"Lv.":"ур."}</small></summary>${techniques.map(({tech,level})=>`<article><strong>${esc(tech.name)} · ${isEnglishPreview()?"Level":"Уровень"} ${level}</strong>${tech.levels.slice(0,level).map(item=>`<p><b>${item.n}: ${esc(item.name)}</b> — ${md(item.text)}</p>`).join("")}</article>`).join("")||`<p class="autosave">${copy.noTechniques}</p>`}</details></div>`;
+  const resource=(key,label,value,maximum="")=>key==="stress"?`<div class="freeplay-resource freeplay-resource-stress" data-freeplay-resource-group="stress"><span>${label}</span><strong>${toolsResourceValueMarkup(key,value,maximum,locked)}</strong><small class="tools-stress-warning" ${value<maximum?"hidden":""}>${isEnglishPreview()?"Stress limit":"Предел Стресса"}</small></div>`:`<div class="freeplay-resource" data-freeplay-resource-group="${key}"><span>${label}</span><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="-1" ${locked||value<=0?"disabled":""}>−</button><strong>${toolsResourceValueMarkup(key,value,maximum)}</strong><button type="button" data-freeplay-resource="${key}" data-freeplay-delta="1" ${locked||maximum&&value>=maximum?"disabled":""}>+</button>${key==="stress"?`<small class="tools-stress-warning" ${value<maximum?"hidden":""}>${(isEnglishPreview()?"Stress limit":"Предел Стресса")}</small>`:""}</div>`;
+  $("freeplay-hero-panel").innerHTML=`<header class="freeplay-hero-head">${S.media.portrait?`<img src="${S.media.portrait}" alt="">`:`<i>✦</i>`}<div><span class="kind">${copy.sheet}</span><h2>${esc(S.name||copy.unnamed)}</h2><p>${esc(S.concept||(isEnglishPreview()?"No concept recorded":"Концепция не записана"))} · ${copy.tier} ${S.tier}</p></div><div class="freeplay-resources">${resource("influence",copy.influence,influence)}${resource("stress",copy.stress,stress,stressMaximum)}</div></header><div class="freeplay-sheet-picks"><section><h3>${copy.attributes}</h3><div>${attrs.map(([key,label])=>`<button type="button" data-freeplay-attr="${key}"><span>${label}</span><b>${attrValue(key)}D6</b></button>`).join("")}</div></section><section><h3>${copy.skills}</h3><div>${S.skills.filter(skill=>skillDisplayName(skill).trim()).map(skill=>`<button type="button" data-freeplay-skill="${esc(toolSkillId(skill))}"><span>${esc(skillDisplayName(skill))}</span><b>+${toolsSkillRank(skill)}D6</b></button>`).join("")||`<p class="autosave">${copy.noSkills}</p>`}</div></section>${S.ability.enabled?`<section><h3>${copy.ability}</h3><button type="button" class="freeplay-ability-pick" data-freeplay-ability="main"><span><b>${esc(S.ability.name||abilityFormula())}</b>${S.ability.name?`<small>${esc(abilityFormula())}</small>`:""}</span><strong>+${S.ability.rank}D6</strong></button></section>`:""}</div><div class="freeplay-features"><details><summary>${copy.boons} <small>${gifts.length}</small></summary>${gifts.map(gift=>`<article><strong>${esc(gift.name)}</strong><p>${md(gift.text)}</p></article>`).join("")||`<p class="autosave">${copy.noBoons}</p>`}</details><details><summary>${copy.techniques} <small>${techniques.reduce((sum,item)=>sum+item.level,0)} ${isEnglishPreview()?"Lv.":"ур."}</small></summary>${techniques.map(({tech,level})=>`<article><strong>${esc(tech.name)} · ${isEnglishPreview()?"Level":"Уровень"} ${level}</strong>${tech.levels.slice(0,level).map(item=>`<p><b>${item.n}: ${esc(item.name)}</b> — ${md(item.text)}</p>`).join("")}</article>`).join("")||`<p class="autosave">${copy.noTechniques}</p>`}</details></div>`;
   root.dataset.toolsHero=S.id;
   const features=root.querySelector(".freeplay-features");
   if(features){
@@ -281,23 +386,26 @@ function renderFreeplayHeroPanel(){
     if(gadgets){const detail=document.createElement("details"),summary=document.createElement("summary");detail.dataset.toolsFeature="gadgets";detail.open=opened.has("gadgets");summary.textContent=gadgetText("title");detail.append(summary);detail.insertAdjacentHTML("beforeend",gadgets);features.append(detail)}
   }
   syncToolsSourceSelection();
-  if(focusKey){const replacement=[...root.querySelectorAll("button")].find(button=>button.dataset[focusKey]===focusValue&&(!focusDelta||button.dataset.freeplayDelta===focusDelta));replacement?.focus({preventScroll:true})}
+  if(focusKey){const replacement=[...root.querySelectorAll("button")].find(button=>button.dataset[focusKey]===focusValue&&(!focusDelta||button.dataset.freeplayDelta===focusDelta)&&(focusSegment==null||button.dataset.stressSegment===focusSegment));replacement?.focus({preventScroll:true})}
 }
 function renderFreeplayBonds(){
-  const standard=D.bonds.actions.map(action=>action.tag);
-  $("freeplay-bonds").innerHTML=S.bonds.map(bond=>{const status=freeplayBondStatus(bond),canRaise=bond.rank<3&&bond.tags.length>=bond.rank;return`<article class="freeplay-bond-card"><header><div><strong>${esc(bond.name)}</strong><small>${bond.quick?"Быстрая Связь · ":""}В пул: +${status.amount}D6</small></div><div class="freeplay-bond-rank"><button type="button" data-bond-rank="${bond.id}" data-bond-delta="-1" ${bond.rank<=1?"disabled":""}>−</button><b>Ранг ${bond.rank}</b><button type="button" data-bond-rank="${bond.id}" data-bond-delta="1" title="${canRaise?"Повысить Ранг":"Для повышения нужны все теги текущего Ранга"}" ${canRaise?"":"disabled"}>+</button></div></header><div class="freeplay-bond-tags">${bond.tags.map(tag=>`<span>${esc(tag)}</span>`).join("")||`<small>Тегов пока нет</small>`}</div><div class="freeplay-bond-actions"><select data-bond-tag-select="${bond.id}" ${bond.tags.length>=bond.rank?"disabled":""}><option value="">${bond.tags.length>=bond.rank?"Все места тегов заняты":"Добавить тег…"}</option>${standard.filter(tag=>!bond.tags.includes(tag)).map(tag=>`<option>${esc(tag)}</option>`).join("")}<option value="__custom">Свой тег…</option></select><button type="button" data-bond-use="${bond.id}">В бросок</button><button type="button" class="remove" data-bond-remove="${bond.id}">Удалить</button></div></article>`}).join("")||`<p class="autosave">Связей пока нет. В обычной или быстрой Связи можно хранить Ранг и неизменяемые теги.</p>`;
+  const standard=D.bonds.actions.map(action=>action.tag),tagLabels={"Партнер":"Partner","Соперник":"Rival","Ученик":"Student","Учитель":"Teacher","Враг":"Enemy","Легенда":"Legend","Товарищ":"Comrade","Подопечный":"Ward","Доверенное лицо":"Confidant","Объект":"Subject","Приятель":"Buddy","без тега":"no tag"};
+  $("freeplay-bonds").innerHTML=S.bonds.map(bond=>{const status=freeplayBondStatus(bond),canRaise=bond.rank<3&&bond.tags.length>=bond.rank;return`<article class="freeplay-bond-card"><header><div><strong>${esc(bond.name)}</strong><small>${bond.quick?(isEnglishPreview()?"Quick Bond · ":"Быстрая Связь · "):""}${isEnglishPreview()?"To pool":"В пул"}: +${status.amount}D6</small></div><div class="freeplay-bond-rank"><button type="button" data-bond-rank="${bond.id}" data-bond-delta="-1" ${bond.rank<=1?"disabled":""}>−</button><b>${isEnglishPreview()?"Rank":"Ранг"} ${bond.rank}</b><button type="button" data-bond-rank="${bond.id}" data-bond-delta="1" title="${canRaise?(isEnglishPreview()?"Raise Rank":"Повысить Ранг"):(isEnglishPreview()?"Fill the current Rank’s tags before raising it":"Для повышения нужны все теги текущего Ранга")}" ${canRaise?"":"disabled"}>+</button></div></header><div class="freeplay-bond-tags">${bond.tags.map(tag=>`<span>${esc(tag)}</span>`).join("")||`<small>${isEnglishPreview()?"No tags yet":"Тегов пока нет"}</small>`}</div><div class="freeplay-bond-actions"><select data-bond-tag-select="${bond.id}" ${bond.tags.length>=bond.rank?"disabled":""}><option value="">${bond.tags.length>=bond.rank?(isEnglishPreview()?"All tag slots filled":"Все места тегов заняты"):(isEnglishPreview()?"Add a tag…":"Добавить тег…")}</option>${standard.filter(tag=>!bond.tags.includes(tag)).map(tag=>`<option value="${esc(tag)}">${esc(isEnglishPreview()?tagLabels[tag]||tag:tag)}</option>`).join("")}<option value="__custom">${isEnglishPreview()?"Custom tag…":"Свой тег…"}</option></select><button type="button" data-bond-use="${bond.id}">${isEnglishPreview()?"Use in roll":"В бросок"}</button><button type="button" class="remove" data-bond-remove="${bond.id}">${isEnglishPreview()?"Remove":"Удалить"}</button></div></article>`}).join("")||`<p class="autosave">${isEnglishPreview()?"No Bonds yet. Regular and Quick Bonds store a Rank and fixed tags.":"Связей пока нет. В обычной или быстрой Связи можно хранить Ранг и неизменяемые теги."}</p>`;
   if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderAllInControls(){
+  $("all-in-reroll").hidden=false;$("all-in-hint").hidden=false;$("freeplay-risk-actions").hidden=false;
   renderFreeplayDirector();
   renderDiceComposer();
   renderFreeplayHeroPanel();
   renderFreeplayBonds();
   syncToolsSourceSelection();
   renderStressTrackers();
+  if(toolsManualMode()){pendingAllIn=null;for(const id of ["all-in-reroll","all-in-stress","all-in-flashback-wrap","all-in-hint","freeplay-risk-actions"])$(id).hidden=true;return;}
   updateAllInAvailability();
 }
 function updateAllInAvailability(){
+  if(toolsManualMode()){pendingAllIn=null;for(const id of ["all-in-reroll","all-in-stress","all-in-flashback-wrap","all-in-hint"])$(id).hidden=true;return;}
   const stressPayment=hasGift("Overexertion")||hasGift("Durandal");
   const flashback=hasGift("Plenty To Learn");
   const influence=toolsResourceValue("influence"),stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);
@@ -315,14 +423,16 @@ function applyOptimisticToolsEvents(events){
   try{Scene=normalizeScene(SceneEngine.dispatchMany(Scene,events,{expectedVersion:Number(Scene.version||0)}).scene);syncHeroFromScene();persistAfterPaint();return true}catch{return false}
 }
 function resolveDice(count,threshold,payment="",diceRequest=null,scenario=freeplayScenario()){
+  if(toolsManualMode())return null;
   const context=toolsRollContext(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),isOpposed=Boolean(opposed&&participant),request=diceRequest?{...diceRequest,threshold}:null,status=request?SceneEngine.diceHookStatus(context.scene,context.actor.id,request):null;
   if(request&&!status.available){toast(status.reason);return null}
   const result=Logic.rollXd6({count:status?.count||count,threshold:status?.threshold||threshold,criticalAt:status?.criticalAt||6}),prepared=request?SceneEngine.diceRollPayload(context.scene,context.actor.id,request,result):null,roll=prepared?.available?prepared.payload:{formula:`${result.initialCount}D6 ≥${threshold}`,rolls:result.rolls,successes:result.successes,crits:result.crits},resolution=isOpposed?null:Logic.challengeOutcome({successes:roll.successes,target:scenario.target}),outcome=isOpposed?"Встречный бросок":resolution.label,sources=roll.dice?.sources?.map(source=>source.label).join(" · "),darkUrge=roll.dice?.selectedHookIds?.includes("wolf.dark-urge")&&roll.successes%2===1;
   $("dice-result").className=`dice-result ${isOpposed?"outcome-opposed":`outcome-${resolution.id}`}`;
-  $("dice-result").innerHTML=`<div class="dice">${roll.rolls.map(v=>`<span class="die ${v>=(roll.dice?.criticalAt||6)?"crit":v>=(roll.dice?.threshold||threshold)?"success":""}">${v}</span>`).join("")}</div><strong>${roll.successes} Успехов · ${roll.crits} Критов · ${outcome}</strong><div class="dice-resolution">${isOpposed?"Результат стороны сохранён. Победитель определится после броска соперника.":resolution.id==="failure"?"Награда не получена. Нарратор применяет проговорённый Риск.":resolution.id==="minimal"?"Герой получает оговорённую награду; Нарратор добавляет значительную трудность.":"Герой получает оговорённую награду и описывает дополнительный эффект."}</div><div class="autosave">${payment?`Ва-банк (${esc(payment)}). `:""}Исходных костей: ${result.initialCount}; ${isOpposed?`встречный бросок, попытка ${opposed.attempt}.`:`цель: ${scenario.target}, Крайний успех: ${scenario.target*2}.`}${sources?` Правила: ${esc(sources)}.`:""}${result.truncated?" Цепочка взрывов ограничена 300 костями.":""}</div>`;
+  const en=isEnglishPreview(),displayOutcome=toolsOutcomeLabel(outcome),displayPayment=toolsPaymentLabel(payment);
+  $("dice-result").innerHTML=`<div class="dice">${roll.rolls.map(v=>`<span class="die ${v>=(roll.dice?.criticalAt||6)?"crit":v>=(roll.dice?.threshold||threshold)?"success":""}">${v}</span>`).join("")}</div><strong>${esc(challengeResultSummary({successes:roll.successes,crits:roll.crits,outcome:displayOutcome}))}</strong><div class="dice-resolution">${isOpposed?(en?"Your side’s result is saved. The winner will be determined after the opponent rolls.":"Результат стороны сохранён. Победитель определится после броска соперника."):resolution.id==="failure"?(en?"No Reward is gained. The Narrator applies the agreed Risk.":"Награда не получена. Нарратор применяет проговорённый Риск."):resolution.id==="minimal"?(en?"The hero gains the agreed Reward; the Narrator adds a significant complication.":"Герой получает оговорённую награду; Нарратор добавляет значительную трудность."):(en?"The hero gains the agreed Reward and describes an additional effect.":"Герой получает оговорённую награду и описывает дополнительный эффект.")}</div><div class="autosave">${payment?`${en?"All In":"Ва-банк"} (${esc(displayPayment)}). `:""}${en?"Initial dice":"Исходных костей"}: ${result.initialCount}; ${isOpposed?(en?`Opposed Roll, attempt ${opposed.attempt}.`:`встречный бросок, попытка ${opposed.attempt}.`):(en?`target: ${scenario.target}, Extreme Success: ${scenario.target*2}.`:`цель: ${scenario.target}, Крайний успех: ${scenario.target*2}.`)}${sources?` ${en?"Rules":"Правила"}: ${esc(sources)}.`:""}${result.truncated?(en?" Exploding dice are capped at 300 dice.":" Цепочка взрывов ограничена 300 костями."):""}</div>`;
   const stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);
-  $("freeplay-risk-actions").innerHTML=`${darkUrge?`<div class="freeplay-rule-alert"><strong>Тёмный порыв: нечётное число Успехов</strong><span>Нарратор может перенаправить сохранённый результат на другого персонажа; сопротивление стоит 2 Стресса.</span></div>`:""}${!isOpposed&&resolution.id==="failure"?`<div class="freeplay-failure-tools"><button type="button" data-freeplay-risk="stress" ${toolsResourceValue("stress")>=stressMaximum?"disabled":""}>Применить базовый Риск: +1 Стресс, +1 Влияние</button><details><summary>Другие Риски по правилам</summary><ul><li><b>Обоюдоострый исход:</b> желаемый эффект происходит с героем.</li><li><b>Эскалация:</b> возникает более значимая связанная Угроза.</li><li><b>Компромисс:</b> теряется вещь, безопасность или ценность.</li><li><b>Дрогнуть:</b> принять довод против Мотивации и получить 2 Влияния.</li><li><b>Напоминание, Смена Сцены или Споткнуться.</b></li></ul></details></div>`:""}`;
-  S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"}),actor:isOpposed?participant.name:S.name||"Система",formula:roll.formula,rolls:roll.rolls,count:result.initialCount,successes:roll.successes,crits:roll.crits,outcome,target:isOpposed?null:scenario.target,allIn:Boolean(payment),payment});
+  $("freeplay-risk-actions").innerHTML=`${darkUrge?`<div class="freeplay-rule-alert"><strong>${en?"Dark Urge: an odd number of Successes":"Тёмный порыв: нечётное число Успехов"}</strong><span>${en?"The Narrator may redirect the saved result to another character; resisting costs 2 Stress.":"Нарратор может перенаправить сохранённый результат на другого персонажа; сопротивление стоит 2 Стресса."}</span></div>`:""}${!isOpposed&&resolution.id==="failure"?`<div class="freeplay-failure-tools"><button type="button" data-freeplay-risk="stress" ${toolsResourceValue("stress")>=stressMaximum?"disabled":""}>${en?"Apply the basic Risk: +1 Stress, +1 Influence":"Применить базовый Риск: +1 Стресс, +1 Влияние"}</button><details><summary>${en?"Other Risks in the rules":"Другие Риски по правилам"}</summary><ul><li><b>${en?"Double-edged outcome:":"Обоюдоострый исход:"}</b> ${en?"the desired effect happens to the hero.":"желаемый эффект происходит с героем."}</li><li><b>${en?"Escalation:":"Эскалация:"}</b> ${en?"a more significant related Threat arises.":"возникает более значимая связанная Угроза."}</li><li><b>${en?"Compromise:":"Компромисс:"}</b> ${en?"an item, safety, or something of value is lost.":"теряется вещь, безопасность или ценность."}</li><li><b>${en?"Falter:":"Дрогнуть:"}</b> ${en?"accept an argument against a Motivation and gain 2 Influence.":"принять довод против Мотивации и получить 2 Влияния."}</li><li><b>${en?"Memento, Change the Scene, or Trip Up.":"Напоминание, Смена Сцены или Споткнуться."}</b></li></ul></details></div>`:""}`;
+  S.runtime.diceHistory.unshift({at:new Date().toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"}),actor:isOpposed?participant.name:S.name||"Система",formula:roll.formula,rolls:roll.rolls,dice:{threshold:roll.dice?.threshold||status?.threshold||threshold,criticalAt:roll.dice?.criticalAt||status?.criticalAt||6},opposedRequestId:isOpposed?opposed.id:null,count:result.initialCount,successes:roll.successes,crits:roll.crits,outcome,target:isOpposed?null:scenario.target,allIn:Boolean(payment),payment});
   S.runtime.diceHistory=S.runtime.diceHistory.slice(0,20);persistAfterPaint();renderDiceHistory();
   const sync=toolsSyncContext(),challenge=currentChallengeRequest(),payload={...roll,actor:isOpposed?participant.name:S.name||"Система",outcome,payment,...(isOpposed?{opposedRequestId:opposed.id,opposedParticipantId:participant.id,opposedAttempt:opposed.attempt}:{target:scenario.target,...(challenge?{challengeRequestId:challenge.id}:{})})},event={type:"roll.public",actorId:isOpposed?participant.actorId||null:context.persisted?context.actor.id:null,payload};
   if(!event.actorId)delete payload.dice;
@@ -330,6 +440,7 @@ function resolveDice(count,threshold,payment="",diceRequest=null,scenario=freepl
   return result;
 }
 function rollDice(){
+  if(toolsManualMode())return rollManualToolsDice();
   const syncContext=toolsSyncContext(),challenge=currentChallengeRequest(),opposed=Scene.opposedRoll,participant=currentOpposedParticipant(),opposedResult=opposedParticipantResult(participant,opposed);if(opposed&&(!participant||opposedResult))return toast(opposedResult?"Результат этой стороны уже сохранён":"Текущий герой не участвует во встречном броске");
   if(!opposed&&!challenge&&!requireChallengeTarget($("dice-target")))return;
   const scenario=freeplayScenario(),state=freeplayState();Object.assign(state,scenario);persistAfterPaint();
@@ -337,29 +448,43 @@ function rollDice(){
   if(!status.available)return toast(status.reason);pendingAllIn={count,diceRequest:request,scenario};if(!resolveDice(count,4,"",request,scenario)){pendingAllIn=null;return}if(fundingSpend){S.runtime.funding=Math.max(0,Number(S.runtime.funding||0)-fundingSpend);const input=$("dice-trust-fund");if(input)input.value=0;persistAfterPaint();renderDiceComposer();if(store.mode==="play")renderPlay()}updateAllInAvailability();
 }
 function allIn(payment){
+  if(toolsManualMode())return null;
   if(!pendingAllIn)return;
-  if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast("Недостаточно Влияния");if(!setToolsResource("influence",influence-1,"Влияние"))return}else{const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast("Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return}
-  const flashback=hasGift("Plenty To Learn")&&$("all-in-flashback").checked,{count,diceRequest,scenario}=pendingAllIn,request=diceRequest?{...diceRequest,hooks:[...(diceRequest.hooks||[]),...(flashback?[{type:"advantage",ruleId:"student.plenty-to-learn",label:"Ещё многому учиться",amount:4}]:[])]}:null,result=resolveDice(count+(request?0:flashback?4:0),3,flashback?`${payment}, флэшбек +4` : payment,request,scenario);if(result)pendingAllIn=null;renderAllInControls();if(store.mode==="play")renderPlay();
+  if(payment==="Влияние"){const influence=toolsResourceValue("influence");if(influence<1)return toast(isEnglishPreview()?"Not enough Influence":"Недостаточно Влияния");if(!setToolsResource("influence",influence-1,"Влияние"))return}else{const stress=toolsResourceValue("stress"),stressMaximum=stressMaximumFor(toolsRuntimeActor()||S);if(stress>=stressMaximum)return toast(isEnglishPreview()?"Stress is already at maximum":"Стресс уже максимален");if(!setToolsResource("stress",stress+1,"Стресс"))return}
+  const flashback=hasGift("Plenty To Learn")&&$("all-in-flashback").checked,{count,diceRequest,scenario}=pendingAllIn,request=diceRequest?{...diceRequest,hooks:[...(diceRequest.hooks||[]),...(flashback?[{type:"advantage",ruleId:"student.plenty-to-learn",label:isEnglishPreview()?"Plenty To Learn":"Ещё многому учиться",amount:4}]:[])]}:null,result=resolveDice(count+(request?0:flashback?4:0),3,flashback?`${payment}, флэшбек +4` : payment,request,scenario);if(result)pendingAllIn=null;renderAllInControls();if(store.mode==="play")renderPlay();
 }
 function renderDiceHistory(){
   const context=toolsSyncContext(),history=context.shared?(Scene.rollFeed||[]).filter(roll=>activeSceneView()==="gm"||roll.visibility!=="gm"):S.runtime.diceHistory,empty=isEnglishPreview()?"No public rolls at this table yet.":"На этом столе ещё не было публичных бросков.";
-  $("dice-history").innerHTML=history.map(h=>{const rolls=Array.isArray(h.rolls)?h.rolls:[],criticalAt=Number(h.dice?.criticalAt||6),threshold=Number(h.dice?.threshold||4),actor=h.actor|| (isEnglishPreview()?"System":"Система"),formula=h.formula||`${h.count||rolls.length}D6 ≥${threshold}`,result=isEnglishPreview()?`${h.successes} successes · ${h.crits} crits`:`${h.successes} успех. · ${h.crits} крит.`,badge=h.payment?(isEnglishPreview()?"ALL IN":"ВА-БАНК"):h.opposedRequestId?(isEnglishPreview()?"OPPOSED":"ВСТРЕЧНЫЙ"):isEnglishPreview()?"ROLL":"БРОСОК";return`<li class="roll-feed-card"><header><div><strong>${esc(actor)}</strong><small>${esc(formula)}${h.at?` · ${esc(h.at)}`:""}</small></div><span>${badge}</span></header><div class="roll-feed-dice">${rolls.map(value=>`<i class="${value>=criticalAt?"crit":value>=threshold?"success":""}">${value}</i>`).join("")}</div><div class="roll-feed-result">${esc(result)}${h.outcome?` · ${esc(h.outcome)}`:""}</div>${h.target?`<small>${isEnglishPreview()?"Success Target":"Цель Успехов"}: ${esc(h.target)}</small>`:""}</li>`}).join("")||`<li class="roll-feed-card"><small>${empty}</small></li>`;
+  $("dice-history").innerHTML=history.map(h=>{const rolls=Array.isArray(h.rolls)?h.rolls:[],criticalAt=Number(h.dice?.criticalAt||6),threshold=Number(h.dice?.threshold||4),actor=h.actor|| (isEnglishPreview()?"System":"Система"),formula=h.formula||`${h.count||rolls.length}D6 ≥${threshold}`,result=isEnglishPreview()?`${opposedCountLabel(h.successes,"Успех","Успеха","Успехов")} · ${opposedCountLabel(h.crits,"Крит","Крита","Критов")}`:`${h.successes} успех. · ${h.crits} крит.`,badge=h.payment?(isEnglishPreview()?"ALL IN":"ВА-БАНК"):h.opposedRequestId?(isEnglishPreview()?"OPPOSED":"ВСТРЕЧНЫЙ"):isEnglishPreview()?"ROLL":"БРОСОК";return`<li class="roll-feed-card"><header><div><strong>${esc(actor)}</strong><small>${esc(formula)}${h.at?` · ${esc(h.at)}`:""}</small></div><span>${badge}</span></header><div class="roll-feed-dice">${rolls.map(value=>`<i class="${value>=criticalAt?"crit":value>=threshold?"success":""}">${value}</i>`).join("")}</div><div class="roll-feed-result">${esc(result)}${h.outcome?` · ${esc(toolsOutcomeLabel(h.outcome))}`:""}</div>${h.target?`<small>${isEnglishPreview()?"Success Target":"Цель Успехов"}: ${esc(h.target)}</small>`:""}</li>`}).join("")||`<li class="roll-feed-card"><small>${empty}</small></li>`;
   if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function renderClocks(){
+  if(window.DAWN_TABLE_POLICY?.isManual(Scene)){
+    $("clock-add-progress").closest(".clock-add-actions").hidden=true;
+    const clocks=sessionClocks().filter(c=>{const owner=Scene.actors.find(a=>a.id===c.ownerActorId);return c.manual&&(activeSceneView()==="gm"||!c.ownerActorId||owner&&!owner.hidden)});
+    $("clocks").innerHTML=`<button type="button" data-manual-clocks-open>${esc(isEnglishPreview()?"Manage manual clocks":"Управлять ручными часами")}</button>${clocks.map(c=>`<article class="clock"><strong>${esc(c.name)}</strong><p>${c.value} / ${c.size}</p></article>`).join("")}`;
+    $("clocks").querySelector("[data-manual-clocks-open]").onclick=openManualTableClocks;
+    renderToolsSyncState();window.DAWN_TOOLS_WORKSPACE?.refresh();return;
+  }
   const context=toolsSyncContext(),clocks=sessionClocks(),locked=context.shared&&!context.canEdit,addActions=$("clock-add-progress").closest(".clock-add-actions");addActions.hidden=locked;
-  const editableCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock ${c.kind==="progress"?"progress":"danger"}"><div class="clock-head"><label>Название<input data-clock-name="${c.id}" value="${esc(c.name)}" maxlength="120" title="${esc(c.name)}"></label><div class="clock-head-actions"><button type="button" data-clock-save="${c.id}">✓ Сохранить</button><button type="button" data-clock-reset="${c.id}">↺ Сбросить</button><button type="button" class="remove" data-clock-remove="${c.id}">× Удалить</button></div></div><div class="clock-meta"><label>Тип<select data-clock-kind="${c.id}"><option value="progress" ${c.kind==="progress"?"selected":""}>Хорошие</option><option value="danger" ${c.kind==="progress"?"":"selected"}>Плохие</option></select></label><label>Текущее<input type="number" data-clock-current="${c.id}" min="${c.min??0}" max="${max}" value="${current}"></label><label>Максимум<select data-clock-size="${c.id}">${[4,6,8,12].map(size=>`<option value="${size}" ${max===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="segments">${Array.from({length:max},(_,i)=>`<button type="button" class="segment ${i<current?"on":""}" data-clock="${c.id}" data-value="${i+1}" aria-label="${i+1} из ${max}"></button>`).join("")}</div></article>`};
-  const readOnlyCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock clock-readonly ${c.kind==="progress"?"progress":"danger"}"><div class="clock-readonly-head"><strong title="${esc(c.name)}">${esc(c.name)}</strong><small>${current} / ${max}</small></div><div class="segments" role="img" aria-label="${esc(`${c.name}: заполнено ${current} из ${max}`)}">${Array.from({length:max},(_,i)=>`<span class="segment ${i<current?"on":""}"></span>`).join("")}</div></article>`};
+  const editableCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock ${c.kind==="progress"?"progress":"danger"}"><div class="clock-head"><label>${isEnglishPreview()?"Name":"Название"}<input data-clock-name="${c.id}" value="${esc(c.name)}" maxlength="120" title="${esc(c.name)}"></label><div class="clock-head-actions"><button type="button" data-clock-save="${c.id}">✓ ${isEnglishPreview()?"Save":"Сохранить"}</button><button type="button" data-clock-reset="${c.id}">↺ ${isEnglishPreview()?"Reset":"Сбросить"}</button><button type="button" class="remove" data-clock-remove="${c.id}">× ${isEnglishPreview()?"Remove":"Удалить"}</button></div></div><div class="clock-meta"><label>${isEnglishPreview()?"Type":"Тип"}<select data-clock-kind="${c.id}"><option value="progress" ${c.kind==="progress"?"selected":""}>${isEnglishPreview()?"Good":"Хорошие"}</option><option value="danger" ${c.kind==="progress"?"":"selected"}>${isEnglishPreview()?"Bad":"Плохие"}</option></select></label><label>${isEnglishPreview()?"Current":"Текущее"}<input type="number" data-clock-current="${c.id}" min="${c.min??0}" max="${max}" value="${current}"></label><label>${isEnglishPreview()?"Maximum":"Максимум"}<select data-clock-size="${c.id}">${[4,6,8,12].map(size=>`<option value="${size}" ${max===size?"selected":""}>${size}</option>`).join("")}</select></label></div><div class="segments">${Array.from({length:max},(_,i)=>`<button type="button" class="segment ${i<current?"on":""}" data-clock="${c.id}" data-value="${i+1}" aria-label="${i+1} ${isEnglishPreview()?"of":"из"} ${max}"></button>`).join("")}</div></article>`};
+  const readOnlyCard=c=>{const current=Number(c.current??c.value??0),max=Number(c.max??c.size);return`<article class="clock clock-readonly ${c.kind==="progress"?"progress":"danger"}"><div class="clock-readonly-head"><strong title="${esc(c.name)}">${esc(c.name)}</strong><small>${current} / ${max}</small></div><div class="segments" role="img" aria-label="${esc(`${c.name}: ${isEnglishPreview()?"filled":"заполнено"} ${current} ${isEnglishPreview()?"of":"из"} ${max}`)}">${Array.from({length:max},(_,i)=>`<span class="segment ${i<current?"on":""}"></span>`).join("")}</div></article>`};
   const card=locked?readOnlyCard:editableCard,group=(kind,title,empty)=>{const items=clocks.filter(clock=>(clock.kind==="progress"?"progress":"danger")===kind);return`<section class="clock-group ${kind}"><h3>${title}</h3>${items.map(card).join("")||`<p class="autosave">${empty}</p>`}</section>`};$("clocks").innerHTML=isEnglishPreview()?group("progress","Good Clocks","No progress Clocks yet.")+group("danger","Bad Clocks",locked?"The Narrator has not added a threat Clock yet.":"No threat Clocks yet."):group("progress","Хорошие часы","Пока нет часов прогресса.")+group("danger","Плохие часы",locked?"Нарратор ещё не добавил часы угрозы.":"Пока нет часов угрозы.");renderToolsSyncState();
   if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 function toolsStressOwners(){
   const context=toolsSyncContext();
-  if(context.shared)return Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token").map(actor=>({id:actor.id,name:actor.name,actor,stress:Number(actor.stress||0),maxStress:stressMaximumFor(actor)}));
+  if(context.shared)return Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token"&&(!toolsManualMode()||!actor.hidden||activeSceneView()==="gm")).map(actor=>({id:actor.id,name:actor.name,actor,stress:Number(actor.stress||0),maxStress:stressMaximumFor(actor)}));
   return store.heroes.map(hero=>{const actor=Scene.rulesEdition==="lionwing"?Scene.actors.find(item=>(item.heroId===hero.id||item.characterId===hero.id)&&(item.team==="hero"||item.kind==="hero")):null;
-    return{id:hero.id,name:hero.name||"Безымянный герой",hero,actor,stress:Number(actor?.stress??hero.runtime?.stress??0),maxStress:stressMaximumFor(actor||hero)};});
+    return{id:hero.id,name:hero.name||(isEnglishPreview()?"Unnamed hero":"Безымянный герой"),hero,actor,stress:Number(actor?.stress??hero.runtime?.stress??0),maxStress:stressMaximumFor(actor||hero)};}).filter(owner=>!toolsManualMode()||!owner.actor?.hidden||activeSceneView()==="gm");
 }
 function toolsStressCorrectionReason(owner){
+  if(toolsManualMode()){
+    const context=toolsSyncContext();
+    if(owner.actor&&!context.canEdit&&!canControlSceneActor(owner.actor)||!owner.actor&&context.shared)return isEnglishPreview()?"You cannot edit this hero.":"Вы не можете изменять этого героя.";
+    return typeof sceneNumericCorrectionReason==="function"?sceneNumericCorrectionReason():"";
+  }
+
   if(!toolsSyncContext().canEdit)return isEnglishPreview()?"Edited by the Narrator":"Изменяет Нарратор";
   if(owner?.actor&&Scene.rulesEdition==="lionwing"){
     if(!lwCanNarrate())return isEnglishPreview()?"Edited by the Narrator":"Изменяет Нарратор";
@@ -370,19 +495,22 @@ function toolsStressCorrectionReason(owner){
 function setToolsStressTracker(id,value){
   const owner=toolsStressOwners().find(item=>item.id===id);if(!owner)return false;
   const reason=toolsStressCorrectionReason(owner);if(reason){toast(reason);return false;}
-  const chosen=clamp(value,0,owner.maxStress),next=owner.stress===chosen?Math.max(0,chosen-1):chosen,label=`${owner.name}: Стресс → ${next}`;
+  const chosen=clamp(value,0,owner.maxStress),filled=toolsManualMode()?owner.stress>=chosen:owner.stress===chosen,next=filled?Math.max(0,chosen-1):chosen,label=`${owner.name}: ${isEnglishPreview()?"Stress":"Стресс"} → ${next}`;
   if(owner.actor){
-    if(Scene.rulesEdition==="lionwing"){if(!lwSubmit(owner.actor.id,{kind:"correct",resource:"stress",amount:next},label))return false;}
+    if(toolsManualMode()){if(!commitSceneEvents(label,[{type:"table.command",actorId:owner.actor.id,payload:{kind:"resource",values:{stress:next}}}]))return false;}
+    else if(Scene.rulesEdition==="lionwing"){if(!lwSubmit(owner.actor.id,{kind:"correct",resource:"stress",amount:next},label))return false;}
     else {const sceneEvent={type:"actor.runtime.set",actorId:owner.actor.id,payload:{key:"stress",value:next}},result=commitSceneEvents(label,[sceneEvent]);if(!result)return false;if(result?.pending)applyOptimisticToolsEvents([sceneEvent]);}
   }else {owner.hero.runtime.stress=next;if(owner.hero.id===S.id)S.runtime.stress=next;persistAfterPaint();}
   renderStressTrackers();refreshFreeplayResourceUi();updateAllInAvailability();return true;
 }
 function renderStressTrackers(){
   const root=$("stress-trackers"),heroes=toolsStressOwners();
+  const help=document.querySelector('[data-i18n="tools.stress.help"]');
+  if(help)help.textContent=toolsManualMode()?(isEnglishPreview()?"Record Stress manually. At maximum, the Narrator decides the consequences.":"Записывайте Стресс вручную. На максимуме последствия определяет Нарратор."):(typeof t==="function"?t("tools.stress.help"):isEnglishPreview()?"When the Stress track fills, a hero is taken out.":"При заполнении шкалы Стресса герой выводится из строя.");
   const segment=(hero,index)=>!toolsStressCorrectionReason(hero)
-    ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: Стресс ${index}`)}"></button>`
+    ?`<button type="button" class="${index<=hero.stress?"on":""}" data-stress-actor="${esc(hero.id)}" data-stress-value="${index}" aria-label="${esc(`${hero.name}: ${isEnglishPreview()?"Stress":"Стресс"} ${index}`)}"></button>`
     :`<span class="${index<=hero.stress?"on":""}"></span>`;
-  root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress,reason=toolsStressCorrectionReason(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${Number(hero.stress)>=maxStress?"Максимум · герой вне строя":`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${reason?`role="img" aria-label="${esc(`${hero.name}: Стресс ${clamp(hero.stress,0,maxStress)} из ${maxStress}`)}"`:""}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${toolsSyncContext().shared?"Добавьте героев за общий стол.":"Нет текущего героя."}</p>`;
+  root.innerHTML=heroes.map(hero=>{const maxStress=hero.maxStress,reason=toolsStressCorrectionReason(hero);return`<article class="stress-card ${Number(hero.stress)>=maxStress?"maximum":""}"><div><strong>${esc(hero.name)}</strong><small>${!toolsManualMode()&&Number(hero.stress)>=maxStress?(isEnglishPreview()?"Maximum · hero out of action":"Максимум · герой вне строя"):`${clamp(hero.stress,0,maxStress)} / ${maxStress}`}</small></div><div class="stress-segments" ${reason?`role="img" aria-label="${esc(`${hero.name}: ${isEnglishPreview()?"Stress":"Стресс"} ${clamp(hero.stress,0,maxStress)} ${isEnglishPreview()?"of":"из"} ${maxStress}`)}"`:""}>${Array.from({length:maxStress},(_,index)=>segment(hero,index+1)).join("")}</div></article>`}).join("")||`<p class="autosave">${isEnglishPreview()?(toolsSyncContext().shared?"Add heroes to the shared table.":"No current hero."):(toolsSyncContext().shared?"Добавьте героев за общий стол.":"Нет текущего героя.")}</p>`;
   if(typeof window!=="undefined")window.DAWN_TOOLS_WORKSPACE?.refresh();
 }
 
@@ -406,7 +534,7 @@ function renderBondReference(){
   const root=$("bond-reference-content");if(!root)return;
   const standard=D.bonds.actions.filter(action=>!action.antagonistic),antagonistic=D.bonds.actions.filter(action=>action.antagonistic),related=bondRelatedItems();
   const cards=actions=>actions.map(action=>`<article class="bond-action-card ${action.antagonistic?"antagonistic":""}"><header><span>${esc(action.tag)}</span><h3>${esc(action.name)}</h3></header><p>${md(action.text)}</p></article>`).join("");
-  root.innerHTML=`<div class="bond-reference-intro">${md(D.bonds.overview)}</div><div class="bond-rule-grid"><article><h3>Теги и пределы</h3><div>${md(D.bonds.tags)}</div></article><article><h3>Быстрые Связи</h3><div>${md(D.bonds.quick)}</div></article><article><h3>Повышение Ранга</h3><div>${md(D.bonds.rankUp)}</div></article><article><h3>Цена и первое действие</h3><div>${md(D.bonds.actionsIntro)}<p>${md(D.bonds.favoredActions)}</p></div></article></div><h3 class="bond-group-title">10 стандартных действий и тегов</h3><div class="bond-action-grid">${cards(standard)}</div><section class="bond-antagonistic"><h3>Антагонистические действия</h3><p>${md(D.bonds.antagonisticIntro)}</p><div class="bond-action-grid">${cards(antagonistic)}</div></section><section class="bond-related"><header><h3>Связи в других базовых правилах</h3><span>${D.bonds.relatedRules.length}</span></header><div class="bond-related-grid">${D.bonds.relatedRules.map(item=>`<article><small>Базовое правило</small><h4>${esc(item.name)}</h4><p>${md(item.text)}</p></article>`).join("")}</div></section><section class="bond-related"><header><h3>Особенности, которые меняют правила Связей</h3><span>${related.length}</span></header><p>Здесь собраны Дары и Техники из остальных разделов книги, которые создают, усиливают, ограничивают или позволяют использовать Связи иначе.</p><div class="bond-related-grid">${related.map(item=>`<article><small>${esc(item.source)}</small><h4>${esc(item.name)}</h4><p>${md(item.text)}</p></article>`).join("")}</div></section><section class="bond-narrator"><h3>Нарратору: связанные NPC должны возвращаться</h3><div>${md(D.bonds.returningCharacters)}</div></section>`;
+  root.innerHTML=`<div class="bond-reference-intro">${md(D.bonds.overview)}</div><div class="bond-rule-grid"><article><h3>${isEnglishPreview()?"Tags and limits":"Теги и пределы"}</h3><div>${md(D.bonds.tags)}</div></article><article><h3>${isEnglishPreview()?"Quick Bonds":"Быстрые Связи"}</h3><div>${md(D.bonds.quick)}</div></article><article><h3>${isEnglishPreview()?"Raising Rank":"Повышение Ранга"}</h3><div>${md(D.bonds.rankUp)}</div></article><article><h3>${isEnglishPreview()?"Cost and first action":"Цена и первое действие"}</h3><div>${md(D.bonds.actionsIntro)}<p>${md(D.bonds.favoredActions)}</p></div></article></div><h3 class="bond-group-title">${isEnglishPreview()?"10 standard actions and tags":"10 стандартных действий и тегов"}</h3><div class="bond-action-grid">${cards(standard)}</div><section class="bond-antagonistic"><h3>${isEnglishPreview()?"Antagonistic actions":"Антагонистические действия"}</h3><p>${md(D.bonds.antagonisticIntro)}</p><div class="bond-action-grid">${cards(antagonistic)}</div></section><section class="bond-related"><header><h3>${isEnglishPreview()?"Bonds in other core rules":"Связи в других базовых правилах"}</h3><span>${D.bonds.relatedRules.length}</span></header><div class="bond-related-grid">${D.bonds.relatedRules.map(item=>`<article><small>${isEnglishPreview()?"Core rule":"Базовое правило"}</small><h4>${esc(item.name)}</h4><p>${md(item.text)}</p></article>`).join("")}</div></section><section class="bond-related"><header><h3>${isEnglishPreview()?"Features that change Bond rules":"Особенности, которые меняют правила Связей"}</h3><span>${related.length}</span></header><p>${isEnglishPreview()?"Boons and Techniques from other chapters that create, improve, limit, or alter Bonds.":"Здесь собраны Дары и Техники из остальных разделов книги, которые создают, усиливают, ограничивают или позволяют использовать Связи иначе."}</p><div class="bond-related-grid">${related.map(item=>`<article><small>${esc(item.source)}</small><h4>${esc(item.name)}</h4><p>${md(item.text)}</p></article>`).join("")}</div></section><section class="bond-narrator"><h3>${isEnglishPreview()?"Narrator: NPCs with Bonds should return.":"Нарратору: связанные НПС должны возвращаться"}</h3><div>${md(D.bonds.returningCharacters)}</div></section>`;
 }
 function ruleKey(value){let hash=2166136261;for(const char of String(value))hash=Math.imul(hash^char.charCodeAt(0),16777619);return(hash>>>0).toString(36)}
 function ruleCardData(card){return Array.isArray(card)?{name:card[0],text:card[1]}:card}
@@ -512,7 +640,7 @@ function referenceItems(){
 function renderReference(){
   const lionwing=isLionwingEdition(),en=isEnglishPreview()&&lionwing,q=$("ref-search").value.trim().toLowerCase(),filters=lionwing?(en?["all","Builder Reference","Skill","Rule","Action","Effect","NPC","Technique","Boon"]:["all","Справка","Навык","Правило","Действие","Эффект","NPC","Техника","Дар"]):["all","Термин","Памятка","Связь","Действие","Эффект","Техника","Дар","Враг"],tagList=item=>String(item.tags||"").split(",").map(tag=>tag.trim()).filter(Boolean);
   if(!filters.includes(refKind))refKind="all";
-  $("ref-filters").innerHTML=filters.map(f=>`<button type="button" class="${refKind===f?"on":""}" data-ref-kind="${f}">${f==="all"?(en?"All":"Всё"):f}</button>`).join("");
+  $("ref-filters").innerHTML=filters.map(f=>`<button type="button" class="${refKind===f?"on":""}" data-ref-kind="${f}">${f==="all"?(en?"All":"Всё"):!en&&f==="NPC"?"НПС":f}</button>`).join("");
   const matchKind=item=>refKind==="all"||item.kind.toLowerCase().startsWith(refKind.toLowerCase())||(!lionwing&&refKind==="Эффект"&&["Положительный эффект","Отрицательный эффект"].includes(item.kind)),kindItems=referenceItems().filter(matchKind),tags=[...new Set(kindItems.flatMap(tagList))].sort((a,b)=>a.localeCompare(b,en?"en":"ru"));
   if(refTag!=="all"&&!tags.includes(refTag))refTag="all";
   $("ref-tag-filters").innerHTML=`<label class="tag-picker"><span>${en?"Tag":"Тег"}</span><select data-ref-tag-select>${["all",...tags].map(tag=>`<option value="${esc(tag)}" ${refTag===tag?"selected":""}>${tag==="all"?(en?"All tags":"Все теги"):esc(tag)}</option>`).join("")}</select></label>`;
@@ -523,7 +651,7 @@ function renderReference(){
   const revealIndex=location.hash&&typeof workspaceReferenceAnchor==="function"?list.findIndex(item=>workspaceReferenceAnchor(item)===location.hash.slice(1)):-1;
   const page=typeof workspaceResultPage==="function"?workspaceResultPage("reference",pageKey,list,40,revealIndex):{items:list,shown:list.length,total:list.length,hasMore:false};
   const count=$("reference-count"),more=$("reference-more"),moreFocused=more&&document.activeElement===more;if(count)count.textContent=en?`Showing ${page.shown} of ${page.total}`:`Показано ${page.shown} из ${page.total}`;if(more){more.hidden=!page.hasMore;more.textContent=en?"Show more":"Показать ещё";if(moreFocused&&!page.hasMore)count?.focus({preventScroll:true})}
-  $("reference-list").innerHTML=page.items.map(item=>{const key=item.id||ruleKey(`${item.name}:${item.text||""}`),anchor=`reference-${String(key).replace(/[^a-z0-9_-]+/gi,"-")}`,pin=makeRulePinRecord(item,"reference","reference",anchor);return`<article id="${anchor}" class="catalog-card"><header><span class="kind">${esc(item.kind)}</span>${rulePinButton(pin)}</header><h3>${en?"":automationBadge(item.automationStatus)}${esc(item.name)}${item.cost?` · ${esc(item.cost)}`:""}</h3>${item.aliases?.length?`<div class="meta">${en?"Also":"Также"}: ${item.aliases.map(esc).join(" · ")}</div>`:item.tags?`<div class="meta">${esc(item.tags)}</div>`:""}<p>${md(item.text||"")}</p></article>`}).join("")||`<p>${en?"Nothing found.":"Ничего не найдено."}</p>`;
+  $("reference-list").innerHTML=page.items.map(item=>{const key=item.id||ruleKey(`${item.name}:${item.text||""}`),anchor=`reference-${String(key).replace(/[^a-z0-9_-]+/gi,"-")}`,pin=makeRulePinRecord(item,"reference","reference",anchor);return`<article id="${anchor}" class="catalog-card"><header><span class="kind">${esc(!en?item.kind.replace(/^NPC(?= ·|$)/,"НПС"):item.kind)}</span>${rulePinButton(pin)}</header><h3>${en?"":automationBadge(item.automationStatus)}${esc(item.name)}${item.cost?` · ${esc(item.cost)}`:""}</h3>${item.aliases?.length?`<div class="meta">${en?"Also":"Также"}: ${item.aliases.map(esc).join(" · ")}</div>`:item.tags?`<div class="meta">${esc(item.tags)}</div>`:""}<p>${md(item.text||"")}</p></article>`}).join("")||`<p>${en?"Nothing found.":"Ничего не найдено."}</p>`;
 }
 
 function renderAll(){renderHeroSelect();renderSupplementPicker();renderProfile();renderAttrs();renderOutlooks();renderBondTraining();renderSkillsAbility();renderTechniques();renderSheet();renderSidebar();if(store.mode==="play")renderPlay();if(store.mode==="tools")renderToolsWorkspace();if(store.mode==="rules")renderRules();if(store.mode==="reference")renderReference();renderChallengeRequestDock();persist();}

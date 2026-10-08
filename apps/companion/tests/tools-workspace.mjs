@@ -28,14 +28,16 @@ const controls={'dice-attr':{value:'body'},'dice-skill':{value:'scout'},'dice-ab
 const bondButton=element();bondButton.dataset.bondUse='ally';
 const hero={id:'real-one',name:'Реальный герой <test>',concept:'Разведчик',tier:3,media:{portrait:''},runtime:{influence:2,stress:1},skills:[{id:'scout',name:'Разведчик',rank:2}],ability:{enabled:true,name:'Туман',rank:2},techniques:{},gifts:[],gadgets:[]};
 const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
-const context={S:hero,document:doc,$:id=>id==='freeplay-hero-panel'?root:controls[id],$$:selector=>selector==='[data-bond-use]'?[bondButton]:buttons.filter(button=>Object.hasOwn(button.dataset,camel(selector.slice(6,-1)))),toolsRuntimeActor:()=>null,stressMaximumFor:()=>3,clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),selectedGifts:()=>[],techById:()=>null,toolsSyncContext:()=>({shared:false}),toolsCopy:()=>({sheet:'ЛИСТ',unnamed:'Без имени',tier:'Ступень',influence:'Влияние',stress:'Стресс',attributes:'Атрибуты',skills:'Навыки',ability:'Способность',boons:'Дары',techniques:'Техники',noSkills:'Нет навыков',noBoons:'Нет даров',noTechniques:'Нет техник'}),activeAttrs:()=>[['body','Тело'],['mind','Разум']],attrValue:key=>key==='body'?5:2,isEnglishPreview:()=>false,skillDisplayName:skill=>skill.name,toolSkillId:skill=>skill.id,effectiveSkillRank:skill=>skill.rank,abilityFormula:ability=>ability?.name||'Формула',abilityCost:()=>2,hasGift:key=>key==='Gearhead'&&hero.gifts.includes('gearhead'),gadgetText:key=>({title:'Гаджеты',rank:'Ранг',cost:'Цена',destroyed:'Разрушен',unnamed:'Без имени'}[key]),esc:escape,md:escape};
+const context={S:hero,document:doc,$:id=>id==='freeplay-hero-panel'?root:controls[id],$$:selector=>selector==='[data-bond-use]'?[bondButton]:buttons.filter(button=>Object.hasOwn(button.dataset,camel(selector.slice(6,-1)))),toolsRuntimeActor:()=>null,stressMaximumFor:()=>3,clamp:(n,min,max)=>Math.max(min,Math.min(max,n)),selectedGifts:()=>[],techById:()=>null,toolsSyncContext:()=>({shared:false}),toolsCopy:()=>({sheet:'ЛИСТ',unnamed:'Без имени',tier:'Ступень',influence:'Влияние',stress:'Стресс',attributes:'Атрибуты',skills:'Навыки',ability:'Способность',boons:'Дары',techniques:'Техники',noSkills:'Нет навыков',noBoons:'Нет даров',noTechniques:'Нет техник'}),activeAttrs:()=>[['body','Тело'],['mind','Разум']],attrValue:key=>key==='body'?5:2,isEnglishPreview:()=>false,skillDisplayName:skill=>skill.name,toolSkillId:skill=>skill.id,toolsSkillRank:skill=>skill.rank,effectiveSkillRank:skill=>skill.rank,abilityFormula:ability=>ability?.name||'Формула',abilityCost:()=>2,hasGift:key=>key==='Gearhead'&&hero.gifts.includes('gearhead'),gadgetText:key=>({title:'Гаджеты',rank:'Ранг',cost:'Цена',destroyed:'Разрушен',unnamed:'Без имени'}[key]),esc:escape,md:escape};
 vm.createContext(context);
 vm.runInContext(extract('syncToolsSourceSelection','updateDicePoolTotal'),context);
 const gadgetSource=fs.readFileSync(path.join(base,'hero-gadgets.js'),'utf8');
 vm.runInContext(gadgetSource.slice(gadgetSource.indexOf('function heroGadgetsSheetMarkup('),gadgetSource.indexOf('function heroGadgetDiceSources(')),context);
+vm.runInContext(extract('toolsResourceValueMarkup','refreshFreeplayResourceUi'),context);
 vm.runInContext(extract('renderFreeplayHeroPanel','renderFreeplayBonds'),context);
 const before=JSON.stringify(hero);
 context.renderFreeplayHeroPanel();
+const thirdStress=buttons.find(button=>button.dataset.stressSegment==='2');thirdStress.focus();context.renderFreeplayHeroPanel();assert.equal(doc.activeElement.dataset.stressSegment,'2','full sheet redraw keeps the same Stress diamond focused');
 assert.equal(JSON.stringify(hero),before,'Rendering and highlighting do not mutate the hero');
 assert.match(root.innerHTML,/Реальный герой &lt;test&gt;/);
 assert.match(root.innerHTML,/data-freeplay-skill="scout"/);
@@ -71,12 +73,14 @@ assert.equal(details.some(detail=>detail.dataset.toolsFeature==='gadgets'),false
 context.toolsRuntimeActor=()=>({influence:7,stress:2});context.toolsSyncContext=()=>({shared:true});
 context.renderFreeplayHeroPanel();
 assert.match(root.innerHTML,/<strong>7<\/strong>/,'Linked actor resources take precedence over stale local runtime');
-assert.match(root.innerHTML,/<strong>2 \/ 3<\/strong>/);
+assert.match(root.innerHTML,/aria-label="Стресс: 2 из 3"/);
 context.toolsRuntimeActor=()=>null;
 context.renderFreeplayHeroPanel();
 assert.match(root.innerHTML,/data-freeplay-resource="influence" data-freeplay-delta="1" disabled/,'Unlinked shared hero keeps existing resource editing lock');
 
+for(const id of ["all-in-reroll","all-in-hint","freeplay-risk-actions"])controls[id]={hidden:false};
 const calls=[];
+context.toolsManualMode=()=>false;
 for(const name of ['renderFreeplayDirector','renderDiceComposer','renderFreeplayHeroPanel','renderFreeplayBonds','syncToolsSourceSelection','renderStressTrackers','updateAllInAvailability'])context[name]=()=>calls.push(name);
 context.toolsRole=()=> 'network-narrator';
 vm.runInContext(extract('renderAllInControls','updateAllInAvailability'),context);

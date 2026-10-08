@@ -178,6 +178,17 @@
   function intentFromEvents(scene,events,label="Действие игрока"){
     const raw=Array.isArray(events)?events:[];
     if(!raw.length||raw.length>192)throw new Error("Некорректный пакет событий");
+    const tablePolicy=global.DAWN_TABLE_POLICY;
+    if(raw.some(event=>event?.type==="table.command")){
+      if(raw.length!==1||raw[0].type!=="table.command"||!tablePolicy?.isManual(scene))throw new Error("Ручная команда требует ручной политики стола");
+      global.DAWN_SCENE_ENGINE?.eventPacketContract?.validate(raw);
+      tablePolicy.dispatchMany(scene,raw,{expectedVersion:scene.version});
+      return{kind:"table",actorId:raw[0].actorId||null,label:String(label).slice(0,160),policyEpoch:tablePolicy.normalizePolicy(scene.tablePolicy).epoch,...(raw[0].id?{eventId:raw[0].id}:{}),request:clone(raw[0].payload)};
+    }
+    if(tablePolicy?.isManual(scene)){
+      if(raw.length===1&&raw[0].type==="roll.public")return{kind:"table",actorId:raw[0].actorId||null,label:String(label).slice(0,160),policyEpoch:tablePolicy.normalizePolicy(scene.tablePolicy).epoch,request:{kind:"roll",roll:safeObject(raw[0].payload)}};
+      throw new Error("Автоматические команды выключены в ручном столе");
+    }
     if(raw.length===1&&raw[0].type==="lionwing.command")return{kind:"lionwing",actorId:raw[0].actorId,label:String(label).slice(0,160),request:clone(raw[0].payload)};
     const deploymentMove=raw.find(event=>event.type==="actor.move"&&event.payload?.placement&&event.payload?.movement==="Развертывание");
     if(deploymentMove)return{kind:"deployment",label:String(label).slice(0,160),actorId:deploymentMove.actorId,destination:{space:String(deploymentMove.payload.space||""),x:Number(deploymentMove.payload.x),y:Number(deploymentMove.payload.y)}};
@@ -256,6 +267,25 @@
     const Engine=sceneEngine||global.DAWN_SCENE_ENGINE,Techniques=techniqueEngine||global.DAWN_TECHNIQUE_ENGINE;
     if(!Engine)throw new Error("Ядро Сцены не загружено");
     if(!intent||typeof intent!=="object")throw new Error("Пустое намерение игрока");
+    const tablePolicy=global.DAWN_TABLE_POLICY;
+    if(tablePolicy?.isManual(scene)){
+      if(!["table","public-roll"].includes(intent.kind))throw new Error("Автоматические команды выключены в ручном столе");
+      const owner=ownedActor(scene,intent.actorId,ownerId);
+      const request=intent.kind==="public-roll"?{kind:"roll",roll:safeObject(intent.payload)}:safeObject(intent.request);
+      if(!["move","resource","status","technique","technique-counter","roll","area/create","area/remove","clock/create","clock/set","clock/remove"].includes(request.kind))throw new Error("Эта ручная команда доступна только Нарратору");
+      if(intent.kind==="table"&&(!Number.isSafeInteger(intent.policyEpoch)||intent.policyEpoch!==tablePolicy.normalizePolicy(scene.tablePolicy).epoch))throw new Error("Политика стола изменилась: отправьте команду заново");
+      if(["area/remove","clock/set","clock/remove"].includes(request.kind)){
+        const rows=request.kind==="area/remove"?scene.objects:scene.sessionClocks;
+        const target=(rows||[]).find(row=>row.id===request.id);
+        if(!target?.manual||target.ownerActorId!==owner.id)throw new Error("Игрок не владеет этой ручной записью");
+      }
+      if(request.kind==="area/create"&&request.area?.hidden)throw new Error("Игрок не может создать скрытую область");
+      if(intent.eventId!==undefined&&(typeof intent.eventId!=="string"||!intent.eventId.trim()))throw new Error("Некорректный ID ручного события");
+      const event={id:intent.eventId===undefined?makeId():intent.eventId,type:"table.command",actorId:owner.id,payload:request};
+      tablePolicy.dispatchMany(scene,[event],{expectedVersion:scene.version});
+      return[event];
+    }
+    if(intent.kind==="table")throw new Error("Ручная команда требует ручной политики стола");
     const actor=ownedActor(scene,intent.actorId,ownerId);
     if(intent.kind==="lionwing"){
       const kernel=global.DAWN_LIONWING_ENGINE,raw=safeObject(intent.request);
@@ -481,6 +511,7 @@
         if(this.inFlight===source)this.inFlight=null;
         this.flushing=false;
         if(generation===this.generation&&(this.retryBatch||this.queue.length))this.schedule();
+        if(generation===this.generation)try{this.options.onSettled?.()}catch(error){console.warn("DAWN authority settled handler failed",error)}
       }
     }
     discard(predicate){

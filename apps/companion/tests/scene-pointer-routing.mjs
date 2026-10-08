@@ -28,28 +28,30 @@ const context={
    $:element,sceneViewportProfile:()=>"desktop",activeSceneView:()=>role,canControlScenePrompt:()=>false,
   syncScenePanels:()=>{},persist:()=>{},renderScene:()=>{renders++;},toast:text=>messages.push(text),
   focusSceneActorOnBoard:()=>{},SceneEngine:{},window:{},S:{id:"owned-hero"},
-  lwActive:()=>true,cancelSceneFlow:()=>{cancellations++;},
+  isEnglishPreview:()=>false,lwActive:()=>true,cancelSceneFlow:()=>{cancellations++;},
 };
 vm.createContext(context);
 const run=code=>vm.runInContext(code,context),load=code=>vm.runInContext(code,context,{filename:"actual Scene pointer/keyboard controller"});
-run(`let store={mode:"play"},Scene,sceneInterfaceVersion="next",scenePanelLayoutMode="split";
+run(`let store={mode:"play"},Scene,sceneInterfaceVersion="next",sceneLeftPanelsEnabled=true,scenePanelLayoutMode="split";
   let activeScenePanel=null,activeScenePanels={left:null,right:null},scenePanelTrigger=null;
   const DEFAULT_SCENE_PANEL_SIDES={director:"left",inspector:"right",map:"right"},scenePanelSides={};
-  let playerSceneTool="select",sceneSuppressBoardClickUntil=0,sceneContextTarget=null;
+  let playerSceneTool="select",sceneSuppressBoardClickUntil=0,sceneContextTarget=null,sceneSpaceHeld=false,scenePanState=null;
   let activeModifierActionId=null,activeModifierPickerId=null,pendingZealotPlan=null,pendingEnemyStepActorId=null,pendingEnemyRule=null;
   let pendingTechniqueRule=null,pendingCoreReaction=null,pendingCoreAction=null,pendingCoreActionPlan=false,pendingCoreActionContext=null;
-  let lwDestination=null,lwTechniqueDraft=null,sceneMeasureStart=null,sceneMeasureLabel="",hoveredSceneActorId=null;
+  let lwDestination=null,lwTechniqueDraft=null,sceneNeutralTool=null,sceneMeasureEnd=null,sceneMeasureStart=null,sceneMeasureLabel="",hoveredSceneActorId=null;
   const scenePreviewCells=new Set(),sceneTopologyCells=new Set();let sceneMeasureCells=new Set();`);
 for(const name of ["activeSceneTool","sceneHasLocalPendingSelection","measurementPath","usingNextSceneInterface","scenePanelSide","isScenePanelOpen"])load(line(ui,`function ${name}(`));
 load(section(ui,"function setScenePanel(","\nfunction closeAllScenePanels("));
 load(section(ui,"function hideSceneContextMenu(","\nfunction showSceneContextMenu("));
-load(section(effects,"function changeSceneTool(","\nfunction cancelCommittedAction("));
+load(section(effects,"function clearSceneMeasurement(","\nfunction cancelCommittedAction("));
 load(section(events,'$("scene-board").addEventListener("click",event=>{','$("scene-board").addEventListener("dragstart"'));
 load(line(events,'$("scene-turn-strip").addEventListener("click"'));
 load(section(events,'$("scene-context-menu").addEventListener("click",','document.addEventListener("pointerdown",event=>{if(!event.target.closest?.("#scene-context-menu"))'));
 load(section(events,'document.addEventListener("keydown",event=>{\n  if(event.key!=="Escape"','\n},true);')+'\n},true);');
 load(line(events,'document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!event.defaultPrevented'));
 load(line(events,'document.addEventListener("keydown",event=>{if(event.key==="Escape"){'));
+load(line(events,'document.addEventListener("keydown",event=>{if(event.key.toLowerCase()!=="w"'));
+load(line(events,'document.addEventListener("keydown",event=>{if(event.key.toLowerCase()==="m"'));
 load(lionwing.slice(lionwing.lastIndexOf('document.addEventListener("keydown", event => {')));
 context.lwCancelDestination=()=>run("lwDestination=null");
 
@@ -63,7 +65,7 @@ const reset=(view="gm",interfaceVersion="next")=>{
     activeScenePanels={left:"director",right:"inspector"};activeScenePanel="director";playerSceneTool="select";Scene.tool="select";
     pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;pendingCoreReaction=null;
     pendingTechniqueRule=null;pendingEnemyRule=null;pendingEnemyStepActorId=null;pendingZealotPlan=null;
-    lwTechniqueDraft=null;lwDestination=null;sceneContextTarget=null;sceneMeasureStart=null;sceneMeasureLabel="";
+    lwTechniqueDraft=null;lwDestination=null;sceneContextTarget=null;sceneNeutralTool=null;sceneMeasureEnd=null;sceneMeasureStart=null;sceneMeasureLabel="";
     scenePreviewCells.clear();sceneTopologyCells.clear();sceneMeasureCells.clear();`);
   element("scene-context-menu").hidden=true;
 };
@@ -132,7 +134,7 @@ clickContext("measure");
 assert.equal(run("Scene.tool"),"place","a Player ruler does not replace the Narrator tool");
 assert.equal(run("activeSceneTool()"),"measure");assert.deepEqual(plain(run("sceneMeasureStart")),{x:1,y:2});
 clickBoard(null,"4,2");
-assert.match(run("sceneMeasureLabel"),/Расстояние: 3 кл\./);assert.equal(run("sceneMeasureStart"),null);
+assert.match(run("sceneMeasureLabel"),/3 кл\./);assert.equal(run("sceneMeasureStart"),null);
 assert.deepEqual(Array.from(run("sceneMeasureCells")),["1,2","2,2","3,2","4,2"]);
 assert.equal(resources(),measureResources);assert.deepEqual(targets(),measureTargets);
 for(const action of ["marker","area"]){
@@ -153,7 +155,32 @@ for(const preparation of [
   reset();run(preparation);const before=run("JSON.stringify({Scene,lwTechniqueDraft,lwDestination,pendingCoreAction,pendingCoreReaction,activeScenePanels,playerSceneTool})");
   clickContext(action);
   assert.equal(run("JSON.stringify({Scene,lwTechniqueDraft,lwDestination,pendingCoreAction,pendingCoreReaction,activeScenePanels,playerSceneTool})"),before,"context tool switching leaves an existing preparation intact");
-  assert.equal(cancellations,0);assert.match(messages.at(-1),/Сначала завершите/);
+  assert.equal(cancellations,0);if(action!=="measure")assert.match(messages.at(-1),/Сначала завершите/);
+}
+
+reset();run('Scene.pendingActionPlan={actorId:"hero",phase:"destination"};changeSceneTool("measure")');const measuredPreparation=resources();escape();assert.equal(resources(),measuredPreparation);assert.equal(cancellations,0);assert.equal(run("sceneNeutralTool"),null);
+
+// Leaving neutral measurement through ordinary shortcuts clears its override.
+for(const view of ["gm","player"]){
+  reset(view);run('changeSceneTool("measure")');
+  const event={key:"v",target:{matches:()=>false,closest:()=>null},preventDefault(){},ctrlKey:false,metaKey:false,altKey:false};
+  for(const row of keyboard)if(!row.capture)row.handler(event);
+  assert.equal(run("sceneNeutralTool"),null);assert.equal(run("activeSceneTool()"),"select");
+}
+
+reset();run('changeSceneTool("measure")');
+const wallShortcut=()=>{const event={key:"w",target:{matches:()=>false,closest:()=>null},preventDefault(){},ctrlKey:false,metaKey:false,altKey:false};for(const row of keyboard)if(!row.capture)row.handler(event);};
+wallShortcut();assert.equal(run("sceneNeutralTool"),null);assert.equal(run("activeSceneTool()"),"wall");
+reset();run('lwDestination={actorId:"hero",field:"destination"};changeSceneTool("measure")');
+wallShortcut();assert.equal(run("sceneNeutralTool"),"measure");assert.equal(cancellations,0,"Wall shortcut cannot interrupt pending destination selection");
+
+// App dialogs own keyboard input; table shortcuts must not mutate hidden tools.
+for(const shortcut of ["m","w","v","p","t","a","k"]){
+  reset();run('changeSceneTool("measure")');openDialog={id:"app-settings-dialog",open:true};
+  const before=run("JSON.stringify({tool:Scene.tool,playerSceneTool,sceneNeutralTool})");
+  const event={key:shortcut,target:{matches:()=>false,closest:()=>null},preventDefault(){},ctrlKey:false,metaKey:false,altKey:false};
+  for(const row of keyboard)if(!row.capture)row.handler(event);
+  assert.equal(run("JSON.stringify({tool:Scene.tool,playerSceneTool,sceneNeutralTool})"),before,`dialog owns ${shortcut}`);
 }
 
 // Escape belongs to the visible section or app dialog before any Scene cancel path.

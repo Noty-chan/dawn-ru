@@ -8,12 +8,13 @@
   let state=null,frame=null,selectionKey=null,leaveTimer=null,drawing=false;
   const icon=name=>window.DAWN_UI_ICONS?.html(name)||"";
   const supportedViewport=()=>innerWidth>720&&!(innerWidth<=950&&innerHeight<=500);
+  const hudTool=()=>typeof activeSceneTool==="function"?activeSceneTool():Scene.tool;
   const copy=(ru,en)=>typeof isEnglishPreview==="function"&&isEnglishPreview()?en:ru;
   const hudText=(key,ru,en)=>window.DAWN_I18N?.t(`scene.tokenHud.${key}`,{}, {fallback:copy(ru,en)})||copy(ru,en);
   const identity=()=>JSON.stringify([Sync?.state?.()?.sceneId||null,lwGeometrySceneIdentity(),Scene.lionwing?.sceneSerial??1]);
   const liveActor=()=>state&&supportedViewport()&&store.mode==="play"&&state.identity===identity()&&Scene.actors.find(actor=>actor.id===state.actorId&&actor.space===Scene.activeSpace);
   const health=actor=>{
-    const compound=SceneEngine.compoundEnemyStatus(Scene,actor.id);
+    const compound=window.DAWN_TABLE_POLICY?.isManual(Scene)?{active:false}:SceneEngine.compoundEnemyStatus(Scene,actor.id);
     return {value:compound.active?compound.hp:Number(actor.hp||0),maximum:compound.active?compound.maxHp:Number(actor.maxHp||0)};
   };
   function healthChange(value,current,maximum=null){
@@ -24,18 +25,18 @@
   }
   function close(){
     cancelLeave();menu.style.width="";menu.style.height="";
-    state=null;pointerHeld=false;menu.hidden=true;menu.style.maxHeight="";menu.style.maxWidth="";menu.classList.remove("is-token-hud");menu.classList.remove("is-token-overlay");menu.setAttribute("role","menu");menu.removeAttribute("aria-label");delete menu.dataset.tokenHudActor;sceneContextTarget=null;
+    state=null;pointerHeld=false;menu.hidden=true;menu.style.maxHeight="";menu.style.maxWidth="";menu.classList.remove("is-token-hud");menu.classList.remove("is-token-overlay");menu.classList.remove("is-token-external");menu.setAttribute("role","menu");menu.removeAttribute("aria-label");delete menu.dataset.tokenHudActor;sceneContextTarget=null;
   }
 
   function followSelection(){
     if(!usingNextSceneInterface()||store.mode!=="play"||!supportedViewport()){if(state)close();return;}
     const key=JSON.stringify([identity(),Scene.activeSpace,Scene.selectedActor||null]);
-    if(state?.selection&&Scene.tool&&Scene.tool!=="select")close();
+    if(state?.selection&&hudTool()&&hudTool()!=="select")close();
     if(key===selectionKey)return;
     selectionKey=key;
     const actor=Scene.actors.find(item=>item.id===Scene.selectedActor&&item.space===Scene.activeSpace);
     if(!actor){if(state)close();return;}
-    if(Scene.tool&&Scene.tool!=="select")return;
+    if(hudTool()&&hudTool()!=="select")return;
     show(actor,{focus:false,selection:true});
   }
   function healthBusy(){
@@ -46,40 +47,51 @@
     if(input)input.setAttribute("aria-busy",String(Boolean(busy)));
     if(status)status.textContent=busy||state?.message||"";
   }
+  function perimeterLayout(token,field){
+    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),size=44,gap=6,rows=manual?92:140,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
+    const apart=(a,b)=>a.right+gap<=b.left||b.right+gap<=a.left||a.bottom+gap<=b.top||b.bottom+gap<=a.top;
+    const box=(left,top,width=size,height=size)=>({left,top,right:left+width,bottom:top+height});
+    const controlTop=clamp(token.top-48,field.top,field.bottom-rows);
+    const sides=[[token.left-size-gap,token.right+gap],[token.right+gap,token.right+gap+size+gap],[token.left-2*(size+gap),token.left-size-gap]];
+    for(const [leftControl,rightControl] of sides){
+      const controls=(manual?[0,48]:[0,48,96]).flatMap(offset=>[box(leftControl,controlTop+offset),box(rightControl,controlTop+offset)]);
+      if(!controls.every(r=>inside(r)&&apart(r,token)))continue;
+      const healthLeft=clamp(token.left+(token.right-token.left)/2-40,field.left,field.right-80);
+      for(const healthTop of [token.bottom+8,token.top-50,controlTop+rows+gap,controlTop-48]){
+        const hp=box(healthLeft,healthTop,80,42);
+        if(inside(hp)&&apart(hp,token)&&controls.every(r=>apart(r,hp)))return {leftControl,rightControl,controlTop,healthLeft,healthTop};
+      }
+    }
+    return null;
+  }
   function position(){
     const actor=liveActor(),token=actor&&board.querySelector(`[data-scene-actor="${CSS.escape(actor.id)}"]`);
     if(!actor||!token||menu.hidden)return close();
     const rect=token.getBoundingClientRect(),field=wrap.getBoundingClientRect();
     if(rect.bottom<field.top||rect.top>field.bottom||rect.right<field.left||rect.left>field.right)return close();
     const visibleHeight=Math.min(innerHeight-8,field.bottom-8)-Math.max(8,field.top+8),visibleWidth=Math.min(innerWidth-8,field.right-8)-Math.max(8,field.left+8);
-    if(visibleHeight<140||visibleWidth<160)return close();
+    if(visibleHeight<=0||visibleWidth<=0)return close();
     menu.style.maxHeight=`${visibleHeight}px`;
     menu.style.maxWidth=`${visibleWidth}px`;
-    const width=Math.min(visibleWidth,Math.max(160,rect.width+112)),height=Math.min(visibleHeight,Math.max(140,rect.height+104));
-    menu.style.width=`${width}px`;menu.style.height=`${height}px`;
-    menu.style.setProperty?.("--hud-token-height",`${rect.height}px`);
-    menu.style.left=`${clamp(rect.left+rect.width/2-width/2,Math.max(8,field.left+8),Math.max(8,Math.min(innerWidth-8,field.right-8)-width))}px`;
-    menu.style.top=`${clamp(rect.top-24,Math.max(8,field.top+8),Math.max(8,Math.min(innerHeight-8,field.bottom-8)-height))}px`;
-    menu.dataset.placement="around";
-    // Keep the transparent hole tied to the token when viewport edges clamp
-    // the outer box: place each perimeter control from the actual token rect.
-    const menuLeft=Number.parseFloat(menu.style.left),menuTop=Number.parseFloat(menu.style.top),minX=Math.max(8,field.left+8),maxX=Math.min(innerWidth-8,field.right-8),minY=Math.max(8,field.top+8),maxY=Math.min(innerHeight-8,field.bottom-8);
-    const set=(name,value)=>menu.style.setProperty?.(name,`${value}px`);
-    let leftControl=rect.left-50,rightControl=rect.right+6;
-    if(leftControl<minX&&rightControl+92<=maxX){leftControl=rightControl;rightControl+=48;}
-    else if(rightControl+44>maxX&&leftControl-48>=minX){rightControl=leftControl;leftControl-=48;}
-    set("--hud-left",clamp(leftControl,minX,maxX-44)-menuLeft);set("--hud-right",clamp(rightControl,minX,maxX-44)-menuLeft);
-    // Clamp all three button rows together; independent clamping can overlap
-    // the cap and first row at the top or bottom of a clipped mobile field.
-    const controlTop=clamp(rect.top-48,minY,maxY-140);
-    set("--hud-row",controlTop+48-menuTop);set("--hud-cap",controlTop-menuTop);
-    const healthLeft=clamp(rect.left+rect.width/2-40,minX,maxX-80),controlXs=[clamp(leftControl,minX,maxX-44),clamp(rightControl,minX,maxX-44)];
-    let healthTop=clamp(rect.bottom+8,minY,maxY-40);
-    if(controlXs.some(x=>healthLeft<x+44&&healthLeft+80>x)&&healthTop<controlTop+140&&healthTop+40>controlTop){
-      if(controlTop+184<=maxY)healthTop=controlTop+144;
-      else if(controlTop-44>=minY)healthTop=controlTop-44;
-      else return close();
+    const minX=Math.max(8,field.left+8),maxX=Math.min(innerWidth-8,field.right-8),minY=Math.max(8,field.top+8),maxY=Math.min(innerHeight-8,field.bottom-8);
+    const layout=perimeterLayout(rect,{left:minX,right:maxX,top:minY,bottom:maxY});
+    if(!layout){
+      // A narrow field between task panels has no safe perimeter. Use an
+      // external compact panel rather than squeezing buttons over the token.
+      const width=220,height=250,left=rect.right+6+width<=innerWidth-8?rect.right+6:Math.max(8,rect.left-width-6);
+      menu.classList.remove("is-token-overlay");menu.classList.add("is-token-external");menu.dataset.placement="external";
+      menu.style.width=`${width}px`;menu.style.height="auto";menu.style.maxHeight=`${innerHeight-16}px`;
+      menu.style.maxWidth=`${width}px`;menu.style.left=`${left}px`;menu.style.top=`${clamp(rect.top,8,innerHeight-height-8)}px`;
+      const picker=menu.querySelector(".token-hud-effect-picker");if(picker){picker.style.left="";picker.style.top="";picker.style.width="";picker.style.maxHeight="140px";}
+      return;
     }
+    menu.classList.remove("is-token-external");menu.classList.add("is-token-overlay");menu.dataset.placement="around";
+    const width=maxX-minX,height=maxY-minY,menuLeft=minX,menuTop=minY;
+    menu.style.width=`${width}px`;menu.style.height=`${height}px`;menu.style.left=`${menuLeft}px`;menu.style.top=`${menuTop}px`;
+    const set=(name,value)=>menu.style.setProperty?.(name,`${value}px`);
+    const {leftControl,rightControl,controlTop,healthLeft,healthTop}=layout,controlXs=[leftControl,rightControl];
+    set("--hud-left",leftControl-menuLeft);set("--hud-right",rightControl-menuLeft);
+    set("--hud-row",controlTop+48-menuTop);set("--hud-cap",controlTop-menuTop);
     set("--hud-health-left",healthLeft-menuLeft);set("--hud-health-top",healthTop-menuTop);
     const picker=menu.querySelector(".token-hud-effect-picker");
     if(picker&&state.effectsOpen){
@@ -104,19 +116,19 @@
     const focusedAction=state.preserveFocus!==false?document.activeElement?.dataset?.tokenHudAction:null;
     const focusedEffect=state.preserveFocus!==false?document.activeElement?.dataset?.tokenHudEffect:null;
     const focusedHealth=state.preserveFocus!==false&&document.activeElement===menu.querySelector("input");
-    const hp=health(actor),gm=activeSceneView()==="gm",owns=gm||actor.heroId===S.id,targeted=Scene.targetIds.includes(actor.id);
+    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),hp=health(actor),gm=activeSceneView()==="gm",owns=gm||actor.heroId===S.id,targeted=Scene.targetIds.includes(actor.id),hero=Boolean(actor.heroId||actor.kind==="hero");
     const input=menu.querySelector("input"),draft=gm&&!resetHealth&&input&&input.value!==String(state.health)?input.value:null;
     if(draft===null)state.health=hp.value;
     menu.classList.add("is-token-hud");menu.classList.add("is-token-overlay");menu.dataset.tokenHudActor=actor.id;menu.setAttribute("role","dialog");menu.setAttribute("aria-label",copy(`Управление токеном: ${actor.name}`,`Token controls: ${actor.name}`));
-    const effectIds=typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],effectCatalog=typeof sceneEffectList==="function"?sceneEffectList():[];
+    const effectIds=window.DAWN_TABLE_POLICY?.isManual(Scene)?actor.manualStatuses||[]:typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],effectCatalog=typeof sceneEffectList==="function"?sceneEffectList():[];
     const effects=effectIds.map(id=>effectCatalog.find(effect=>effect.id===id)?.name||id);
-    drawing=true;menu.innerHTML=`<header class="token-hud-head"><strong>${esc(actor.name)}</strong><button type="button" data-token-hud-action="close" aria-label="${copy("Закрыть меню токена","Close token controls")}">${icon("close")}</button></header>
+    drawing=true;menu.innerHTML=`<header class="token-hud-head"><strong>${esc(actor.name)}</strong></header>
       ${gm?`<div class="token-hud-health"><label for="token-hud-health-input">${copy("ЗД","HP")}</label><input id="token-hud-health-input" type="text" inputmode="text" maxlength="6" value="${esc(draft??hp.value)}" aria-label="${copy("Здоровье токена","Token health")}" aria-describedby="token-hud-health-help" title="${copy("Число — точное значение; +5 или -5 — изменение. Enter или выход из поля применяет.","A number sets health; +5 or -5 changes it. Enter or leaving the field applies.")}"><span>/ ${hp.maximum||"—"}</span></div><p id="token-hud-health-help" class="token-hud-help">${copy("Число — задать ЗД; -5 / +5 — изменить. Escape отменяет.","A number sets HP; -5 / +5 changes it. Escape cancels.")}</p>`:`<div class="token-hud-health-read">${copy("ЗД","HP")} <b>${hp.value} / ${hp.maximum||"—"}</b></div>`}
-      <div class="token-hud-actions">${owns?`<button type="button" data-token-hud-action="cockpit" title="${copy("Действия и Техники в Пульте","Actions and Techniques in the cockpit")}">${icon("actions")}${copy("Действия","Actions")}</button>`:""}<button type="button" data-token-hud-action="inspect">${icon("sheet")}${copy("Профиль","Profile")}</button><button type="button" data-token-hud-action="target" aria-pressed="${targeted}" ${actor.knockedOut?"disabled":""} title="${copy("Отметить или снять цель · T","Toggle target · T")}">${icon("target")}${copy(targeted?"Снять цель":"Цель",targeted?"Untarget":"Target")}</button><button type="button" class="token-hud-more" data-token-hud-action="more" aria-label="${copy("Другие команды токена","More token commands")}" title="${copy("Другие команды токена","More token commands")}">${icon("more")}${copy("Ещё","More")}</button></div>
+      <div class="token-hud-actions">${owns&&!manual?`<button type="button" data-token-hud-action="cockpit" title="${copy("Действия и Техники в Пульте","Actions and Techniques in the cockpit")}">${icon("actions")}${gm?copy(hero?"Техники":"Приёмы",hero?"Techniques":"Moves"):copy("Действия","Actions")}</button>`:""}<button type="button" data-token-hud-action="inspect">${icon("sheet")}${manual?copy("Читать","Read"):copy(hero&&owns?"Лист":"Профиль",hero&&owns?"Sheet":"Profile")}</button><button type="button" data-token-hud-action="target" aria-pressed="${targeted}" ${!manual&&actor.knockedOut?"disabled":""} title="${copy("Отметить или снять цель · T","Toggle target · T")}">${icon("target")}${copy(targeted?"Снять цель":"Цель",targeted?"Untarget":"Target")}</button>${gm?`<button type="button" class="token-hud-more" data-token-hud-action="more" aria-label="${copy("Другие команды токена","More token commands")}" title="${copy("Другие команды токена","More token commands")}">${icon("more")}${copy("Ещё","More")}</button>`:""}</div>
       <div class="token-hud-effects"><span>${hudText("effectsLabel","Эффекты","Effects")}</span><span>${effects.length?effects.map(name=>esc(name)).join(" · "):hudText("noEffects","Нет активных Эффектов","No active Effects")}</span></div>
       <p class="token-hud-status" role="status" aria-live="polite"></p>`;
     const statusPicker=`<button type="button" data-token-hud-action="effects" aria-expanded="${Boolean(state.effectsOpen)}" aria-label="${hudText("effectsAria","Эффекты токена","Token Effects")}" title="${hudText("effectsLabel","Эффекты","Effects")}">${icon("effects")}</button><div class="token-hud-effect-picker" ${state.effectsOpen?"":"hidden"}><strong>${hudText("effectsLabel","Эффекты","Effects")}</strong>${effectCatalog.map(effect=>`<button type="button" data-token-hud-effect="${esc(effect.id)}" aria-pressed="${effectIds.includes(effect.id)}" ${gm?"":"disabled"}>${esc(effect.name)}</button>`).join("")||esc(hudText("noEffects","Активных Эффектов нет","No active Effects"))}${!gm?`<p>${hudText("readonlyEffects","Изменяет Нарратор","Edited by the Narrator")}</p>`:""}</div>`;
-    menu.insertAdjacentHTML("beforeend",statusPicker);
+    if(gm)menu.insertAdjacentHTML("beforeend",statusPicker);
     drawing=false;menu.hidden=false;updateHealthControls();position();
     if(menu.hidden)return;
     if(focusedEffect)menu.querySelector(`[data-token-hud-effect="${CSS.escape(focusedEffect)}"]`)?.focus({preventScroll:true});
@@ -166,21 +178,25 @@
     if(!/^[+-]/.test(input.value.trim())&&current!==state.health){state.health=current;input.value=String(current);state.message=copy("Здоровье уже изменилось. Проверьте новое значение.","Health has changed. Check the new value.");updateHealthControls();return false;}
     if(value===current){state.message="";state.health=current;input.value=String(current);input.dataset.hudReplace="true";updateHealthControls();return true;}
     const label=copy(`${actor.name}: Здоровье → ${value}`,`${actor.name}: Health → ${value}`);
-    const result=Scene.rulesEdition==="lionwing"?lwSubmit(actor.id,{kind:"correct",resource:"hp",amount:value},label):setNarratorActorValue(actor,"hp",value,label);
+    const result=window.DAWN_TABLE_POLICY?.isManual(Scene)?setNarratorActorValue(actor,"hp",value,label):Scene.rulesEdition==="lionwing"?lwSubmit(actor.id,{kind:"correct",resource:"hp",amount:value},label):setNarratorActorValue(actor,"hp",value,label);
     if(result){state.message="";state.health=value;state.pendingHealth=health(actor).value===value?null:value;input.value=String(value);input.dataset.hudReplace="true";if(document.activeElement===input)input.select?.();updateHealthControls();}
     return Boolean(result);
   }
   function action(name){
     const actor=liveActor();if(!actor)return close();
+    if(["effects","more"].includes(name)&&activeSceneView()!=="gm")return;
+    if(name==="cockpit"&&activeSceneView()!=="gm"&&actor.heroId!==S.id)return;
     if(name==="effects"){state.effectsOpen=!state.effectsOpen;draw();return;}
-    if(name==="target"){if(!actor.knockedOut)toggleSceneTarget(actor.id);draw();menu.querySelector('[data-token-hud-action="target"]')?.focus({preventScroll:true});return;}
+    if(name==="target"){if(!actor.knockedOut||window.DAWN_TABLE_POLICY?.isManual(Scene))toggleSceneTarget(actor.id);draw();menu.querySelector('[data-token-hud-action="target"]')?.focus({preventScroll:true});return;}
+    if(window.DAWN_TABLE_POLICY?.isManual(Scene)&&["inspect","cockpit"].includes(name)){close();openManualActorReader(actor.id);return;}
+    if(window.DAWN_TABLE_POLICY?.isManual(Scene)&&name==="more"){close();Scene.selectedActor=actor.id;persist();renderScene();setScenePanel("inspector");return;}
     if(name==="more"){
       const token=board.querySelector(`[data-scene-actor="${CSS.escape(actor.id)}"]`),cell=token?.closest("[data-scene-cell]"),rect=menu.getBoundingClientRect();
       close();showSceneContextMenu({clientX:rect.left,clientY:rect.top},{actor,cell});return;
     }
     close();
     if(name==="cockpit")openSceneActorCockpit(actor.id);
-    else if(name==="inspect"){Scene.selectedActor=actor.id;Scene.activeSpace=actor.space;persist();renderScene();setScenePanel("inspector");}
+    else if(name==="inspect"){Scene.selectedActor=actor.id;Scene.activeSpace=actor.space;persist();renderScene();setScenePanel((actor.heroId||actor.kind==="hero")&&(activeSceneView()==="gm"||actor.heroId===S.id)?"sheet":"inspector");}
   }
   board.addEventListener("contextmenu",event=>{
     if(!usingNextSceneInterface()||!supportedViewport())return;
@@ -193,13 +209,13 @@
     const token=event.target.closest("[data-scene-actor]");
     if(!token){close();selectionKey=JSON.stringify([identity(),Scene.activeSpace,Scene.selectedActor||null]);return;}
     const actor=Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
-    if(actor&&(!Scene.tool||Scene.tool==="select"))show(actor,{focus:false,selection:true});
+    if(actor&&(!hudTool()||hudTool()==="select"))show(actor,{focus:false,selection:true});
   });
-  menu.addEventListener("click",event=>{const effect=event.target.closest("[data-token-hud-effect]");if(effect&&state){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor(),effectId=effect.dataset.tokenHudEffect,catalog=typeof sceneEffectList==="function"?sceneEffectList():[];if(!actor||activeSceneView()!=="gm"||!catalog.some(item=>item.id===effectId))return;const effects=typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],remove=effects.includes(effectId);setNarratorEffect(actor,effectId,remove);draw();return;}const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
+  menu.addEventListener("click",event=>{const effect=event.target.closest("[data-token-hud-effect]");if(effect&&state){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor(),effectId=effect.dataset.tokenHudEffect,catalog=typeof sceneEffectList==="function"?sceneEffectList():[];if(!actor||activeSceneView()!=="gm"||!catalog.some(item=>item.id===effectId))return;const effects=window.DAWN_TABLE_POLICY?.isManual(Scene)?actor.manualStatuses||[]:typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],remove=effects.includes(effectId);setNarratorEffect(actor,effectId,remove);draw();return;}const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
   function cancelLeave(){if(leaveTimer!==null){clearTimeout(leaveTimer);leaveTimer=null;}}
   function delayLeave(){cancelLeave();leaveTimer=setTimeout(()=>{leaveTimer=null;if(menu.contains?.(document.activeElement)||state?.effectsOpen)return;close();},260);}
   board.addEventListener("mouseover",event=>{
-    if(!usingNextSceneInterface()||store.mode!=="play"||!supportedViewport()||Scene.tool&&Scene.tool!=="select")return;
+    if(!usingNextSceneInterface()||store.mode!=="play"||!supportedViewport()||hudTool()&&hudTool()!=="select")return;
     const token=event.target.closest("[data-scene-actor]"),actor=token&&Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
     if(!actor)return;cancelLeave();if(state?.actorId===actor.id&&!menu.hidden)return;if(menu.contains?.(document.activeElement)||state?.effectsOpen)return;show(actor,{focus:false,selection:true});
   });
@@ -220,7 +236,9 @@
   },true);
   document.addEventListener("scroll",schedule,true);window.addEventListener("resize",schedule);
   window.addEventListener("dawn-network-v2-settled",schedule);
-  new MutationObserver(schedule).observe(board,{childList:true,subtree:true});
+  new MutationObserver(schedule).observe(board,{childList:true,subtree:true,attributes:true,attributeFilter:["style"]});
+  board.addEventListener("transitionend",schedule);
+  if(typeof ResizeObserver==="function"){const geometry=new ResizeObserver(schedule);geometry.observe(board);geometry.observe(wrap);}
   if($("scene-sync-status"))new MutationObserver(schedule).observe($("scene-sync-status"),{childList:true,attributes:true});
-  window.DAWN_SCENE_TOKEN_HUD=Object.freeze({healthChange,show,close,refresh,applyHealth,action});
+  window.DAWN_SCENE_TOKEN_HUD=Object.freeze({perimeterLayout,healthChange,show,close,refresh,applyHealth,action});
 })();

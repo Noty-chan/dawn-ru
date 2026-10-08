@@ -18,7 +18,7 @@ const config = fs.readFileSync(new URL('../../apps/companion/config.js', import.
 const url = config.match(/supabaseUrl:\s*["']([^"']+)["']/)[1];
 const key = config.match(/publishableKey:\s*["']([^"']+)["']/)[1];
 const tag = randomUUID().slice(0, 8), created = [], channels = [], timings = [];
-const result = { status: 'running', tables: 5, players: 5, memberships: 0, commands: 0, ticks: 0, notifications: 0, cleanup: [] };
+const result = { status: 'running', tables: 5, players: 5, memberships: 0, commands: 0, ticks: 0, notifications: 0, channelStatuses: [], cleanup: [] };
 const fetchBounded = async (input, init = {}) => {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
   try { return await fetch(input, { ...init, signal: init.signal ? AbortSignal.any([init.signal, controller.signal]) : controller.signal }); }
@@ -29,6 +29,8 @@ const owner = client(), players = Array.from({ length: 5 }, client);
 const check = (response, step) => { if (response.error) throw Object.assign(new Error(`${step}: ${response.error.code || response.error.message}`), { code: response.error.code }); return response.data; };
 const one = value => Array.isArray(value) ? value[0] : value;
 const { context, engine, data } = runtime();
+const manual=process.env.DAWN_LIVE_NETWORK_MODE==='manual';result.mode=manual?'manual':'rules';
+if(manual){vm.runInContext(fs.readFileSync(new URL('../../apps/companion/scene-table-policy.js',import.meta.url),'utf8'),context);context.window.DAWN_TABLE_POLICY.install(engine,context.window.DAWN_LIONWING_ENGINE);}
 vm.runInContext(fs.readFileSync(new URL('../../apps/companion/network-v2.js', import.meta.url), 'utf8'), context);
 const network = context.window.DAWN_NETWORK_V2;
 const scenes = [], observed = new Map();
@@ -40,6 +42,7 @@ try {
   for (let index = 0; index < 5; index++) {
     const initial = fixture();
     initial.version = 1; initial.activeActorId = null; initial.selectedActor = null;
+    if(manual){initial.tablePolicy={mode:'manual',processStatuses:false,epoch:1};initial.manualTable={actorId:null,round:1};}
     initial.actors = players.map((_, p) => actor(`hero-${p}`, 'hero', p, 0, { ownerId: sessions[p + 1].user.id }));
     initial.actors.push(actor('hidden-enemy', 'enemy', 7, 5, { hidden: true }));
     initial.privateNotes = `private-${tag}`;
@@ -52,17 +55,17 @@ try {
   }
   phase = 'subscribe';
   await Promise.all(scenes.flatMap(s => players.map((p, pi) => new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('subscribe timeout')), 12000);
-    const ch = p.channel(`qa-${tag}-${s.index}-${pi}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scene_public_snapshots', filter: `scene_id=eq.${s.scene_id}` }, payload => {
+    const timer = setTimeout(() => reject(new Error('subscribe timeout')), 20000);
+    const ch = p.channel(`qa-${tag}-${s.index}-${pi}`,{config:{postgres_changes_options:{wait:true,timeout:15000}}}).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scene_public_snapshots', filter: `scene_id=eq.${s.scene_id}` }, payload => {
       observed.set(`${s.index}:${pi}`, { version: Number(payload.new.version), at: performance.now() });
       result.notifications++;
-    }).subscribe(status => { if (status === 'SUBSCRIBED') { clearTimeout(timer); resolve(); } else if (status === 'CHANNEL_ERROR') { clearTimeout(timer); reject(new Error('channel error')); } });
+    }).subscribe((status,error) => { result.channelStatuses.push({table:s.index,player:pi,status,error:error?.message?.slice(0,120)}); if (status === 'SUBSCRIBED') { clearTimeout(timer); resolve(); } else if (status === 'CHANNEL_ERROR') { clearTimeout(timer); reject(new Error('channel error')); } });
     channels.push({ p, ch });
   }))));
   for (let round = 0; round < 2; round++) {
     phase = `commands-${round}`;
     const batches = await Promise.all(scenes.map(async s => {
-      const intents = players.map((_, pi) => ({ kind: 'deployment', actorId: `hero-${pi}`, destination: { space: 'main', x: pi, y: round === 0 ? 1 : 0 }, label: `QA deployment ${pi}` }));
+      const intents = players.map((_, pi) => manual?({kind:'table',actorId:`hero-${pi}`,policyEpoch:1,request:{kind:'move',space:'main',x:pi,y:round===0?1:0},label:`QA manual ${pi}`}):({ kind: 'deployment', actorId: `hero-${pi}`, destination: { space: 'main', x: pi, y: round === 0 ? 1 : 0 }, label: `QA deployment ${pi}` }));
       const commands = await Promise.all(players.map(async (p, pi) => {
         const id = randomUUID();
         const row = { campaign_id: s.campaign_id, scene_id: s.scene_id, actor_id: sessions[pi + 1].user.id, command_type: 'intent_v2', client_intent_id: id, payload: { clientIntentId: id, intent: intents[pi] } };
@@ -101,7 +104,7 @@ try {
       assert.deepEqual(check(await p.from('scenes').select('id').eq('id', s.scene_id), 'RLS narrator'), []);
       const deadline = performance.now() + 8000;
       while ((observed.get(`${s.index}:${pi}`)?.version || 0) < s.state.version && performance.now() < deadline) await new Promise(r => setTimeout(r, 50));
-      const seen = observed.get(`${s.index}:${pi}`); assert.equal(seen?.version, s.state.version, 'Realtime did not deliver committed snapshot');
+      const seen = observed.get(`${s.index}:${pi}`); if(seen?.version!==s.state.version){result.missedRealtime ||= [];result.missedRealtime.push({table:s.index,player:pi,expected:s.state.version,actual:seen?.version??null});} assert.equal(seen?.version, s.state.version, 'Realtime did not deliver committed snapshot');
       timings.push({ phase: 'realtime', ms: seen.at - starts.get(s.index) });
     })));
     for (const b of batches) {
@@ -152,5 +155,7 @@ finally {
   if (result.cleanup.some(c => !c.deleted)) result.status = 'cleanup-incomplete';
   for (const stage of ['insert', 'settle', 'realtime']) { const values = timings.filter(t => t.phase === stage).map(t => Math.round(t.ms)).sort((a, b) => a - b); result[`${stage}LatencyMs`] = { count: values.length, median: values[Math.floor(values.length / 2)] ?? null, max: values.at(-1) ?? null }; }
   console.log(JSON.stringify(result, null, 2));
+  fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/live-network-20261009.json',JSON.stringify(result,null,2));
+  await Promise.allSettled([owner,...players].map(async c=>{try{await c.auth.signOut();}finally{c.realtime.disconnect();}}));
 }
 process.exit(result.status === 'passed' ? 0 : 1);

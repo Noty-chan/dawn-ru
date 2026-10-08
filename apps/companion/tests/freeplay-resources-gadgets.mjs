@@ -19,7 +19,7 @@ c={console,Date,Math,window:null,globalThis:null,$:node,$$:()=>[],S:hero,Scene:{
 };c.window=c;c.globalThis=c;vm.createContext(c);vm.runInContext(read('logic.js'),c);c.Logic=c.DAWN_LOGIC;c.clamp=c.Logic.clamp;
 vm.runInContext(read('data.js'),c);loadSceneEngine(c);c.SceneEngine=c.DAWN_SCENE_ENGINE;
 c.DAWN_TOOLS_WORKSPACE={refresh(){refreshes++}};
-for(const name of ['toolsHeroActor','toolsRuntimeActor','toolsResourceCorrectionReason','toolsResourceValue','refreshFreeplayResourceUi','setToolsResource','toolsRollContext','currentChallengeRequest','toolSkillId','toolsSelectedAbility','toolsDiceRequest','toolsCopy','renderDiceComposer','updateDicePoolTotal','recalculateDicePool'])vm.runInContext(declaration(play,name),c);
+for(const name of ['toolsManualMode','toolsSkillRank','currentOpposedRoll','toolsHeroActor','toolsRuntimeActor','toolsResourceCorrectionReason','toolsResourceValue','toolsResourceValueMarkup','refreshFreeplayResourceUi','setToolsResource','toolsRollContext','currentChallengeRequest','toolSkillId','toolsSelectedAbility','toolsDiceRequest','toolsCopy','renderDiceComposer','updateDicePoolTotal','recalculateDicePool'])vm.runInContext(declaration(play,name),c);
 vm.runInContext(declaration(read('hero-gadgets.js'),'heroGadgetDiceSources'),c);
 vm.runInContext(events.slice(events.indexOf('function setPlayCounter('),events.indexOf('\n$("play-counters").addEventListener')),c);
 assert.equal(c.toolsRuntimeActor(),own);assert.equal(c.toolsRollContext().actor,own,'A delegated actor never becomes the free roll or resource owner');

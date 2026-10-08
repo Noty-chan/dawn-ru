@@ -37,5 +37,6 @@ export function loadSceneEngine(context) {
     const source = fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
     vm.runInNewContext(source, context, { filename: file });
   }
+  vm.runInNewContext(fs.readFileSync(new URL('../scene-table-policy.js', import.meta.url), 'utf8'), context, { filename: 'scene-table-policy.js' });
   return context.DAWN_SCENE_ENGINE || context.window?.DAWN_SCENE_ENGINE;
 }

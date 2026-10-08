@@ -44,3 +44,13 @@ body.scene-mode.scene-interface-next .scene-board-tool-original-label{position:a
 body.scene-mode.scene-interface-next .scene-board-tool-category>.dawn-control-icon,body.scene-mode.scene-interface-next .scene-board-tool-panel>button>.dawn-control-icon{width:24px;height:24px;flex:0 0 24px;display:block;pointer-events:none}
 body.scene-mode.scene-interface-next .scene-board-tool-panel>button:has(>.dawn-control-icon)::before{content:none;display:none}
 @media(max-width:720px){body.scene-mode.scene-interface-next .scene-board-tool-original-label{position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none;white-space:normal}}
+
+/* Temporary presentations do not participate in hit testing or board mechanics. */
+.scene-presentation-cell{position:absolute;inset:4px;z-index:18;border:2px solid var(--presentation-color);background:color-mix(in srgb,var(--presentation-color) 15%,transparent);pointer-events:none;box-sizing:border-box;border-radius:3px}
+.scene-presentation-cell small{position:absolute;left:0;bottom:100%;font-size:10px;white-space:nowrap;background:var(--surface);color:var(--presentation-color);padding:2px 4px;border-radius:3px;line-height:1.3}
+.scene-presentation-cell.is-preview{border-style:dashed;opacity:.8}
+.scene-presentation-cell.is-ping{inset:15%;border-width:3px;border-radius:50%;background:transparent;box-shadow:0 0 14px var(--presentation-color)}
+.scene-presentation-status{font-size:11px;line-height:1.4;color:var(--muted);margin:0;pointer-events:none}
+body.scene-mode.scene-interface-next .scene-board-tool-panel>.scene-presentation-status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#scene-board.is-presenting .scene-empty-state{display:none}
+body.scene-mode:not(.scene-interface-next) [data-presentation-mode]{min-height:44px}

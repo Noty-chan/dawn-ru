@@ -5173,6 +5173,14 @@
       if(projected.pendingAction?.targetDamage)projected.pendingAction.targetDamage=Object.fromEntries(Object.entries(projected.pendingAction.targetDamage).filter(([id])=>!hidden.has(id)));
     }
     if (projected.lionwing && global.DAWN_LIONWING_INFORMATION_QUERY?.project) projected.lionwing.information = global.DAWN_LIONWING_INFORMATION_QUERY.project(scene, viewer);
+    if(!narrator&&projected.lionwing){
+      const visible=legacy.projectionPrivacy?.predicate(scene,viewer)||(()=>true);
+      projected.log=(projected.log||[]).filter(visible);projected.rollFeed=(projected.rollFeed||[]).filter(visible);
+      const redact=legacy.projectionPrivacy?.redactor(scene,viewer)||((value)=>value);
+      for(const row of projected.actors||[])for(const key of ['effectStates','ruleState','techniqueState','modifierState','ruleResources','ruleClocks','lionwing'])if(row[key]&&typeof row[key]==='object')row[key]=redact(row[key])||{};
+      projected.lionwing.entities=Object.fromEntries(Object.entries(projected.lionwing.entities||{}).filter(([,row])=>visible(row)));
+      for(const key of ['studies','facts','handouts'])if(Array.isArray(projected.lionwing.information?.[key]))projected.lionwing.information[key]=projected.lionwing.information[key].filter(visible);
+    }
     return projected;
   });
 })(typeof window === "object" ? window : globalThis);

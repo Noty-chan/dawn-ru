@@ -15,9 +15,9 @@ body.tools-mode.tools-interface-next .tools-step{display:none}
 body.tools-mode.tools-interface-next .freeplay-hero-head{grid-template-columns:40px minmax(0,1fr);gap:.5rem}
 body.tools-mode.tools-interface-next .freeplay-hero-head>img,body.tools-mode.tools-interface-next .freeplay-hero-head>i{width:40px;height:40px;border-radius:9px}
 body.tools-mode.tools-interface-next .freeplay-hero-head h2{font-size:1rem;overflow-wrap:anywhere}
-body.tools-mode.tools-interface-next .freeplay-resources{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:5px;justify-content:stretch}
-body.tools-mode.tools-interface-next .freeplay-resource{grid-template-columns:30px minmax(0,1fr) 30px;padding:5px;gap:1px}
-body.tools-mode.tools-interface-next .freeplay-resource>span{grid-column:1/-1;text-align:center}
+body.tools-mode.tools-interface-next .freeplay-resources{grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:5px;justify-content:stretch}
+body.tools-mode.tools-interface-next .freeplay-resource{grid-template-columns:minmax(0,1fr) 30px 42px 30px;padding:5px;gap:5px}
+body.tools-mode.tools-interface-next .freeplay-resource>span{grid-column:auto;text-align:left}
 body.tools-mode.tools-interface-next .freeplay-resource>strong{min-width:0;font-size:.75rem}
 body.tools-mode.tools-interface-next .freeplay-resource>button{min-height:34px;padding:0}
 body.tools-mode.tools-interface-next #freeplay-local-hero-wrap{display:grid;gap:.25rem;color:var(--muted);font-size:.65rem;margin-bottom:.65rem}
@@ -128,3 +128,19 @@ body.tools-mode.tools-interface-next .tools-overview-clock{display:flex;align-it
   body.tools-mode.tools-interface-next .tools-next-overview{grid-row:3}
   body.tools-mode.tools-interface-next .tools-next-pool{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
+
+/* Manual Tools has one roll workspace, without the mechanical request composer. */
+body.tools-mode.tools-manual-mode #tools-context .tools-step,
+body.tools-mode.tools-manual-mode #dice-hook-controls,
+body.tools-mode.tools-manual-mode #tools-context .subpanel-head{display:none}
+body.tools-mode.tools-manual-mode.tools-interface-next #tools-context{display:none}
+
+.tools-stress-segments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%;padding:8px 4px;justify-items:center}
+.tools-stress-segments button{width:30px;height:30px;min-height:30px;min-width:0;padding:0;border:2px solid var(--muted);border-radius:3px;background:transparent;transform:rotate(45deg)}
+.tools-stress-segments button.filled{background:var(--red);border-color:var(--red)}
+.tools-stress-segments button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+body.tools-mode.tools-interface-next .freeplay-resource-stress{grid-template-columns:1fr;gap:8px;padding:10px}
+body.tools-mode.tools-interface-next .freeplay-resource-stress>strong{display:block;width:100%}
+body.tools-mode.tools-interface-next .freeplay-resource-stress>span{text-align:left}
+.freeplay-resource .tools-stress-warning{grid-column:1/-1;color:var(--gold);font-size:.68rem;text-align:center}
+.freeplay-resource .tools-stress-warning[hidden]{display:none}

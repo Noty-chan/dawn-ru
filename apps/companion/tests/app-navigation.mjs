@@ -83,7 +83,7 @@ const context={window,document,location,history,HTMLElement:Element,HTMLDetailsE
   localStorage:{getItem(){throw Error("Navigation must not read persistence");},setItem(){throw Error("Navigation must not write persistence");}},
 };
 vm.createContext(context);
-vm.runInContext("let store={mode:'build'},Scene=state,activeScenePanel=null,activeScenePanels={left:null,right:null},scenePanelTrigger=null;let sceneInterfaceVersion='next',scenePanelLayoutMode='split',sceneInterfaceDensity='compact';const scenePanelWidths={left:'medium',right:'medium'},SCENE_PANEL_WIDTHS={medium:340},DEFAULT_SCENE_PANEL_SIDES={director:'left',inspector:'right',sheet:'right',map:'right',network:'right'},scenePanelSides={...DEFAULT_SCENE_PANEL_SIDES};let lwTechniqueDraft={actorId:'hero',payload:{targetIds:['enemy']}},pendingCoreAction={id:'spell'};",context);
+vm.runInContext("let store={mode:'build'},Scene=state,activeScenePanel=null,activeScenePanels={left:null,right:null},scenePanelTrigger=null;let sceneInterfaceVersion='next',sceneLeftPanelsEnabled=true,scenePanelLayoutMode='split',sceneInterfaceDensity='compact';const scenePanelWidths={left:'medium',right:'medium'},SCENE_PANEL_WIDTHS={medium:340},DEFAULT_SCENE_PANEL_SIDES={director:'left',inspector:'right',sheet:'right',map:'right',network:'right'},scenePanelSides={...DEFAULT_SCENE_PANEL_SIDES};let lwTechniqueDraft={actorId:'hero',payload:{targetIds:['enemy']}},pendingCoreAction={id:'spell'};",context);
 const sceneUi=read("scene-ui.js"),panelStart=sceneUi.indexOf("function usingNextSceneInterface()"),panelEnd=sceneUi.indexOf("function sceneTurnApprovalMode()",panelStart);
 assert.ok(panelStart>=0&&panelEnd>panelStart,"the test exercises the actual Scene panel controller");
 vm.runInContext(sceneUi.slice(panelStart,panelEnd),context);
@@ -213,3 +213,7 @@ pages.get("rules").classList.add("active");
 assert.equal(initialNav.afterModeChange("rules"),false,"a hidden initial page cannot create a false bookmark that suppresses a launch anchor");
 assert.equal(run("JSON.stringify({Scene,lwTechniqueDraft,pendingCoreAction})"),immutable,"navigation leaves pending choices, actions, targets and drafts untouched");
 console.log("Local section navigation: page/inner scroll, split panels, role/layout changes, rapid transitions, and anchor precedence passed.");
+
+run("sceneLeftPanelsEnabled=false;scenePanelLayoutMode='split'");assert.equal(run("scenePanelSide('director')"),'right','old split preference is inactive until explicitly allowed');
+run("sceneLeftPanelsEnabled=true");assert.equal(run("scenePanelSide('director')"),'left','explicit consent restores configured layout');
+console.log('Left work panels: default/old split require explicit opt-in');

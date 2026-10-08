@@ -86,7 +86,7 @@ Object.assign(relinkContext, {
   activeSceneSpace: () => relinkContext.Scene.spaces[0],
   deployEncounterTemplate: () => false,
   addEnemyDeploymentPassives: () => [],
-  commitScene: (_label, change) => { const next = structuredClone(relinkContext.Scene); change(next); relinkContext.Scene = next; },
+  commitScene: (_label, change) => { const next = structuredClone(relinkContext.Scene); change(next); relinkContext.Scene = next; return {scene:next}; },
   toast: message => deploymentToasts.push(message),
   uid: (() => { let serial = 0; return () => `reinforcement-${++serial}`; })(),
   availableEncounterCell: (_space, wanted, occupied) => { const options = [{ x: wanted.x, y: wanted.y }, { x: wanted.x + 1, y: wanted.y }, { x: wanted.x - 1, y: wanted.y }, { x: wanted.x, y: wanted.y + 1 }, { x: wanted.x, y: wanted.y - 1 }]; const cell = options.find(point => point.x >= 0 && point.y >= 0 && point.x < 7 && point.y < 7 && !occupied.has(`${point.x},${point.y}`)); if (cell) occupied.add(`${cell.x},${cell.y}`); return cell || null; },

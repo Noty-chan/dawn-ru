@@ -5,6 +5,8 @@
   const PROJECT=global.DAWN_CONFIG||{};
   const listeners=new Map();
   const presenceCache=new Map();
+  let presentationTransport=null;
+  function presentationLane(){return presentationTransport||(global.DAWN_PRESENTATION_TRANSPORT&&(presentationTransport=global.DAWN_PRESENTATION_TRANSPORT.create({client,rpc:(name,args)=>withNetworkTimeout(client.rpc(name,args),"Presentation roster"),getScene:()=>typeof Scene==='undefined'?null:Scene,emit:row=>emit('presentation',row),status:value=>patch({presentationReady:value})})));}
   let client=null,clientConfigKey="",connectInFlight=null,channel=null,channelGeneration=0,authSubscription=null,saveTimer=null,saveInFlight=false,pendingSave=null,reconnectTimer=null,reconnectAttempt=0,sceneRefreshTimer=null,sceneRefreshInFlight=false,pendingCommandsRefreshInFlight=false,lastPendingCommandSignature="",localMutationInFlight=0,mutationChain=Promise.resolve(),sceneLoadGeneration=0,sceneSessionGeneration=0,sceneSelectionGeneration=0,presenceDetails={},storageWarningShown=false;
   let state={status:"offline",authenticated:false,userId:null,email:"",isAnonymous:true,accountPending:false,userIdChanged:false,url:String(PROJECT.supabaseUrl||""),publishableKey:String(PROJECT.publishableKey||""),displayName:"",campaignId:null,campaignName:"",sceneId:null,role:null,version:0,characterIds:{},presence:[],lastSyncedAt:"",error:""};
 
@@ -72,7 +74,7 @@
     presenceCache.clear();
     presenceDetails={};
   }
-  async function unsubscribe(){clearTimeout(reconnectTimer);global.clearInterval?.(sceneRefreshTimer);reconnectTimer=null;sceneRefreshTimer=null;channelGeneration+=1;const previous=channel;channel=null;if(previous&&client)await client.removeChannel(previous)}
+  async function unsubscribe(){clearTimeout(reconnectTimer);global.clearInterval?.(sceneRefreshTimer);reconnectTimer=null;sceneRefreshTimer=null;channelGeneration+=1;const previous=channel;channel=null;const previousPresentation=presentationTransport;presentationTransport=null;await previousPresentation?.stop();if(previous&&client)await client.removeChannel(previous)}
   async function refreshSceneIfNewer(force=false){
     if(sceneRefreshInFlight||!client||!state.sceneId||!force&&global.document?.hidden)return;
     const sceneId=state.sceneId,generation=sceneSessionGeneration;
@@ -146,7 +148,7 @@
     const canNarrate=["owner","narrator"].includes(state.role);
     const sceneTable=canNarrate?"scenes":"scene_public_snapshots";
     const sceneFilter=canNarrate?`id=eq.${subscribedSceneId}`:`scene_id=eq.${subscribedSceneId}`;
-    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId},broadcast:{self:false}}})
+    channel=client.channel(`dawn-scene-${subscribedSceneId}`,{config:{presence:{key:state.userId},broadcast:{self:false},postgres_changes_options:{wait:true,timeout:15000}}})
       .on("presence",{event:"sync"},()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)})
       .on("presence",{event:"join"},()=>setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0))
       .on("presence",{event:"leave"},()=>{setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},0);setTimeout(()=>{if(!subscriptionIsActive())return;state={...state,presence:readPresence()};emit("presence",state.presence)},10100)})
@@ -160,7 +162,7 @@
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"characters",filter:`campaign_id=eq.${subscribedCampaignId}`},payload=>{if(subscriptionIsActive()&&payload.new)emit("character",payload.new)})
       .on("broadcast",{event:"scene-command"},()=>{if(subscriptionIsActive()&&canNarrate)void refreshPendingCommands()})
       .on("broadcast",{event:"scene-updated"},payload=>{if(subscriptionIsActive()&&Number(payload?.payload?.version||0)>Number(state.version))void refreshSceneIfNewer(true)})
-      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands()},5000)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
+      .subscribe(status=>{if(!subscriptionIsActive())return;if(status==="SUBSCRIBED"){reconnectAttempt=0;void presentationLane()?.start(subscribedSceneId,state.userId);patch({status:"online",lastSyncedAt:new Date().toISOString(),error:""});global.clearInterval?.(sceneRefreshTimer);let presentationPoll=0;sceneRefreshTimer=global.setInterval?.(()=>{void refreshSceneIfNewer();void refreshPendingCommands();if(++presentationPoll%6===0)void presentationTransport?.refresh()},5000)||null;void updatePresence().catch(error=>console.warn("Presence update failed",error));void refreshPendingCommands()}else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status))scheduleReconnect(status)});
   }
 
   async function loadScene(sceneId,selectionGeneration=sceneSelectionGeneration){
@@ -344,5 +346,5 @@
   global.addEventListener?.("offline",()=>patch({status:"offline",error:"Нет соединения; локальные данные сохранены"}));
   global.addEventListener?.("online",()=>scheduleReconnect("offline"));
   global.document?.addEventListener?.("visibilitychange",()=>{if(!global.document.hidden){if(state.sceneId&&state.status!=="online")scheduleReconnect("visible");else void refreshSceneIfNewer(true)}});
-  global.DAWN_SYNC={acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteCampaign,deleteLibraryCharacter,hasConfig,leave,listCampaigns,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,openCampaign,publishEvents,queueScene,redeemInvite,refreshScene,requestEmailLink,saveCharacter,saveLibraryCharacter,settleIntentBatch,signOutAccount,state:snapshot,submitCommand,updatePresence};
+  global.DAWN_SYNC={sendPresentation:request=>presentationTransport?.send(request)||false,acceptCommand,configure,connect,createCampaign,createInvite,decideCommand,deleteCampaign,deleteLibraryCharacter,hasConfig,leave,listCampaigns,listCharacters,listLibraryCharacters,loadCharacter,loadLibraryCharacter,loadScene,on,openCampaign,publishEvents,queueScene,redeemInvite,refreshScene,requestEmailLink,saveCharacter,saveLibraryCharacter,settleIntentBatch,signOutAccount,state:snapshot,submitCommand,updatePresence};
 })(window);

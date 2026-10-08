@@ -93,7 +93,7 @@ const resourceCards=new Map(["influence","stress"].map(key=>{
   return[key,{count,note,buttons,querySelector:selector=>selector==="strong"?count:selector===".hero-sheet-resource-reason"?note:null,querySelectorAll:()=>buttons}];
 }));
 const resourceRoot={querySelector:selector=>resourceCards.get(selector.match(/data-resource="([^"]+)"/)?.[1])||null};
-const resourceContext={Scene:{rulesEdition:"lionwing",actors:[resourceActor]},S:{id:"hero",runtime:{influence:1,stress:1}},Sync:{state:()=>resourceRole},
+const resourceContext={window:{},Scene:{rulesEdition:"lionwing",actors:[resourceActor]},S:{id:"hero",runtime:{influence:1,stress:1}},Sync:{state:()=>resourceRole},
   $:()=>resourceRoot,networkV2QueueStatus:()=>resourceQueue,isEnglishPreview:()=>englishResources,
   ensureRuntime(){},derived:()=>({hp:10,focus:2,speed:4}),stressMaximumFor:()=>3,
   clamp:(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0)),t:key=>key};
@@ -156,3 +156,21 @@ assert.match(localizedSpellcrafter.levels["2"].text,/начальный Фоку
 assert.match(localizedSpellcrafter.levels["3"].text,/две разные Модификации/);
 
 console.log("LionWing Hero Build/Sheet mode QA passed: mode policy, per-Hero preference, canonical statuses, RU/EN, resource counters and legacy isolation");
+const viewNodes=new Map();const viewNode=id=>{if(!viewNodes.has(id))viewNodes.set(id,{hidden:false,textContent:'',querySelectorAll:()=>[]});return viewNodes.get(id)};
+const viewPage={dataset:{},querySelectorAll:()=>[]};let complete=false,sheetPaints=0;
+const viewContext=vm.createContext({HERO_VIEW_MODES:new Set(['builder','sheet']),HERO_VIEW_STORAGE_KEY:'qa',heroViewPreferences:{},S:{id:'a',rulesEdition:'lionwing'},document:{querySelector:()=>viewPage},$:viewNode,isLionwingEdition:()=>true,heroBuildComplete:()=>complete,initHeroViewLayout(){},renderHeroPlaySheet(){sheetPaints++},t:key=>key,localStorage:{setItem(){}}});
+for(const name of ['resolvedHeroViewMode','saveHeroViewPreference','renderHeroView']){
+ const start=heroUi.indexOf(`function ${name}(`),end=heroUi.indexOf('\nfunction ',start+1);vm.runInContext(heroUi.slice(start,end<0?heroUi.length:end),viewContext);
+}
+viewContext.renderHeroView();assert.equal(viewPage.dataset.heroView,'builder');complete=true;viewContext.renderHeroView();assert.equal(viewPage.dataset.heroView,'builder','Finishing the build never closes the existing editor');
+viewContext.S={id:'b',rulesEdition:'lionwing'};viewContext.renderHeroView();assert.equal(viewPage.dataset.heroView,'sheet','A new complete Hero still initially opens Sheet');complete=false;viewContext.renderHeroView();assert.equal(viewPage.dataset.heroView,'sheet','Resource/build changes never move a Hero out of its chosen view');
+viewContext.S={id:'a',rulesEdition:'lionwing'};viewContext.renderHeroView();assert.equal(viewPage.dataset.heroView,'builder','The initial view is remembered independently for each Hero');assert.ok(sheetPaints>0);
+console.log('Hero initial-view lifecycle: completion/invalidation retain current editor/sheet, separate Heroes keep separate choices');
+// Execute the real export button handler, including per-edition metadata.
+const exportSource=events.slice(events.indexOf('$("export-hero").onclick='),events.indexOf('\n$("import-hero").onchange='));
+const exportButton={};let savedExport=null;
+const exportContext=vm.createContext({$:()=>exportButton,S:{name:'User Имя',rulesEdition:'lionwing',supplementIds:[],runtime:{diceHistory:[]}},contentPreferences:{locale:'ru'},APP_SCHEMA:2,isLionwingEdition:()=>exportContext.S.rulesEdition==='lionwing',heroExportLionwingBridge:()=>null,heroSheetClone:value=>JSON.parse(JSON.stringify(value)),download:(name,data)=>{savedExport={name,data:JSON.parse(data)}}});
+vm.runInContext(exportSource,exportContext);exportButton.onclick();
+assert.equal(savedExport.data.schema,2);assert.equal(savedExport.data.content.locale,'ru');assert.equal(savedExport.data.content.builderRulesLocale,'en');assert.equal(savedExport.data.content.canonicalRulesLocale,'en');assert.equal(savedExport.data.content.tableMechanicsStatus,'partial');assert.equal(savedExport.data.hero.name,'User Имя');
+exportContext.S.rulesEdition='ru-v0.9';exportButton.onclick();assert.equal(savedExport.data.content.canonicalRulesLocale,'ru');assert.equal(savedExport.data.content.tableMechanicsStatus,'available');
+console.log('Hero export button: bilingual UI locale stays separate from canonical language, partial LionWing support and schema=2 remain explicit');

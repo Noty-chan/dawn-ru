@@ -105,7 +105,7 @@ queued.pending=0;queued.failed=1;hud.refresh();assert.equal(apply("-5"),false);a
 queued.failed=0;hud.refresh();assert.equal(input().attributes["aria-busy"],"false");
 
 reset();open();role="player";assert.equal(apply("-5"),false);assert.equal(commands.length,0,"a role change cannot retain write access");
-hud.refresh();assert.equal(input(),null);assert.ok(!menu.html.includes('data-token-hud-action="cockpit"'),"other players get Info and Target only");
+hud.refresh();assert.equal(input(),null);assert.ok(!menu.html.includes('data-token-hud-action="effects"')&&!menu.html.includes('data-token-hud-action="more"'),"foreign Player token has Profile and Target only");assert.ok(!menu.html.includes('data-token-hud-action="cockpit"'),"other players get Info and Target only");
 
 reset();context.Scene.rulesEdition="ru-v0.9";open();assert.equal(apply("-2"),true);assert.equal(commands[0].key,"hp","legacy corrections retain the existing engine route");
 reset();compound={active:true,hp:24,maxHp:60};open();assert.equal(input().value,"24");apply("-4");assert.equal(commands[0].payload.amount,20,"compound health is edited as one existing correction");
@@ -149,8 +149,8 @@ token.getBoundingClientRect=originalTokenRect;
 const originalFieldRect=wrap.getBoundingClientRect;
 wrap.getBoundingClientRect=()=>({left:100,right:1000,top:870,bottom:1200});
 token.getBoundingClientRect=()=>({left:400,right:440,top:875,bottom:915,width:40,height:40});
-hud.refresh();assert.equal(menu.hidden,true,"a field with only 14px of visible control space closes the HUD instead of overflowing the viewport");
-assert.equal(menu.style.maxHeight,"","closing a clipped field leaves no minimum-height override");
+hud.refresh();assert.equal(menu.hidden,false,"a clipped field uses an external compact panel");
+assert.equal(menu.dataset.placement,"external");assert.ok(Number.parseFloat(menu.style.top)>=8);
 wrap.getBoundingClientRect=originalFieldRect;token.getBoundingClientRect=originalTokenRect;
 
 for(const change of [()=>{context.Scene.id="local-b";},()=>{shared="table-b";},()=>{context.Scene.lionwing.sceneSerial++;},()=>{context.Scene.actors.pop();},()=>{context.store.mode="hero";}]){
@@ -200,7 +200,7 @@ assert.equal(document.activeElement,menu.querySelector('[data-token-hud-effect="
 enemy().effects=["positive.test"];events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands[1].remove,true,"active effect delegates removal to the existing compound-aware Narrator route");
 role="player";events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands.length,2,"players cannot apply or remove effects via the overlay");
 role="gm";effectClick.target.closest=selector=>selector==="[data-token-hud-effect]"?{dataset:{tokenHudEffect:"unknown"}}:null;events.get("scene-context-menu:click:true")(effectClick);assert.equal(commands.length,2,"unknown stable effect IDs never reach the writer");
-reset();open();assert.doesNotMatch(menu.html,/type="submit"/);assert.equal((menu.html.match(/<svg /g)||[]).length,6,"all six perimeter commands use authored SVG icons");input().focus();assert.equal(input().selectionStart,0);assert.equal(input().selectionEnd,2);
+reset();open();assert.doesNotMatch(menu.html,/type="submit"/);assert.equal((menu.html.match(/<svg /g)||[]).length,5,"all five perimeter commands use authored SVG icons");input().focus();assert.equal(input().selectionStart,0);assert.equal(input().selectionEnd,2);
 const originalInput=input();events.get("scene-context-menu:beforeinput:false")({target:originalInput,inputType:"insertText",data:"8"});assert.equal(originalInput.value,"","first insertion replaces current HP");originalInput.value="8";events.get("scene-context-menu:input:false")({target:originalInput});
 key("Enter",originalInput);originalInput.blur();input().blur();assert.equal(commands.length,1,"Enter and ensuing detached/live blur apply exactly once");assert.equal(enemy().hp,8);
 reset();open();input().focus();input().value="-5";const deltaInput=input();deltaInput.blur();deltaInput.blur();assert.equal(commands.length,1,"duplicate blur never repeats signed correction");assert.equal(enemy().hp,25);
@@ -240,7 +240,7 @@ const heroUiSource=read("hero-ui.js");
 vm.runInContext(heroUiSource.slice(heroUiSource.indexOf("function heroSheetLinkedActor("),heroUiSource.indexOf("function heroSheetTableButton(")),context);
 vm.runInContext(identitySource.slice(identitySource.indexOf("function lwSubmit("),identitySource.indexOf("function lwDiceHtml(")),context);
 const playUi=read("play-ui.js");
-Object.assign(context,{toolsRuntimeActor:()=>context.Scene.actors[0],toolsSyncContext:()=>({shared:Boolean(shared),canEdit:true}),refreshFreeplayResourceUi:()=>{},updateAllInAvailability:()=>{},renderStressTrackers:()=>{}});
+Object.assign(context,{toolsManualMode:()=>false,toolsRuntimeActor:()=>context.Scene.actors[0],toolsSyncContext:()=>({shared:Boolean(shared),canEdit:true}),refreshFreeplayResourceUi:()=>{},updateAllInAvailability:()=>{},renderStressTrackers:()=>{}});
 vm.runInContext(playUi.slice(playUi.indexOf("function toolsResourceCorrectionReason("),playUi.indexOf("function toolsResourceValue(")),context);
 vm.runInContext(playUi.slice(playUi.indexOf("function setToolsResource("),playUi.indexOf("function freeplayBondStatus(")),context);
 const playEvents=read("app-play-events.js");
@@ -257,3 +257,19 @@ assert.equal(commands.length,2,"relative engine commands can safely compose in t
 const overlayCss=read("vtt-cockpit.css").match(/\.scene-context-menu\.is-token-overlay\{([^}]+)\}/)?.[1];
 assert.ok(overlayCss);for(const property of ["backdrop-filter:none","filter:none","transform:none"])assert.ok(overlayCss.includes(property),"transparent overlay must not blur its token or create a containing block for its fixed picker: "+property);
 console.log("Shared numeric corrections: Hero/Info/cockpit guard preserves deltas until server acknowledgement");
+
+// Every perimeter hit area must be outside the token and other controls.
+const overlap=(a,b,gap=0)=>!(a.right+gap<=b.left||b.right+gap<=a.left||a.bottom+gap<=b.top||b.bottom+gap<=a.top);
+let placements=0,fallbacks=0;
+for(const manual of [false,true])for(const fieldWidth of [250,400,900])for(const size of [40,80,150])for(const factor of [.3,.7,1,1.8])for(const fx of [0,.5,1])for(const fy of [0,.5,1]){
+  const field={left:300,right:300+fieldWidth,top:100,bottom:650},width=size*factor;
+  const rect={left:field.left+fx*(fieldWidth-width),top:field.top+fy*(550-width)};rect.right=rect.left+width;rect.bottom=rect.top+width;
+  context.window.DAWN_TABLE_POLICY={isManual:()=>manual};
+  const result=hud.perimeterLayout(rect,field);if(!result){fallbacks++;continue;}
+  placements++;
+  const controls=(manual?[0,48]:[0,48,96]).flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+44,top:result.controlTop+dy,bottom:result.controlTop+dy+44})));
+  controls.push({left:result.healthLeft,right:result.healthLeft+80,top:result.healthTop,bottom:result.healthTop+42});
+  for(const control of controls){assert.ok(!overlap(control,rect,6),'control is outside token with >=6px gutter');assert.ok(control.left>=field.left&&control.right<=field.right&&control.top>=field.top&&control.bottom<=field.bottom,'control is inside the visible field');}
+  for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++)assert.ok(!overlap(controls[i],controls[j]),'controls cannot intersect');
+}
+assert.ok(placements>0&&fallbacks>0);console.log(`HUD geometry: ${placements} safe layouts, ${fallbacks} external fallbacks, 648 manual/rules edge/size/zoom cases`);

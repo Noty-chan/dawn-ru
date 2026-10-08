@@ -2,7 +2,7 @@
 // Local presentation only. All commands stay on existing actor-bound routes.
 window.DAWN_SCENE_WORKSPACE=(()=>{
   let palettePanel,bar,more,toolbarHome,turnHome,ready=false,turnLayout=null,turnActorId=null;
-  const dockHomes=new Map(),dockIcons={director:'actions',inspector:'tokens',sheet:'sheet',utility:'dice',reference:'sheet',media:'view',map:'view',entities:'effects',add:'add',table:'settings',network:'network',log:'log'};
+  const dockHomes=new Map(),dockIcons={director:'actions',inspector:'tokens',sheet:'sheet',utility:'dice',reference:'sheet',media:'art',map:'map',entities:'effects',add:'add',table:'settings',network:'network',log:'log'};
   const copy=(ru,en)=>typeof isEnglishPreview==='function'&&isEnglishPreview()?en:ru;
   const narrow=()=>typeof sceneViewportProfile==='function'&&sceneViewportProfile()!=='desktop';
   function init(){
@@ -34,7 +34,7 @@ window.DAWN_SCENE_WORKSPACE=(()=>{
   function refresh(){
     if(!init())return;
     const next=usingNextSceneInterface(),phone=next&&narrow(),toolbar=document.querySelector('.scene-toolbar'),turns=$("scene-turn-strip"),left=$("scene-rail-left");
-    document.body.classList.toggle('scene-next-narrow',phone);if(phone)document.body.style.setProperty('--scene-header-height',`${document.querySelector('.topbar').getBoundingClientRect().height}px`);
+    document.body.classList.toggle('scene-next-narrow',phone);
     if(phone&&(activeScenePanels.left&&activeScenePanels.right)){const keep=activeScenePanel||activeScenePanels.right;activeScenePanels.left=null;activeScenePanels.right=null;activeScenePanels[scenePanelSide(keep)]=keep;syncScenePanels()}
     for(const[button,html]of dockHomes){if(next)button.setAttribute("aria-label",button.title||button.textContent.trim());else button.removeAttribute("aria-label");const wanted=next?`${window.DAWN_UI_ICONS?.html(dockIcons[button.dataset.scenePanel]||'more')||''}<span class="scene-dock-label">${html}</span>`:html;if(button.innerHTML!==wanted)button.innerHTML=wanted}
     if(phone){if(toolbar.parentElement!==palettePanel)palettePanel.append(toolbar)}else if(toolbar.previousSibling!==toolbarHome)toolbarHome.after(toolbar);
