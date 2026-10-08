@@ -10,7 +10,7 @@ vm.createContext(context);const source=read('scene-manual-integration.js');
 vm.runInContext(source.slice(0,source.indexOf('function placeManualMapObject')),context);
 vm.runInContext(source.slice(source.indexOf('function manualClockScope'),source.indexOf('function reconcileManualClockNumbers')),context);
 vm.runInContext(source.slice(source.indexOf('function manualTableAbilities'),source.indexOf('window.DAWN_TABLE_POLICY?.install()')),context);
-context.ensureManualAreaTools=()=>{};context.renderManualAreaDraft=()=>{};context.openManualTableArea=()=>{};context.renderManualClocks=()=>{};context.renderManualMapTools=()=>{};context.renderManualJournal=()=>{};
+context.installManualTerrainBrush=()=>{};context.ensureManualAreaTools=()=>{};context.renderManualAreaDraft=()=>{};context.openManualTableArea=()=>{};context.renderManualClocks=()=>{};context.renderManualMapTools=()=>{};context.renderManualJournal=()=>{};
 context.openManualTableDice=()=>{};context.openManualTableClocks=()=>{};
 vm.runInContext(source.slice(source.indexOf('const numericCorrectionWithRules')),context);
 const before=JSON.stringify(scene);
