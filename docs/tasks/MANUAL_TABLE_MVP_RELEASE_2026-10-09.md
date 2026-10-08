@@ -43,3 +43,6 @@ Config содержит только browser publishable key. Admin/management c
 - После gate merge только этой связанной ветки, push main, дождаться Pages и сверить опубликованный build. Старые draft PR закрыть как superseded после подтверждённого merge.
 
 Защищённые `.codex-remote-attachments/`, `apps/companion/output/`, `site/dead-gods/maps/` сохранены; stash не pop. SQL и main пока без изменений в live среде.
+
+
+Финальный immutable executable пакет 0eb8fd1: npm test завершился PASS exit0, output/mvp-final2-20261009.log. После старта прогона исполняемые файлы и тесты не менялись; последующий коммит добавляет только документацию. Targeted SQL PGlite также PASS; это не live Realtime. Единый draft PR к main: https://github.com/Noty-chan/dawn-ru/pull/12.
