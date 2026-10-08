@@ -46,3 +46,13 @@ Config содержит только browser publishable key. Admin/management c
 
 
 Финальный immutable executable пакет 0eb8fd1: npm test завершился PASS exit0, output/mvp-final2-20261009.log. После старта прогона исполняемые файлы и тесты не менялись; последующий коммит добавляет только документацию. Targeted SQL PGlite также PASS; это не live Realtime. Единый draft PR к main: https://github.com/Noty-chan/dawn-ru/pull/12.
+
+## Supabase update — 2026-10-09
+
+User approved applying both migration files to existing Dawn project ejxzsunagpxsiwpmuovp. Applied 202610080001_manual_table_public_records.sql followed by 202610080002_private_presentations.sql through dashboard SQL Editor. Result: Success. No rows returned.
+
+Post-application public API probe (disposable anonymous QA identity, signed out afterward) passed: presentation_roster(fake scene UUID) returns 42501; presentation_topic_allowed(invalid topic) completes without error. Previous PGRST202 blocker is resolved. Screenshot receipt: ignored output/supabase-migrations-applied-20261009.png.
+
+Do not rerun migration002 unchanged: its table/functions/policies now exist. Next: actual multi-client private Realtime acceptance, including topic forgery, isolation, membership revocation on an already-open socket, and presentation latency. Availability is verified; these network gates remain open. Main merge/deployment not performed.
+
+Stop point: weekly usage reached 100%; five-hour remaining 52%. No reset redeemed. SQL dashboard tab is retained for continuation.
