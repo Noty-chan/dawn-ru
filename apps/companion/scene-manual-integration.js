@@ -503,7 +503,7 @@ function renderManualTable(){
   if(status){
     status.hidden=!manual;
     if(manual){const space=activeSceneSpace(),current=Scene.actors.find(a=>a.id===Scene.manualTable?.actorId&&(activeSceneView()==="gm"||!a.hidden));
-      window.DAWN_MANUAL_SURFACE_PAINTING=true;try{status.innerHTML=`<strong>${esc(Scene.name||manualTableCopy("Стол","Table"))}</strong><span>${esc(space?.name||manualTableCopy("Поле","Board"))} · ${esc(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"))}</span><label class="manual-tension">${manualTableCopy("Напряжение","Tension")} <input type="number" min="0" max="9999" data-manual-tension value="${Number(Scene.tension)||0}" ${activeSceneView()!=="gm"?"disabled":""}></label>`;}finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
+      window.DAWN_MANUAL_SURFACE_PAINTING=true;try{status.innerHTML=`<strong>${esc(Scene.name||manualTableCopy("Стол","Table"))}</strong><span>${esc(space?.name||manualTableCopy("Поле","Board"))} · ${esc(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"))}</span><label class="manual-tension">${manualTableCopy("Напряжение","Tension")} <input type="number" min="0" max="999" data-manual-tension value="${Number(Scene.tension)||0}" ${activeSceneView()!=="gm"?"disabled":""}></label>`;}finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
     }
   }
   const sizeLabel=$("scene-space-size-label");if(sizeLabel?.firstChild)sizeLabel.firstChild.textContent=manualTableCopy("Размер нового поля","New board size");
@@ -550,7 +550,7 @@ function renderManualTokenCounters(){
   panel.addEventListener("change",event=>{if(window.DAWN_MANUAL_SURFACE_PAINTING)return;const key=event.target.dataset.tokenCountInput;if(key&&event.target.value.trim())write(key,Number(event.target.value));const visibility=event.target.dataset.tokenCountVisible;if(visibility){store.sceneUi||={};store.sceneUi.tokenCounters||={};store.sceneUi.tokenCounters[actor.id]=Array.from(panel.querySelectorAll('[data-token-count-visible]:checked'),node=>node.dataset.tokenCountVisible);persist();renderScene();}});
   window.DAWN_MANUAL_SURFACE_PAINTING=true;try{footer.querySelector('.manual-token-counters')?.remove();footer.append(panel);}finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
 }
-document.addEventListener("change",event=>{if(window.DAWN_MANUAL_SURFACE_PAINTING||!event.target.matches?.('[data-manual-tension]')||!manualTableActive()||activeSceneView()!=="gm")return;const value=Number(event.target.value);if(event.target.value.trim()&&Number.isSafeInteger(value)&&value>=0&&value<=9999)commitSceneEvents(manualTableCopy("Напряжение","Tension"),[{type:"table.command",actorId:null,payload:{kind:"tension",value}}]);});
+document.addEventListener("change",event=>{if(window.DAWN_MANUAL_SURFACE_PAINTING||!event.target.matches?.('[data-manual-tension]')||!manualTableActive()||activeSceneView()!=="gm")return;const value=Number(event.target.value);if(event.target.value.trim()&&Number.isSafeInteger(value)&&value>=0&&value<=999)commitSceneEvents(manualTableCopy("Напряжение","Tension"),[{type:"table.command",actorId:null,payload:{kind:"tension",value}}]);});
 function submitManualNumber(actor,payload,label){
   const event={id:uid(),type:"table.command",actorId:actor.id,payload};
   const result=commitSceneEvents(label,[event]);

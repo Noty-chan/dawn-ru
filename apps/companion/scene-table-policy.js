@@ -180,7 +180,7 @@
     }
     if (!isManual(scene)) fail("Ручная команда требует ручной политики стола.", "TABLE_MANUAL_REQUIRED");
     if (p.kind === "start-rules") fail("Инициализация нового боя ещё не подключена.", "TABLE_START_RULES_UNAVAILABLE");
-    if(p.kind === "tension"){exactKeys(p,["kind","value"]);if(!Number.isSafeInteger(p.value)||p.value<0||p.value>9999)fail("Некорректное Напряжение.");scene.tension=p.value;}
+    if(p.kind === "tension"){exactKeys(p,["kind","value"]);if(!Number.isSafeInteger(p.value)||p.value<0||p.value>999)fail("Некорректное Напряжение.");scene.tension=p.value;}
     else if(p.kind === "layout/replace")replaceLayout(scene,event);
     else if (p.kind === "move") {
       exactKeys(p, ["kind", "space", "x", "y"]);
@@ -281,6 +281,7 @@
       const value = scene.manualTable.round + p.delta;
       if (!Number.isSafeInteger(value) || value < 1) fail("Ручной раунд начинается с 1.");
       scene.manualTable.round = value;
+      if(p.delta>0)scene.tension=Math.min(999,Math.max(0,Number(scene.tension)||0)+p.delta);
     } else if(p.kind === "wall/create"){
       exactKeys(p,["kind","wall"]);exactKeys(p.wall,["id","space","a","b","label","hidden"]);
       const wall=p.wall;capacity(scene,"walls");uniqueObjectId(scene,wall.id);annotation(wall);
