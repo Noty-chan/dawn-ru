@@ -167,18 +167,15 @@ assert.ok(menu.attributes.role==="dialog");hud.close();assert.equal(menu.dataset
 reset();context.Scene.selectedActor="enemy";context.Scene.tool="select";
 const selectedBefore=resources(),selectedTokenEvent={target:{closest:()=>token}};
 events.get("scene-board:click:false")(selectedTokenEvent);
-assert.equal(menu.hidden,false,"a normal selected-token click shows the overlay without a right-click");
-assert.equal(menu.dataset.tokenHudActor,"enemy");assert.equal(resources(),selectedBefore,"opening selection overlay preserves turn, targets and resources");
-assert.equal(document.activeElement,null,"pointer selection does not steal keyboard focus into the HUD");
-assert.equal(menu.dataset.placement,"around","controls form a perimeter around the token rather than a side card");
-assert.ok(Number.parseFloat(menu.style.left)<token.getBoundingClientRect().left);
-enemy().effects=["example.effect"];hud.refresh();assert.match(menu.html,/example.effect/,"active Effects appear in the visible overlay");
-hud.close();hud.refresh();assert.equal(menu.hidden,true,"dismissal survives background refresh of the same selection");
-events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,false,"selected token can reopen a dismissed overlay by touch/click");
-events.get("scene-board:click:false")({target:{closest:()=>null}});hud.refresh();assert.equal(menu.hidden,true,"blank-field click dismisses without reopening on stale selection");
-context.Scene.selectedActor=null;hud.refresh();context.Scene.selectedActor="enemy";hud.refresh();assert.equal(menu.hidden,false,"selection from an existing roster route can reveal the anchored overlay");
-context.Scene.tool="measure";hud.refresh();assert.equal(menu.hidden,true,"selection overlay yields to map measurement/tool interaction");
-context.Scene.tool="select";events.get("scene-board:click:false")(selectedTokenEvent);context.store.mode="tools";hud.refresh();assert.equal(menu.hidden,true,"leaving Table closes the overlay");
+assert.equal(menu.hidden,true,"left click does not open the HUD");
+hud.refresh();assert.equal(menu.hidden,true,"selected token does not open on render");
+assert.equal(resources(),selectedBefore);
+open();assert.equal(menu.dataset.placement,"around");
+events.get("scene-board:pointerdown:true")({...selectedTokenEvent,button:0});
+assert.equal(menu.hidden,true,"holding a token closes controls before dragging");
+open();events.get("scene-board:dragstart:true")();assert.equal(menu.hidden,true,"dragging hides controls");
+context.Scene.selectedActor=null;hud.refresh();context.Scene.selectedActor="enemy";hud.refresh();assert.equal(menu.hidden,true,"roster selection does not open controls");
+open();context.store.mode="tools";hud.refresh();assert.equal(menu.hidden,true);
 for(const [width,height,allowed] of [[1200,900,true],[800,900,true],[390,844,false],[844,390,false],[950,500,false],[951,500,true]]){
   reset();context.innerWidth=width;context.innerHeight=height;wrap.getBoundingClientRect=()=>({left:0,right:width,top:0,bottom:height});open();assert.equal(menu.hidden,!allowed,`HUD eligibility ${width}x${height}`);
 }
@@ -188,7 +185,7 @@ reset();open();context.innerWidth=844;context.innerHeight=390;hud.refresh();asse
 reset();context.interfaceVersion="classic";context.Scene.selectedActor="enemy";events.get("scene-board:click:false")(selectedTokenEvent);assert.equal(menu.hidden,true,"classic interface remains unchanged");
 reset();const hoverBefore=resources();
 events.get("scene-board:mouseover:false")(selectedTokenEvent);
-assert.equal(menu.hidden,false,"hover reveals perimeter controls without selecting, targeting or right-clicking");assert.equal(resources(),hoverBefore);
+assert.equal(menu.hidden,true,"hover leaves controls closed");assert.equal(resources(),hoverBefore);open();
 events.get("scene-board:mouseout:false")({target:selectedTokenEvent.target,relatedTarget:null});assert.equal(timers.size,1);
 events.get("scene-context-menu:mouseenter:false")();assert.equal(timers.size,0,"moving from token to its controls cancels delayed dismissal");
 input().focus();events.get("scene-context-menu:mouseleave:false")();for(const callback of [...timers.values()])callback();timers.clear();assert.equal(menu.hidden,false,"typing a health delta keeps the overlay open");

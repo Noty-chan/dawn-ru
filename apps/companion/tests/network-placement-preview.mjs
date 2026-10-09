@@ -26,3 +26,22 @@ context.clearPendingNetworkPlacement({client_intent_id:"intent-1"});
 assert.equal(context.pendingNetworkPlacements.size,0,"rejection removes the provisional position");
 assert.equal(context.renders,1,"rejection redraws the canonical board");
 console.log("Network placement preview QA passed: immediate visual position, unchanged rules state, rejection rollback");
+
+// Real reducers: provisional manual commands never advance confirmed state,
+// replay does not double-count, and removing a rejected command rolls back.
+const {loadSceneEngine}=await import('./load-scene-engine.mjs');
+const optimistic={window:{},console,Scene:{tablePolicy:{mode:'manual',epoch:1},version:0,actors:[{id:'hero',name:'Hero',space:'main',x:0,y:0,hp:10,maxHp:10,focus:0}],spaces:[{id:'main',width:7,height:7}],activeSpace:'main',log:[]},renderSceneBoard(){},Sync:{state:()=>({sceneId:'qa'})}};
+vm.createContext(optimistic);optimistic.SceneEngine=loadSceneEngine(optimistic);optimistic.window.DAWN_TABLE_POLICY.install();
+vm.runInContext(source.slice(start,end)+'\nthis.project=projectPendingManualScene;this.pending=pendingManualUiIntents;this.setAuthority=q=>networkV2Authority=q;',optimistic);
+const provisional={id:'manual-ui-1',type:'table.command',actorId:'hero',payload:{kind:'resource',values:{focus:2}}};
+optimistic.setAuthority({queue:[{kind:'events',events:[provisional]}]});
+const confirmed=structuredClone(optimistic.Scene),view=optimistic.project(confirmed);
+assert.equal(view.actors[0].focus,2);assert.equal(confirmed.actors[0].focus,0);assert.equal(view.version,0);
+const accepted=optimistic.SceneEngine.dispatchMany(confirmed,[provisional]).scene;
+assert.equal(optimistic.project(accepted).log.length,1,'late acknowledgement does not replay a provisional command twice');
+optimistic.setAuthority({queue:[],failed:[{kind:'events',events:[provisional]}]});
+assert.equal(optimistic.project(confirmed).actors[0].focus,0,'failed command restores confirmed resource');
+optimistic.pending.set('player-1',{events:[provisional],commandId:'command-1'});
+assert.equal(optimistic.project(confirmed).actors[0].focus,2,'player sees local command before acknowledgement');
+optimistic.project(accepted);assert.equal(optimistic.pending.size,0,'accepted receipt retires player preview');
+console.log('Manual provisional view: immediate resource, immutable confirmed state, exact replay and rejection rollback passed');

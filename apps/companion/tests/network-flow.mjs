@@ -262,7 +262,7 @@ const queueStatusStart = sceneSyncSource.indexOf("function networkV2QueueStatus(
 const retryFailedStart = sceneSyncSource.indexOf("function retryNetworkV2Failed(){", queueStatusStart);
 assert.ok(runtimeStart >= 0 && queueStatusStart > runtimeStart && retryFailedStart > queueStatusStart);
 vm.runInNewContext(sceneSyncSource.slice(runtimeStart, retryFailedStart), context, { filename: "scene-sync-ui.js#authority-runtime" });
-context.networkV2Authority = null;
+context.pendingNetworkPlacements = new Map(); context.refreshPendingManualUi = ()=>{}; context.networkV2Authority = null;
 context.networkV2Outbox = null;
 context.NetworkV2 = Network;
 const canonicalAfterRejection = structuredClone(persisted);

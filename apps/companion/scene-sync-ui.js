@@ -78,6 +78,26 @@ async function acceptPreparedRemoteCommand(command,prepared){
 
 let networkV2Authority=null,networkV2Outbox=null,networkV2Reconciling=false;
 const pendingNetworkPlacements=new Map();
+const pendingManualUiIntents=new Map();
+function projectPendingManualScene(canonical){
+  if(!globalThis.window?.DAWN_TABLE_POLICY?.isManual(canonical))return canonical;
+  for(const [id,row] of pendingManualUiIntents){try{if(SceneEngine.eventPacketContract?.replayStatus(canonical,row.events).complete)pendingManualUiIntents.delete(id);}catch{/* A conflicting receipt will be reconciled by the command update. */}}
+  const authority=[...(networkV2Authority?.retryBatch||networkV2Authority?.inFlight||[]),...(networkV2Authority?.queue||[])].filter(item=>item.kind==="events").map(item=>item.events);
+  let projected=canonical;
+  for(const events of [...authority,...Array.from(pendingManualUiIntents.values(),row=>row.events)]){
+    if(!events?.length||events.some(event=>event.type!=="table.command"))continue;
+    try{projected=SceneEngine.dispatchMany(projected,events).scene;}catch{/* The server remains responsible for accepting or rejecting the command. */}
+  }
+  projected.version=canonical.version;
+  return projected;
+}
+function refreshPendingManualUi(){
+  if(!Sync?.state?.().sceneId||!globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene))return;
+  Scene=mergeNetworkV2Scene(NetworkV2.getConfirmedScene(Scene),Scene);
+  syncHeroFromScene();
+  renderScene();
+  if(typeof renderManualClocks==="function")renderManualClocks();
+}
 function paintPendingNetworkPlacements(){
   for(const [actorId,pending] of pendingNetworkPlacements){
     const actor=Scene.actors.find(item=>item.id===actorId);
@@ -92,22 +112,23 @@ const renderSceneBoardWithoutNetworkPreview=renderSceneBoard;
 renderSceneBoard=function(){renderSceneBoardWithoutNetworkPreview();paintPendingNetworkPlacements()};
 function clearPendingNetworkPlacement(row){
   let changed=false;
+  for(const [id,pending] of pendingManualUiIntents)if(id===String(row?.clientIntentId||row?.client_intent_id||row?.payload?.clientIntentId)||pending.commandId&&pending.commandId===String(row?.id)){pendingManualUiIntents.delete(id);changed=true;}
   for(const [actorId,pending] of pendingNetworkPlacements)if(String(pending.intentId)===String(row?.clientIntentId||row?.client_intent_id)||String(pending.commandId)===String(row?.id)&&pending.commandId){pendingNetworkPlacements.delete(actorId);changed=true}
-  if(changed&&Sync?.state?.().sceneId)renderSceneBoard();
+  if(changed&&Sync?.state?.().sceneId){refreshPendingManualUi();renderSceneBoard();}
 }
 function previewNetworkPlacement(row,events,actorId){
-  const move=[...events].reverse().find(event=>event.type==="actor.move"&&event.actorId===actorId);
+  const move=[...events].reverse().find(event=>event.actorId===actorId&&(event.type==="actor.move"||event.type==="table.command"&&event.payload?.kind==="move"));
   const actor=move&&Scene.actors.find(item=>item.id===move.actorId),x=Number(move?.payload?.x),y=Number(move?.payload?.y),space=move?.payload?.space||actor?.space;
   if(!actor||!Number.isSafeInteger(x)||!Number.isSafeInteger(y)||!Scene.spaces.some(item=>item.id===space&&x>=0&&y>=0&&x<item.width&&y<item.height))return;
-  pendingNetworkPlacements.set(actor.id,{intentId:row.clientIntentId,commandId:null,x,y,space});
+  pendingNetworkPlacements.set(actor.id,{intentId:row.clientIntentId,authorityItem:row.authorityItem||null,commandId:null,x,y,space});
   paintPendingNetworkPlacements();
 }
 function mergeNetworkV2Scene(remote,current=Scene){
   const canonical=NetworkV2.mergeRemoteScene(remote,current),sync=Sync?.state?.(),snapshot=networkV2Authority?.latestSnapshot?.();
-  if(!sync?.canNarrate||!snapshot)return canonical;
+  if(!sync?.canNarrate||!snapshot)return NetworkV2.restoreLocalUi(projectPendingManualScene(canonical),canonical);
   const overlay=NetworkV2.rebaseSceneSnapshot(snapshot.baseScene||canonical,snapshot.scene,canonical);
   try{window.DAWN_TABLE_POLICY?.validateSnapshot(canonical,overlay,snapshot.manualSnapshotOptions||{});}catch{return canonical;}
-  return NetworkV2.restoreLocalUi(overlay,canonical);
+  return NetworkV2.restoreLocalUi(projectPendingManualScene(overlay),canonical);
 }
 function renderNetworkScene(events=[]){
   const fxContext=captureSceneFxContext(events);
@@ -123,13 +144,19 @@ function renderNetworkScene(events=[]){
 function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
   if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
-    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);return command},
+    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);const pending=pendingManualUiIntents.get(String(payload.clientIntentId));if(pending)pending.commandId=String(command.id);return command},
     onError:(error,row,{retrying=true}={})=>{if(!retrying){clearPendingNetworkPlacement(row);if(typeof rejectManualToolsRollIntent==="function")rejectManualToolsRollIntent(row);if(typeof reconcileManualAreaDraft==="function")reconcileManualAreaDraft({...row,status:"rejected"});window.DAWN_MANUAL_WORKSPACE?.reconcileNumber({...row,status:"rejected"});if(typeof reconcileManualClockNumbers==="function")reconcileManualClockNumbers({...row,status:"rejected"});}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
   });
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
     flush:flushNetworkV2Authority,
-    onSettled:()=>{if(typeof renderSync==="function")renderSync()},
+    onSettled:()=>{
+      let changed=false;
+      for(const [id,pending] of pendingNetworkPlacements)if(pending.authorityItem&&![...(networkV2Authority?.queue||[]),...(networkV2Authority?.inFlight||[]),...(networkV2Authority?.retryBatch||[])].includes(pending.authorityItem)){pendingNetworkPlacements.delete(id);changed=true;}
+      if(changed)renderSceneBoard();
+      refreshPendingManualUi();
+      if(typeof renderSync==="function")renderSync();
+    },
     onError:async(error,{retrying=true}={})=>{
       const message=friendlySyncError(error,error?.message||"неизвестная ошибка синхронизации");
       toast(retrying?`Сетевой такт не сохранён, будет повторён: ${message}`:`Сетевой такт не сохранён: ${message}. Исправьте причину и повторите действие.`);
@@ -146,7 +173,7 @@ function retryNetworkV2Failed(){
   if(count){toast(`Повторяем сохранение: ${count} сетевых изменений`);if(typeof renderSync==="function")renderSync()}
   return count;
 }
-function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
+function resetNetworkV2Runtime(){networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();pendingManualUiIntents.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
 function queueNetworkV2Snapshot(scene,label,options={}){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
   if(!runtime||!sync?.sceneId||!sync.canNarrate)return false;
@@ -161,13 +188,20 @@ function queueNetworkV2Snapshot(scene,label,options={}){
 function submitNetworkV2Events(label,events){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
   if(!runtime||!sync?.sceneId)return null;
+  const manual=window.DAWN_TABLE_POLICY?.isManual(Scene)&&events.every(event=>event.type==="table.command");
+  if(manual){NetworkV2.setConfirmedScene(NetworkV2.getConfirmedScene(Scene));events=events.map(event=>({...event,id:event.id||uid()}));}
   if(sync.canNarrate){
-    runtime.authority.enqueue({kind:"events",events, label});
+    const item=runtime.authority.enqueue({kind:"events",events, label});
+    const move=events.find(event=>event.type==="table.command"&&event.payload?.kind==="move");
+    if(move)previewNetworkPlacement({authorityItem:item},events,move.actorId);
+    if(manual){refreshPendingManualUi();void runtime.authority.flush();}
     return{queued:true,pending:true,authority:true,events:[]};
   }
   const intent=NetworkV2.intentFromEvents(Scene,events,label);
   const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
+  if(manual){pendingManualUiIntents.set(String(row.clientIntentId),{events,commandId:null});refreshPendingManualUi();}
   previewNetworkPlacement(row,events,intent.actorId);
+  if(manual)void runtime.outbox.flush();
   if(!pendingNetworkPlacements.has(intent.actorId))toast("Действие отправлено за общий стол");
   return{queued:true,pending:true,clientIntentId:row.clientIntentId,events:[]};
 }

@@ -35,9 +35,7 @@
     if(key===selectionKey)return;
     selectionKey=key;
     const actor=Scene.actors.find(item=>item.id===Scene.selectedActor&&item.space===Scene.activeSpace);
-    if(!actor){if(state)close();return;}
-    if(hudTool()&&hudTool()!=="select")return;
-    show(actor,{focus:false,selection:true});
+    if(!actor&&state?.selection)close();
   }
   function healthBusy(){
     return sceneNumericCorrectionReason();
@@ -210,7 +208,7 @@
     const token=event.target.closest("[data-scene-actor]");
     if(!token){close();selectionKey=JSON.stringify([identity(),Scene.activeSpace,Scene.selectedActor||null]);return;}
     const actor=Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
-    if(actor&&(!hudTool()||hudTool()==="select"))show(actor,{focus:false,selection:true});
+    close();
   });
   menu.addEventListener("click",event=>{const effect=event.target.closest("[data-token-hud-effect]");if(effect&&state){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor(),effectId=effect.dataset.tokenHudEffect,catalog=typeof sceneEffectList==="function"?sceneEffectList():[];if(!actor||activeSceneView()!=="gm"||!catalog.some(item=>item.id===effectId))return;const effects=window.DAWN_TABLE_POLICY?.isManual(Scene)?actor.manualStatuses||[]:typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],remove=effects.includes(effectId);setNarratorEffect(actor,effectId,remove);draw();return;}const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
   function cancelLeave(){if(leaveTimer!==null){clearTimeout(leaveTimer);leaveTimer=null;}}
@@ -218,11 +216,17 @@
   board.addEventListener("mouseover",event=>{
     if(!usingNextSceneInterface()||store.mode!=="play"||!supportedViewport()||hudTool()&&hudTool()!=="select")return;
     const token=event.target.closest("[data-scene-actor]"),actor=token&&Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
-    if(!actor)return;cancelLeave();if(state?.actorId===actor.id&&!menu.hidden)return;if(menu.contains?.(document.activeElement)||state?.effectsOpen)return;show(actor,{focus:false,selection:true});
+    // Hover belongs to the read-only tooltip; only contextmenu opens controls.
+    return;
   });
   board.addEventListener("mouseout",event=>{if(event.target.closest("[data-scene-actor]")&&!event.relatedTarget?.closest?.("#scene-context-menu"))delayLeave();});
   menu.addEventListener("mouseenter",cancelLeave);menu.addEventListener("mouseleave",delayLeave);
   menu.addEventListener("pointerdown",()=>{pointerHeld=true;},true);
+  board.addEventListener("pointerdown",event=>{if(event.button!==0||!event.target.closest("[data-scene-actor]"))return;board.dataset.tokenPointerHeld="true";close();hideSceneTokenTip(0);},true);
+  board.addEventListener("dragstart",()=>{close();hideSceneTokenTip(0);},true);
+  board.addEventListener("dragend",()=>{delete board.dataset.tokenPointerHeld;},true);
+  document.addEventListener("pointerup",()=>{delete board.dataset.tokenPointerHeld;},true);
+  document.addEventListener("pointercancel",()=>{delete board.dataset.tokenPointerHeld;close();hideSceneTokenTip(0);},true);
   document.addEventListener("pointerup",()=>{if(pointerHeld){pointerHeld=false;schedule();}},true);
   menu.addEventListener("focusin",event=>{if(event.target!==menu.querySelector("input"))return;event.target.select?.();event.target.dataset.hudReplace="true";});
   menu.addEventListener("beforeinput",event=>{const input=menu.querySelector("input");if(event.target!==input)return;if(input.dataset.hudReplace==="true"&&event.inputType?.startsWith("insert")){input.value="";input.dataset.hudReplace="false";}});
