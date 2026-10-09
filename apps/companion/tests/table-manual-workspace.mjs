@@ -68,6 +68,30 @@ scene.actors[0].manualTechniqueState={[abilityKey]:true};
 ui.render(options);
 assert.ok(reader.innerHTML.includes('aria-pressed="true"'),'confirmed shared mark survives scene repaint');
 delete scene.actors[0].manualTechniqueState;
+const oldToggleWriter = options.toggleTechnique;
+const toggledStates = [];
+options.toggleTechnique = (actor, entry, on) => {
+  toggledStates.push(on);
+  scene.actors = scene.actors.map(item => item.id === actor.id
+    ? {...item, manualTechniqueState: {...item.manualTechniqueState, [entry.id]: on}}
+    : item);
+  ui.render({...options, scene});
+};
+scene.selectedActor = 'hero'; control = true; narrator = true;
+scene.actors = scene.actors.map(item => item.id === 'hero'
+  ? {...item, manualTechniqueState: {stance: false}} : item);
+ui.render(options); ui.open('hero');
+assert.equal(ui.act('technique-toggle', 0), true);
+assert.ok(reader.innerHTML.includes('aria-pressed="true"'),
+  'synchronous on render must not be overwritten by the old Reader model');
+assert.equal(ui.act('technique-toggle', 0), true);
+assert.ok(reader.innerHTML.includes('aria-pressed="false"'),
+  'synchronous off render must not restore the previous checked mark');
+assert.deepEqual(toggledStates, [true, false], 'second click reads the fresh actor state');
+options.toggleTechnique = oldToggleWriter;
+delete scene.actors[0].manualTechniqueState;
+ui.render(options);
+
 options.statusHints=true; ui.render(options);
 assert.ok(reader.innerHTML.includes('Только подсказка'),'explicit hints option reveals read-only helper text');
 assert.equal(calls.filter(call=>call.events).length,0);

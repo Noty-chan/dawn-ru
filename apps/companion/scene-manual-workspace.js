@@ -103,10 +103,11 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     footer.hidden = initiative.hidden = !state.manual;
     if (!state.manual) { reading = false; paintReader(state); return state; }
     const footerMarkup = `<div class="scene-manual-selected"><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${actor ? `<label><span>${escape(text("hp", "ЗД"))}</span><input type="number" inputmode="numeric" data-manual-hp data-manual-actor="${escape(actor.id)}" data-manual-value="${escape(actor.hp ?? 0)}" aria-label="${escape(text("exactHp", "Записать здоровье"))}" value="${escape(actor.hp ?? 0)}" min="0" max="${escape(actor.maxHp ?? 9999)}" ${!state.control || !(adapter.editResource || adapter.commit) ? "disabled" : ""}><small>/ ${escape(actor.maxHp ?? "—")}</small></label>` : ""}</div><nav aria-label="${escape(text("commands", "Команды ручного стола"))}">${button("read", text("read", "Читать"), "sheet", !actor, `aria-expanded="${reading}"`)}${button("dice", text("dice", "Кубы"), "dice", !adapter.roll)}${button("clocks", text("clocks", "Часы"), "history", !adapter.openClocks)}${state.narrator ? button("point", text("point", "Сейчас играет"), "tokens", !actor || !(adapter.setCurrent || adapter.commit)) : ""}</nav><span class="scene-manual-round">${escape(text("round", "Раунд"))} ${state.round}${state.narrator ? button("round", text("nextRound", "+1"), "add", !(adapter.setRound || adapter.commit)) : ""}</span><output class="scene-manual-message" aria-live="polite"></output>`;
-    paintingFooter=true;try{footer.innerHTML=footerMarkup;}finally{paintingFooter=false;}
+    if(footer.manualRenderedMarkup!==footerMarkup||editingHp){paintingFooter=true;window.DAWN_MANUAL_SURFACE_PAINTING=true;try{footer.innerHTML=footerMarkup;footer.manualRenderedMarkup=footerMarkup;}finally{paintingFooter=false;window.DAWN_MANUAL_SURFACE_PAINTING=false;}}
+    adapter.afterFooterRender?.();
     initiative.innerHTML = `<span class="scene-manual-initiative-label">${escape(text("participants", "Участники"))}</span>${state.initiativeActors.map(item => {const image=item.tokenImage || item.portraitImage || item.portraitUrl;return `<button type="button" data-manual-action="select" data-actor-id="${escape(item.id)}" class="${item.id === actor?.id ? "selected" : ""} ${item.id === state.current?.id ? "current" : ""}" title="${escape(item.name)}" aria-label="${escape(item.name)}" ${!state.actors.some(actor=>actor.id===item.id)?"disabled":""} ${item.id === state.current?.id ? 'aria-current="step"' : ""}>${image ? `<img src="${escape(image)}" alt="">` : `<span aria-hidden="true">${escape(item.name?.slice(0,2) || "?")}</span>`}<small>${escape(item.name)}</small></button>`;}).join("")}`;
     paintReader(state);
-    if(editingHp&&state.manual){const input=footer.querySelector('[data-manual-hp]');if(input&&!input.disabled){if(hpDraft!==null){input.value=hpDraft;if(hpSubmitted===hpDraft){input.manualSubmitted=hpSubmitted;input.manualSubmission=hpSubmission;}}input.focus({preventScroll:true});}}
+    if(editingHp&&state.manual){const input=footer.querySelector('[data-manual-hp]');if(input&&!input.disabled){if(hpDraft!==null){input.value=hpDraft;if(hpSubmitted===hpDraft){input.manualSubmitted=hpSubmitted;input.manualSubmission=hpSubmission;}}if(document.activeElement!==input)input.focus?.({preventScroll:true});}}
     return state;
   }
   function act(action, value) {
@@ -156,7 +157,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       if (action === "show-area" && state.control && entry.area && adapter.showArea) { adapter.showArea(actor, entry); return true; }
       if (action === "technique-toggle" && entry.toggle && state.control) {
         const key = `${actor.id}:${entry.id || value}`, on = !(adapter.toggleTechnique ? actor.manualTechniqueState?.[entry.id] : techniqueFlags.get(key));
-        techniqueFlags.set(key, on); adapter.toggleTechnique?.(actor, entry, on); paintReader(state); return true;
+        techniqueFlags.set(key, on); adapter.toggleTechnique?.(actor, entry, on); paintReader(model(adapter)); return true;
       }
     }
     return false;

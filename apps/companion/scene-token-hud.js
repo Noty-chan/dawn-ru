@@ -35,9 +35,7 @@
     if(key===selectionKey)return;
     selectionKey=key;
     const actor=Scene.actors.find(item=>item.id===Scene.selectedActor&&item.space===Scene.activeSpace);
-    if(!actor){if(state)close();return;}
-    if(hudTool()&&hudTool()!=="select")return;
-    show(actor,{focus:false,selection:true});
+    if(!actor&&state?.selection)close();
   }
   function healthBusy(){
     return sceneNumericCorrectionReason();
@@ -48,7 +46,7 @@
     if(status)status.textContent=busy||state?.message||"";
   }
   function perimeterLayout(token,field){
-    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),size=44,gap=6,rows=manual?92:140,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
+    const manual=window.DAWN_TABLE_POLICY?.isManual(Scene),size=40,gap=12,rows=manual?88:136,inside=r=>r.left>=field.left&&r.right<=field.right&&r.top>=field.top&&r.bottom<=field.bottom;
     const apart=(a,b)=>a.right+gap<=b.left||b.right+gap<=a.left||a.bottom+gap<=b.top||b.bottom+gap<=a.top;
     const box=(left,top,width=size,height=size)=>({left,top,right:left+width,bottom:top+height});
     const controlTop=clamp(token.top-48,field.top,field.bottom-rows);
@@ -57,9 +55,10 @@
       const controls=(manual?[0,48]:[0,48,96]).flatMap(offset=>[box(leftControl,controlTop+offset),box(rightControl,controlTop+offset)]);
       if(!controls.every(r=>inside(r)&&apart(r,token)))continue;
       const healthLeft=clamp(token.left+(token.right-token.left)/2-40,field.left,field.right-80);
-      for(const healthTop of [token.bottom+8,token.top-50,controlTop+rows+gap,controlTop-48]){
+      // Leave the token's small health indicator visible above the editor.
+      for(const healthTop of [token.bottom+28,token.top-54,controlTop+rows+gap,controlTop-54]){
         const hp=box(healthLeft,healthTop,80,42);
-        if(inside(hp)&&apart(hp,token)&&controls.every(r=>apart(r,hp)))return {leftControl,rightControl,controlTop,healthLeft,healthTop};
+        if(inside(hp)&&apart(hp,{...token,bottom:token.bottom+16})&&controls.every(r=>apart(r,hp)))return {leftControl,rightControl,controlTop,healthLeft,healthTop};
       }
     }
     return null;
@@ -209,7 +208,7 @@
     const token=event.target.closest("[data-scene-actor]");
     if(!token){close();selectionKey=JSON.stringify([identity(),Scene.activeSpace,Scene.selectedActor||null]);return;}
     const actor=Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
-    if(actor&&(!hudTool()||hudTool()==="select"))show(actor,{focus:false,selection:true});
+    close();
   });
   menu.addEventListener("click",event=>{const effect=event.target.closest("[data-token-hud-effect]");if(effect&&state){event.preventDefault();event.stopImmediatePropagation();const actor=liveActor(),effectId=effect.dataset.tokenHudEffect,catalog=typeof sceneEffectList==="function"?sceneEffectList():[];if(!actor||activeSceneView()!=="gm"||!catalog.some(item=>item.id===effectId))return;const effects=window.DAWN_TABLE_POLICY?.isManual(Scene)?actor.manualStatuses||[]:typeof sceneActorEffects==="function"?sceneActorEffects(actor):actor.effects||[],remove=effects.includes(effectId);setNarratorEffect(actor,effectId,remove);draw();return;}const button=event.target.closest("[data-token-hud-action]");if(!button||!state)return;event.preventDefault();event.stopImmediatePropagation();action(button.dataset.tokenHudAction);},true);
   function cancelLeave(){if(leaveTimer!==null){clearTimeout(leaveTimer);leaveTimer=null;}}
@@ -217,11 +216,17 @@
   board.addEventListener("mouseover",event=>{
     if(!usingNextSceneInterface()||store.mode!=="play"||!supportedViewport()||hudTool()&&hudTool()!=="select")return;
     const token=event.target.closest("[data-scene-actor]"),actor=token&&Scene.actors.find(item=>item.id===token.dataset.sceneActor&&item.space===Scene.activeSpace);
-    if(!actor)return;cancelLeave();if(state?.actorId===actor.id&&!menu.hidden)return;if(menu.contains?.(document.activeElement)||state?.effectsOpen)return;show(actor,{focus:false,selection:true});
+    // Hover belongs to the read-only tooltip; only contextmenu opens controls.
+    return;
   });
   board.addEventListener("mouseout",event=>{if(event.target.closest("[data-scene-actor]")&&!event.relatedTarget?.closest?.("#scene-context-menu"))delayLeave();});
   menu.addEventListener("mouseenter",cancelLeave);menu.addEventListener("mouseleave",delayLeave);
   menu.addEventListener("pointerdown",()=>{pointerHeld=true;},true);
+  board.addEventListener("pointerdown",event=>{if(event.button!==0||!event.target.closest("[data-scene-actor]"))return;board.dataset.tokenPointerHeld="true";close();hideSceneTokenTip(0);},true);
+  board.addEventListener("dragstart",()=>{close();hideSceneTokenTip(0);},true);
+  board.addEventListener("dragend",()=>{delete board.dataset.tokenPointerHeld;},true);
+  document.addEventListener("pointerup",()=>{delete board.dataset.tokenPointerHeld;},true);
+  document.addEventListener("pointercancel",()=>{delete board.dataset.tokenPointerHeld;close();hideSceneTokenTip(0);},true);
   document.addEventListener("pointerup",()=>{if(pointerHeld){pointerHeld=false;schedule();}},true);
   menu.addEventListener("focusin",event=>{if(event.target!==menu.querySelector("input"))return;event.target.select?.();event.target.dataset.hudReplace="true";});
   menu.addEventListener("beforeinput",event=>{const input=menu.querySelector("input");if(event.target!==input)return;if(input.dataset.hudReplace==="true"&&event.inputType?.startsWith("insert")){input.value="";input.dataset.hudReplace="false";}});

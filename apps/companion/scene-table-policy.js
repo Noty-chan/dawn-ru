@@ -180,7 +180,8 @@
     }
     if (!isManual(scene)) fail("Ручная команда требует ручной политики стола.", "TABLE_MANUAL_REQUIRED");
     if (p.kind === "start-rules") fail("Инициализация нового боя ещё не подключена.", "TABLE_START_RULES_UNAVAILABLE");
-    if(p.kind === "layout/replace")replaceLayout(scene,event);
+    if(p.kind === "tension"){exactKeys(p,["kind","value"]);if(!Number.isSafeInteger(p.value)||p.value<0||p.value>9999)fail("Некорректное Напряжение.");scene.tension=p.value;}
+    else if(p.kind === "layout/replace")replaceLayout(scene,event);
     else if (p.kind === "move") {
       exactKeys(p, ["kind", "space", "x", "y"]);
       const target = requiredActor(scene, event.actorId), to = cell(scene, p.space, p.x, p.y);
