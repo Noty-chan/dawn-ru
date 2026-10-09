@@ -3,6 +3,17 @@
 // Preview catalogue for the new-edition character builder. Loading this file
 // does not expose English in the public locale selector or change saved heroes.
 window.DAWN_I18N?.registerLocale("en", {
+  "scene.rulesStart.title": "Start a rules battle",
+  "scene.rulesStart.started": "Rules battle started: {actor}",
+  "scene.rulesStart.first": "First participant",
+  "scene.rulesStart.summary": "Round 1, Tension 0. The engine calculates heroes' Focus and the first participant's AP. The map, positions, HP, Wounds, Stress, Influence and manual notes are preserved.",
+  "scene.rulesStart.cancel": "Cancel",
+  "scene.rulesStart.confirm": "Start battle",
+  "scene.rulesStart.empty": "Add a hero or opponent who can start a Turn.",
+  "scene.rulesStart.changed": "The table changed. Close this dialog and open the start preview again.",
+  "scene.rulesStart.actor": "Participant",
+  "scene.rulesStart.ap": "AP",
+  "scene.rulesStart.focus": "Focus",
   "tools.support.label": "Scene support",
   "tools.support.search": "Find a record…",
   "tools.support.previous": "Previous records",

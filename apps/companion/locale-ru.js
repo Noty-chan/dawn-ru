@@ -5,6 +5,17 @@
 // system messages. New or edited UI text must be added here rather than adding
 // a second language directly to feature code.
 window.DAWN_I18N?.registerLocale("ru", {
+  "scene.rulesStart.title": "Начать бой по правилам",
+  "scene.rulesStart.started": "Начат бой по правилам: {actor}",
+  "scene.rulesStart.first": "Первый участник",
+  "scene.rulesStart.summary": "Раунд 1, Напряжение 0. Фокус героев и ОД первого участника рассчитывает ядро. Карта, позиции, ЗД, Раны, Стресс, Влияние и ручные пометки сохраняются.",
+  "scene.rulesStart.cancel": "Отмена",
+  "scene.rulesStart.confirm": "Начать бой",
+  "scene.rulesStart.empty": "Добавьте героя или противника, способного начать Ход.",
+  "scene.rulesStart.changed": "Стол изменился. Закройте окно и откройте запуск заново.",
+  "scene.rulesStart.actor": "Участник",
+  "scene.rulesStart.ap": "ОД",
+  "scene.rulesStart.focus": "Фокус",
   "tools.support.label": "Поддержка сцены",
   "tools.support.search": "Найти запись…",
   "tools.support.previous": "Предыдущие записи",

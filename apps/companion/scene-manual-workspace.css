@@ -185,6 +185,16 @@ body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next
 body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-manual-footer{grid-column:3/5}
 body.scene-mode.scene-interface-next[data-table-policy="manual"]:not(.scene-next-narrow) #scene-manual-reader{position:static;grid-column:5;grid-row:2/4;width:auto;max-height:none;min-height:0;inset:auto;border-radius:0;box-shadow:none;border-width:0 0 0 1px;padding:10px}
 
+#scene-rules-start{width:min(640px,calc(100vw - 32px));box-sizing:border-box;max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);box-shadow:0 24px 80px #0009}
+#scene-rules-start::backdrop{background:#08070dbb}
+#scene-rules-start h2{margin-top:0}
+#scene-rules-start p{line-height:1.5;color:var(--muted)}
+#scene-rules-start label{display:grid;gap:8px}
+#scene-rules-start table{width:100%;margin:14px 0;border-collapse:collapse}
+#scene-rules-start th,#scene-rules-start td{padding:8px;text-align:left;border-bottom:1px solid var(--line)}
+#scene-rules-start output{display:block;margin-top:12px}
+#scene-rules-start footer{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:18px}
+
 /* Compact controls retain their position; color and border carry hover feedback. */
 #scene-manual-footer nav button{border-radius:10px;background:linear-gradient(180deg,var(--surface-2),var(--surface));border-color:var(--line);box-shadow:inset 0 1px 0 #ffffff08;gap:7px;padding:8px 11px;font-size:12px;font-weight:600}
 #scene-manual-footer nav button:hover{border-color:var(--cyan);box-shadow:inset 0 1px 0 #ffffff10}

@@ -187,7 +187,21 @@
       return;
     }
     if (!isManual(scene)) fail("Ручная команда требует ручной политики стола.", "TABLE_MANUAL_REQUIRED");
-    if (p.kind === "start-rules") fail("Инициализация нового боя ещё не подключена.", "TABLE_START_RULES_UNAVAILABLE");
+    if (p.kind === "start-rules") {
+      exactKeys(p, ["kind", "firstActorId", "expectedVersion", "policyEpoch"]);
+      if (event.actorId) fail("Бой начинает Нарратор.");
+      safeId(p.firstActorId);
+      if (p.expectedVersion !== Number(scene.version || 0)) fail("Стол изменился после предпросмотра. Откройте запуск заново.", "SCENE_VERSION_CONFLICT");
+      if (p.policyEpoch !== normalizePolicy(scene.tablePolicy).epoch) fail("Ведение стола изменилось.", "TABLE_POLICY_CONFLICT");
+      if (pendingWork(scene)) fail("Сначала завершите ожидающее действие.", "TABLE_PENDING_WORK");
+      const kernel = global.DAWN_LIONWING_ENGINE;
+      if (!kernel?.initializeRulesBattle) fail("Ядро запуска LionWing недоступно.", "TABLE_ENGINE_UNAVAILABLE");
+      const started = kernel.initializeRulesBattle(scene, p.firstActorId, event.id, event.at).scene;
+      // The enclosing command advances the public version exactly once.
+      started.version = scene.version;
+      Object.assign(scene, started);
+      return;
+    }
     if(p.kind === "tension"){exactKeys(p,["kind","value"]);if(!Number.isSafeInteger(p.value)||p.value<0||p.value>999)fail("Некорректное Напряжение.");scene.tension=p.value;}
     else if(p.kind === "layout/replace")replaceLayout(scene,event);
     else if (p.kind === "move") {
