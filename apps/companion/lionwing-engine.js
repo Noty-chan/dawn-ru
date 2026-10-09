@@ -4944,6 +4944,39 @@
     state(next).specialJournal.push(copy(undoEvent)); state(next).specialJournal = state(next).specialJournal.slice(-128);
     return { ok: true, scene: next, event: undoEvent, undone: true };
   }
+  // A new encounter is not a scene reset: never heal or replay frozen turns.
+  // The table policy owns the typed command and its receipt; this bridge uses
+  // the canonical first-Turn pipeline on a disposable, fresh preparation.
+  function initializeRulesBattle(scene, firstActorId, eventId, eventAt) {
+    if (scene.rulesEdition !== "lionwing" || scene.tablePolicy?.mode !== "manual") fail("Начать новый бой можно только на ручном столе LionWing");
+    if (global.DAWN_TABLE_POLICY?.pendingWork(scene)) fail("Сначала завершите ожидающее действие");
+    if (scene.lionwing?.started || scene.activeActorId || Number(scene.turnSerial || 0) > 0 || scene.lionwing?.grantedTurns?.length || (scene.actors || []).some(participant => ownTurnSerial(participant) > 0)) fail("Этот стол хранит замороженный бой. Возобновление старых автоматических сроков пока не поддерживается");
+    const timed = definition => !["manual", "persistent"].includes(definition?.lifetime || definition?.duration || definition?.resetAt || "manual");
+    const frozenSources = scene.lionwing?.auras?.length || (scene.actors || []).some(participant =>
+      Object.values(participant.effectStates || {}).some(saved => timed(saved) || (saved.sources || []).some(timed))
+      || [...Object.values(participant.ruleResources || {}), ...Object.values(participant.ruleClocks || {})].some(timed));
+    if (frozenSources) fail("На столе есть замороженные автоматические сроки или источники. Их перенос в новый бой пока не поддерживается");
+    const next = copy(scene);
+    next.tablePolicy = { ...next.tablePolicy, mode: "rules", epoch: Number(next.tablePolicy.epoch || 0) + 1 };
+    next.round = 1; next.turnSerial = 0; next.tension = 0; next.activeActorId = null;
+    next.targetIds = []; next.targetCells = []; next.results = null;
+    next.turnUndo = [];
+    // Starting the first Turn initializes Focus and canonical AP, including
+    // Ronin and Staggered, and runs sceneStart once rather than catching up.
+    for (const participant of next.actors || []) {
+      participant.acted = participant.kind === "crowd";
+      participant.usedActions = []; participant.stepRemaining = 0;
+    }
+    if (next.lionwing?.meters?.tension) {
+      next.lionwing.meters.tension.current = 0;
+      next.lionwing.meters.tension.value = 0;
+    }
+    const result = dispatchMany(next, [{ ...command(firstActorId, { kind: "turn-start" }), id: `${eventId}:first-turn`, at: eventAt }]);
+    if (!result.events.length) fail("ID запуска уже использован. Откройте запуск заново");
+    result.scene.selectedActor = firstActorId;
+    result.scene.activeSpace = actor(result.scene, firstActorId).space;
+    return result;
+  }
   function reload(scene) {
     const next = typeof scene === "string" ? JSON.parse(scene) : copy(scene);
     if (!next || typeof next !== "object") fail("Сохранение Сцены не является JSON-объектом");
@@ -5057,7 +5090,7 @@
     return { exists: Boolean(pending), pending, targetIds: targets, eligibleIds, waitingIds, autoPassedIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), canResolve: Boolean(pending && !mustCancel && !waitingIds.length), mustCancel, interruptedReason: mustCancel ? "Источник или все цели недоступны" : "" };
   }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity, sharedTechniqueRows, masterArmamentStatus,
+    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, initializeRulesBattle, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity, sharedTechniqueRows, masterArmamentStatus,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
     movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport, reactionOptions,

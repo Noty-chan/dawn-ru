@@ -3,6 +3,35 @@
 // Connects the shared manual policy to the existing single Scene writer.
 function manualTableActive(){return Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene))}
 function manualTableCopy(ru,en){return isEnglishPreview()?en:ru}
+function openRulesBattleStart(){
+  if(!manualTableActive()||activeSceneView()!=="gm")return;
+  const t=key=>window.DAWN_I18N.t(`scene.rulesStart.${key}`);
+  let dialog=$("scene-rules-start");
+  if(!dialog){dialog=document.createElement("dialog");dialog.id="scene-rules-start";dialog.className="manual-table-dialog";dialog.setAttribute("aria-labelledby","scene-rules-start-title");document.body.append(dialog);}
+  if(dialog.open)return;
+  const scope=manualClockScope(),version=Number(Scene.version||0),epoch=Scene.tablePolicy?.epoch||0,id=uid();
+  dialog.rulesStartScope=scope;
+  const payload=firstActorId=>({kind:"start-rules",firstActorId,expectedVersion:version,policyEpoch:epoch});
+  const event=firstActorId=>({id,type:"table.command",actorId:null,payload:payload(firstActorId)});
+  const candidates=Scene.actors.filter(actor=>!actor.hidden&&!actor.knockedOut&&actor.kind!=="crowd"&&!String(actor.profileId||"").includes(".modifier."));
+  dialog.innerHTML=`<h2 id="scene-rules-start-title">${esc(t("title"))}</h2><p>${esc(t("summary"))}</p><label>${esc(t("first"))}<select data-rules-first>${candidates.map(actor=>`<option value="${esc(actor.id)}">${esc(actor.name)}</option>`).join("")}</select></label><div data-rules-preview></div><output aria-live="polite"></output><footer><button type="button" data-rules-cancel>${esc(t("cancel"))}</button><button type="button" data-rules-confirm>${esc(t("confirm"))}</button></footer>`;
+  const select=dialog.querySelector("select"),confirm=dialog.querySelector("[data-rules-confirm]"),output=dialog.querySelector("output"),preview=dialog.querySelector("[data-rules-preview]");
+  const hero=candidates.find(actor=>actor.kind==="hero"||actor.heroId);if(hero)select.value=hero.id;
+  const stale=()=>scope!==manualClockScope()||version!==Number(Scene.version||0)||!manualTableActive()||activeSceneView()!=="gm"||Boolean(sceneNumericCorrectionReason());
+  const paint=()=>{
+    confirm.disabled=true;preview.innerHTML="";
+    if(stale()){output.textContent=t("changed");return;}
+    if(!candidates.length){output.textContent=t("empty");return;}
+    const result=SceneEngine.previewEvents(Scene,[event(select.value)],{expectedVersion:version});
+    if(!result.ok){output.textContent=result.errors?.join(" ")||t("changed");return;}
+    output.textContent="";confirm.disabled=false;
+    preview.innerHTML=`<table><thead><tr><th>${esc(t("actor"))}</th><th>${esc(t("ap"))}</th><th>${esc(t("focus"))}</th></tr></thead><tbody>${result.scene.actors.filter(actor=>!actor.hidden).map(actor=>{const old=Scene.actors.find(row=>row.id===actor.id);return `<tr><td>${esc(actor.name)}</td><td>${Number(old.ap)||0} → ${Number(actor.ap)||0}</td><td>${Number(old.focus)||0} → ${Number(actor.focus)||0}</td></tr>`}).join("")}</tbody></table>`;
+  };
+  select.onchange=paint;
+  dialog.querySelector("[data-rules-cancel]").onclick=()=>dialog.close();
+  confirm.onclick=()=>{if(stale()){paint();return;}confirm.disabled=true;const result=commitSceneEvents(t("title"),[event(select.value)]);if(result)dialog.close();else paint();};
+  dialog.refreshRulesStart=paint;paint();dialog.showModal();
+}
 function placeManualMapObject(tool,{x,y,cells:paintedCells,settings}){
   if(!manualTableActive()||activeSceneView()!=="gm")return null;
   if(window.DAWN_TABLE_POLICY.pendingWork(Scene)||sceneHasLocalPendingSelection())return toast(manualTableCopy("Сначала завершите ожидающее действие.","Finish the pending workflow first."));
@@ -486,6 +515,8 @@ function renderManualToolLabels(){
   }
 }
 function renderManualTable(){
+  const rulesStart=$("scene-rules-start");
+  if(rulesStart?.open){if(!manualTableActive()||activeSceneView()!=="gm"||rulesStart.rulesStartScope!==manualClockScope())rulesStart.close();else rulesStart.refreshRulesStart?.();}
   installManualTerrainBrush();
   renderManualToolLabels();
   window.DAWN_SCENE_PRESENTATIONS?.refresh?.();
@@ -608,6 +639,7 @@ document.addEventListener("keydown",event=>{
   document.querySelectorAll(".scene-wall-preview,.scene-erase-label").forEach(node=>node.remove());
 },true);
 function manualEventText(scene,event,{english=false,entries=()=>[],effects=[]}={}){
+  if(event.payload?.kind==="start-rules")return window.DAWN_I18N?.t?.("scene.rulesStart.started",{actor:scene.actors.find(actor=>actor.id===event.payload.firstActorId)?.name||event.payload.firstActorId})||"start-rules";
   const copy=(ru,en)=>english?en:ru,p=event.payload||{},actor=scene.actors.find(a=>a.id===event.actorId),name=actor?.name||copy("Стол","Table");
   const entry=actor&&entries(actor).find(row=>row.id===p.key),ability=entry?.name||copy("Приём","Ability");
   const resourceNames={hp:copy("ЗД","HP"),maxHp:copy("Макс. ЗД","Max HP"),focus:copy("Фокус","Focus"),influence:copy("Влияние","Influence"),stress:copy("Стресс","Stress"),wounds:copy("Раны","Wounds"),ap:copy("ОД","AP"),baseAp:copy("Базовые ОД","Base AP"),armor:copy("Броня","Armor"),evasion:copy("Уклонение","Evasion"),speed:copy("Скорость","Speed")};

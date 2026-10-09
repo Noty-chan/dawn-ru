@@ -1,0 +1,327 @@
+
+> dawn-ru-companion@2.0.0 pretest
+> npm run test:workspace && npm run test:verification && node tests/lionwing-cockpit-routes.mjs && node tests/lionwing-cockpit-preview.mjs && npm run test:core-contracts && npm run test:families && npm run test:foundation-bridge && npm run test:typed-targets && npm run test:prompt-queue && npm run test:entities-removal && npm run test:derived-actions && npm run test:enemy-base-attacks && npm run test:enemy-audit && node tests/lionwing-recovery-stress.mjs && node tests/lionwing-recovery-r10.mjs
+
+
+> dawn-ru-companion@2.0.0 test:workspace
+> node tests/mobile-header.mjs && node tests/app-workspace.mjs && node tests/app-navigation.mjs && node tests/scene-reference-pagination.mjs && node tests/scene-viewport.mjs && node tests/scene-workspace-next.mjs && node tests/scene-turn-strip.mjs && node tests/scene-empty-state.mjs && node tests/table-rules-start.mjs && node tests/scene-pointer-routing.mjs && node tests/scene-token-hud.mjs && node tests/mobile-scene-sheet.mjs && node tests/tools-workspace.mjs && node tests/tools-support-workspace.mjs && node tests/scene-board-tools.mjs && node tests/scene-board-wheel.mjs && node tests/scene-presentation-transport.mjs && node tests/scene-measurement.mjs && node tests/scene-environment-erase.mjs && node tests/scene-action-tray.mjs
+
+Mobile header VM scenarios passed: node placement, desktop restore, scroll hysteresis/clamp, keyboard/touch, menus/dialog, mode/anchor quiet period, measurement and asset linkage. Browser CSS layout not exercised.
+Desktop workspace: canonical audiences and type filters, complete catalog windows, valid edition links and internal navigation passed
+Local section navigation: page/inner scroll, split panels, role/layout changes, rapid transitions, and anchor precedence passed.
+Left work panels: default/old split require explicit opt-in
+Scene reference classification {"combat":18,"field":18,"actions":17,"effects":19,"enemies":61}; excluded full-reference rules: 71/168; primary chapters, paging, details/focus and read-only visibility: OK
+Scene viewport preserves manual zoom and coalesces automatic fitting without game mutations
+Next scene measured dock boundary: fractional height, resize/content and desktop/classic reset passed
+Portrait turn roster reveal: handoff/layout changes only, manual scroll and hidden/classic/mobile preservation passed
+Mobile shell: live header measurement, no stale second header height
+Portrait turn roster: active/selected/completed distinction, visibility, scroll and read-only rendering passed
+Off-field participant explanation and placement suppression passed
+Rules start PASS: immutable preview, atomic policy/init, canonical first Turn/AP/Focus, preserved manual data, replay/reload, next Turns/Round, stale/rights/target/pending/frozen rejection; model harness, no live transport
+Scene pointer routing passed: inspection/targets, independent panels, Player context ruler, safe Map routes and Escape ownership.
+Token HUD: actor binding, authority, canonical HP edits, target independence, keyboard and lifecycle OK
+Shared numeric corrections: Hero/Info/cockpit guard preserves deltas until server acknowledgement
+HUD geometry: 612 safe layouts, 36 external fallbacks, 648 manual/rules edge/size/zoom cases
+Scene sheet empty-state VM PASS: RU/EN, empty/nonempty Scene, GM/player/local CTAs, no mutations and normal actor rendering. Browser and network not exercised.
+Tools workspace VM PASS: real hero/resource/source rendering, selection changes, redraw focus/disclosures, conditional real gadgets and narrator refresh. Browser layout/network not exercised.
+Tools support VM PASS: 100-record page/search cases; real renderers retain 40 clocks/35 bonds/70 rolls, controls, state and shared permissions/visibility. Browser tabs, DOM reparenting, disclosure and layout require root QA.
+PASS: actual controls/listeners/state preserved, separate clears, five real categories, player gating, idempotent lifecycle, no Escape interception.
+Real board wheel handler: all Wall events consumed, throttled rotation, modifiers/trackpad and neutral camera behavior passed
+Private presentations production transport:5 rooms x5 clients x300s, trusted author/colors, rate/capacity/epoch, immutable Scene and delayed teardown passed
+Presentation recovery: transient bootstrap/poll retry, bounded backoff, denial and leave guards passed
+Local ruler: GM/Player isolation, Manhattan distance, live/final/zero output, prepared action preservation, no writes
+Environment eraser: objects only, explicit wall/marker, deterministic overlap, permissions and pending workflow protection
+Action tray: GM authority/disabled/confirmation guards, results access, vertical/trackpad scroll and camera modifiers
+
+> dawn-ru-companion@2.0.0 test:verification
+> node tests/automation-verification.mjs && node tests/lionwing-verification-ui.mjs && node tests/lionwing-verification-registry.mjs
+
+File symlink regression requires Windows symlink permission; Linux CI executes it.
+Automation verification contract passed: real scoped subprocess receipts, revision/dependency invalidation, partial/failed/dirty/mixed evidence, CRLF stability and honest surface completeness
+LionWing verification UI: exact-build receipts, partial surfaces, stale/failed/missing evidence, canonical IDs and escaping passed
+Verified runtime written: 5d1530957f0ede0d5929a4d0a7c2a09a10ada148, 3 core-tested rules, 0 complete paths
+LionWing verification registry: historical claims never certify, exact rule projection, partial/stale/failed receipts and browser artifact passed
+LionWing cockpit routes passed: independent action source, explicit read-only navigation, one executor/reference, visible NPC gate reasons, compact panes and lexical Hero linkage
+LionWing cockpit preview passed: exact price, board/strip targeting, Player sheet refresh/pending/reaction/destination, retained fields/focus/details/source/roll, cancel, version guard, replay and ownership
+
+> dawn-ru-companion@2.0.0 test:core-contracts
+> node tests/scene-core-contracts.mjs && node tests/lionwing-destination-contracts.mjs && node tests/lionwing-projection-previews.mjs && node tests/lionwing-technique-destination-ui.mjs && npm run test:action-lifecycle && npm run test:composition-properties
+
+Core packet contracts: both editions, atomic failures, exact retries after full combat/reload, metadata conflicts, four seeds × five tables × five writers, bounded receipts
+Destination contracts: Jump/diagonal/terrain, Shove, Improvise, Dodge, appearance, placement, generated query/commit parity, production picker/highlight/click/stale cell/cancel
+LionWing projection previews: player/narrator/owner prepare, destinations, information UI, reload/reproject and private containers passed
+LionWing technique destination UI passed: real Clash offer, board gates, preview/cancel, projected player forwarding and stale choice cleanup
+
+> dawn-ru-companion@2.0.0 test:action-lifecycle
+> node tests/lionwing-action-lifecycle.mjs && node tests/lionwing-action-identity.mjs
+
+LionWing Action lifecycle: native/Master/NPC hooks, fixed resources, replacement continuation, healing gates, immutable preview, reload and exact replay passed
+LionWing Action identity: distinct fresh Actions, public hint isolation, immutable refusals, batch/plan, Armament and fixed/profile continuations, reload and exact replay passed
+
+> dawn-ru-companion@2.0.0 test:composition-properties
+> node tests/lionwing-composition-properties.mjs
+
+LionWing composition properties: seed=20261003, runs=12, bases=7, uniqueCombinations=12, routes=13, accepted=61, refused=82; prices/resources/history, preview/refusal, Turns/Rounds, pending reload and exact replay passed
+
+> dawn-ru-companion@2.0.0 test:families
+> node tests/lionwing-restored-techniques.mjs && node tests/lionwing-restored-controls-ui.mjs && node tests/lionwing-foundations.mjs && node tests/lionwing-neutral-lifecycle.mjs && node tests/lionwing-lifecycle-consumers.mjs && node tests/lionwing-numeric-composer.mjs && node tests/lionwing-monastic-sage.mjs && node tests/lionwing-dice-foundation.mjs && node tests/lionwing-dice-engine.mjs && node tests/lionwing-action-plan-foundation.mjs && node tests/lionwing-action-plan-execution.mjs && node tests/lionwing-entities-foundation.mjs && node tests/lionwing-entities-persistence.mjs && node tests/lionwing-entities-ui.mjs && node tests/lionwing-numeric-ui.mjs && node tests/lionwing-family-integration.mjs && node tests/lionwing-manual-attack-plan.mjs && node tests/lionwing-turn-lifetimes.mjs && node tests/lionwing-geometry.mjs && node tests/lionwing-geometry-runtime.mjs && node tests/lionwing-spatial-engine.mjs && node tests/lionwing-geometry-commit.mjs && node tests/lionwing-segment-movement.mjs && node tests/lionwing-movement-lifecycle.mjs && node tests/lionwing-geometry-ui.mjs && node tests/lionwing-step-ui.mjs && node tests/lionwing-area-automation.mjs && node tests/lionwing-effects-families.mjs && node tests/lionwing-effects-ui.mjs && node tests/lionwing-effects-persistence.mjs && node tests/lionwing-auras.mjs && node tests/lionwing-aura-transitions.mjs && node tests/lionwing-aura-movement.mjs && node tests/lionwing-execution-continuation.mjs && node tests/lionwing-nested-continuation-ui.mjs && node tests/lionwing-special-operations.mjs && node tests/lionwing-counters.mjs && node tests/lionwing-combat-meter.mjs && node tests/lionwing-provenance.mjs && node tests/lionwing-inventory.mjs && node tests/lionwing-narrator-roll-ui.mjs && node tests/lionwing-passive-adapters.mjs && node tests/lionwing-action-modifiers.mjs && node tests/lionwing-breacher.mjs && node tests/lionwing-student-of-stars.mjs && node tests/lionwing-martial-skirmisher.mjs && node tests/lionwing-equipment-chains.mjs && node tests/lionwing-master-at-arms-audit.mjs && node tests/lionwing-detective-three.mjs && node tests/lionwing-siren-three.mjs && node tests/lionwing-siren-bombardier-audit.mjs && node tests/lionwing-technique-surface.mjs && node tests/lionwing-quick-core-techniques.mjs && node tests/lionwing-unbroken-complex.mjs
+
+All 12 restored LionWing levels: canonical digests, costs, optional choices, ownership, movement, attack order, forms, immutable preview, version rejection, reload and exact replay passed
+LionWing restored technique controls: OK
+LionWing foundations: composite payment, aliases, version/replay, cancellation, HP spend, scoped limits, old saves, raw dice and private history passed
+LionWing neutral lifecycle: canonical boundaries, stable private receipts, optional choices, reload and replay passed
+LionWing lifecycle consumers: Scene/Round resources, inventory start, any-Turn extra Turns and Scene reset passed
+LionWing numeric composer: deterministic order, conflicts, rounding, manual API and combat integration passed
+Monastic Sage I–III: canonical digests, Balance lifecycle, guarded alternating actions, optional choices, Meditate boundary, duplicate and reload-safe state checks passed
+LionWing dice foundation passed: verified source/critical links, raw D6, stable dice IDs, add-remove-reroll-change-lock, derived results, provenance, atomic receipts, JSON reload/replay, thresholds, random authority, and opposed checks
+LionWing dice engine adapter passed: authoritative create, raw D6, forged-result recalculation, stable IDs, ownership, operation replay/conflict, JSON restore and opposed tie policy
+LionWing ActionPlan foundation: separate definition/instance IDs, root siblings, snapshots, phases, replacement conflicts, consumable modifiers, forged totals, amend windows, reload and replay passed
+LionWing ActionPlan execution bridge: reservation, two targets, conflict continuation, unpaid preview/commit descriptor, one-time modifier intent, reload/replay and forged result rejection passed
+LionWing entities: typed actor/marker/object/area backing, immutable lifecycle, links, cycle and dangling rejection, source-loss policies, cleanup planning, projections, JSON reload, replay and undo passed
+LionWing entities app-core persistence passed: typed actor/marker/object/area/wall backing, hidden and owner projection, reload, export/import, undo snapshots, source-loss policies, dangling/cycle rejection and legacy isolation
+LionWing entities UI loading, projection and Narrator create/remove commit passed
+LionWing numeric source UI separates sheet, canonical and temporary contributions
+LionWing family integration: ActionPlan preparation, persistent roll, Attack/Reaction, two damage cases with Resistance continuation, sourced Effect, threshold clock, aura/segmented movement, JSON reload and entity undo/replay passed
+LionWing manual Attack ActionPlan: preview, stale and price rejection, Reaction gate, Resistance continuation, JSON reload, replay and payment idempotency passed
+Persistent dice UI: create, cancel, change, lock/unlock, remove and Narrator plan boundary passed
+LionWing Turn lifetimes: own serials, stable instances, pause/resume, extra Turns, owner/any scopes, boundary expiry, Scene facts and reload passed
+LionWing geometry: anchors, footprints, weighted routes, large-body edges, partial stops, serialization and revalidation passed
+LionWing geometry runtime: typed placement, teleport, displacement, strict recheck, journal, reload/replay and undo passed
+LionWing spatial engine: placement, teleport, segmented displacement, aura transitions, journal, replay and stale rejection passed
+LionWing geometry commit: preview, body route, terminal terrain, replay and stale target passed
+LionWing segmented movement: boundaries, reload, one-shot continuation, external blockers, terminal terrain and undo snapshot passed
+LionWing movement lifecycle: authoritative facts, hooks, forced routes, stop reasons, reload and checked operation factory passed
+LionWing geometry UI behavior passed: success, cancel, package staging, stale refresh, role check, selection reset, terminal reason and mouseleave highlight
+LionWing Step UI: hero sheet and tray choose a destination before payment; NPC action uses the same reachable-cell and canonical commit path
+LionWing area automation: shared shapes, clipping, large bodies, derived targets/empty cells, forged/stale/reload checks, Bombardier I/II/III, opt-in and ordinary Finisher passed
+LionWing effects families: source identity, suppression, protected removal, reload, independent expiry and atomic rejection passed
+LionWing effects UI rendering passed: identity, escaping, durations, protected removal and restoration
+LionWing effect persistence normalization passed: suppressed, independent and Scene sources survive; legacy behavior is unchanged
+LionWing static auras: active-state query, overlap, geometry, relation, suppression, lifecycle, reload, replay and rights passed
+LionWing aura transitions: large bodies, target/source movement and deterministic enter/exit passed
+LionWing aura movement: segmented enter/exit, source movement, large bodies, suppression, reload and replay passed
+LionWing execution continuation: Health payment, serialized cursor, two Consequences, reload, ownership, replay and empty-tail cleanup passed
+LionWing nested continuation UI passed: stage path, LIFO stack, nested Resistance and turn-pane routing
+LionWing special operations: typed Banish, Vanish and Compound operations, lifetimes, reappearance placement, gates, reload, replay and undo passed
+LionWing counters: strict metadata, atomic bounds, one-shot thresholds, replay, reset, reload, undo storage, ownership and Scene path passed
+LionWing combat meter: typed metadata, read-only quote, engine-only writes, atomic bounds and idempotent receipts passed
+LionWing provenance gate passed: 127 adapters and 90 executable registry levels verified
+LionWing inventory: typed records, atomic costs, boundaries, provenance, replacement, visibility, transfer, adapters, network and UI passed
+LionWing Narrator roll UI passed: actor selection, sheet pool, form persistence, narrator without local hero, player ownership, spoof rejection, and request/roll separation
+LionWing passive adapters passed: canonical identity, bonuses and floors, lifecycle grants, replacement resources and action restrictions
+Fade and Choke native rules passed: enabled routes, canonical sources, board validation, source ownership, costs, cancellation and replay
+Witch Hunter native connection passed: same-target receipts, wrong target and interrupted combo
+LionWing action modifiers: pure quote contract, first-per-turn/round gates, Swift/cost stacking, trusted-state safeguards, Hide requirement exceptions, prepare/dispatch replay and forged cost protection passed
+LionWing Breacher I–III contracts passed
+LionWing Student Of Stars: authoritative Charge -> Finisher gate, typed 3×Tension Focus cap, linked line area revalidation, forged claims, and stale/over-cap rejection passed
+LionWing Martial Artist / Skirmisher contracts passed: trusted tags, Hammers choices, Flow damage, fixed Jab, reload and duplicate guards
+LionWing equipment and action chains passed
+LionWing Master at Arms audit: Detective successor, page 79 provenance, canonical digests and authoritative UI guard passed
+LionWing Master native route: all Armaments/Finishers, learned-level projection, II bonus, board cells, NPC auto-pass, cancellation, reload, replay and version conflict passed
+LionWing native/shared composition: all three Master Finishers, per-target Witch Hunter, intervening Armament, disabled rule, immutable preview, conflict, reload, exact replay and source log passed
+LionWing native/shared quotes: Student price and Focus cap, Block modifiers/payment/displacement, conflict, replay and reload passed
+LionWing shared defenses: native Armor/cap, Marked/Headshot order, consumable Evasion, Immobilized/Caught, disabled rules, preview/commit parity, reload and replay passed
+Detective III QA passed
+Siren III: Spirit/Mind trigger, frightened-only sequential movement, adjacency damage, cancel and non-Finisher isolation passed
+LionWing Siren/Bombardier audit: canonical digests, Study→Fear, active-Turn and actual-adjacency guards, blocked/off-Turn negatives, Spirit/center/Focus/source checks, derived empty cells, reload and anti-spoofing passed
+LionWing technique surface passed: canonical source, separate automation status, action availability, offer cancel/reload and visibility
+Technique console: seven-level status, real atomic activation, resources, native Cast entry and pending NPC decision passed
+Student console: connect -> Charge -> line Finisher, no direct flag injection, atomic AP/Focus and free prepare passed
+Icicle activation: mid-scene create, Charge, exact retry, re-enable preservation and restored-flag recovery passed
+Technique routing contract: all previously disconnected full declarations are routed; any new gap fails QA
+LionWing quick core techniques passed: canonical EN digests, ownership/opt-in, range floor, Round gate, negative, boundary, reload and replay
+LionWing Unbroken I/III: canonical Get Back Up → Phoenix, chapter limit, stale/reload/ownership, cancel fallback and Influence lock passed
+
+> dawn-ru-companion@2.0.0 test:foundation-bridge
+> node tests/lionwing-foundation-bridge.mjs
+
+LionWing foundation bridge: validated declarations, authoritative resource/action gates, expiry, replay and manual fallback passed
+
+> dawn-ru-companion@2.0.0 test:typed-targets
+> node tests/lionwing-typed-targets.mjs
+
+LionWing typed targets: actor/cell/terrain/wall/entity resolution, boundaries, occupancy, reload, legacy compatibility and forged snapshot/ownership checks passed
+
+> dawn-ru-companion@2.0.0 test:prompt-queue
+> node tests/lionwing-prompt-queue.mjs
+
+LionWing prompt queue QA passed: priority and tie-break ordering, authority boundaries, cancel/stale fallback, reload/replay idempotency, and version conflicts
+
+> dawn-ru-companion@2.0.0 test:entities-removal
+> node tests/lionwing-entities-removal.mjs && node tests/lionwing-destroy-plan.mjs && node tests/lionwing-destroy-wiring.mjs
+
+LionWing entity removal: typed prepare/cancel, Narrator authority, cascade cleanup, protected rollback, journal, stale version, JSON reload, idempotent replay and undo passed
+LionWing destroy plan: typed table, immutable prepare/cancel, owner and target cleanup, Compound evacuation, source-loss policy, protected rollback, stale plan, JSON reload, replay and undo passed
+LionWing destroy wiring: production validator, commitScene single writer, stale/cancel/adapter guards, returned-scene transfers, and large-body placement passed
+
+> dawn-ru-companion@2.0.0 test:derived-actions
+> node tests/lionwing-derived-actions.mjs
+
+LionWing derived actions: trusted identity, fixed target/damage, reaction, cancellation, replay loop guard and forged payload rejection passed
+
+> dawn-ru-companion@2.0.0 test:enemy-base-attacks
+> node tests/lionwing-enemy-base-attacks.mjs && node tests/lionwing-enemy-reaction-ui.mjs
+
+LionWing enemy automation: 35 canonical attacks, 14 Aces, 4 manual attack fallbacks, 27 manual Aces; shared reaction/effect/damage pipeline and guards passed
+LionWing NPC UI: defenses, serialized resolution, reappearance restrictions and coordinated critical attacks passed
+
+> dawn-ru-companion@2.0.0 test:enemy-audit
+> node tests/lionwing-enemy-inventory.mjs && node tests/lionwing-enemy-ranger-adversarial.mjs && node tests/lionwing-enemy-simple-actions.mjs && node tests/lionwing-enemy-turn-passives.mjs && node tests/lionwing-enemy-simple-wave.mjs && node tests/lionwing-enemy-fodder-creators.mjs && node tests/lionwing-swarm-bodyguards.mjs
+
+LionWing enemy inventory OK: 41 profiles, 122 actions/attacks/aces, 38 non-empty passives + 3 N/A passives; 12 modifiers and 18 antagonist records excluded
+MUTATION CAUGHT: writer omission
+MUTATION CAUGHT: writer duplication
+MUTATION CAUGHT: targetId loss
+LionWing Ranger adversarial regression suite passed.
+LionWing simple enemy Actions: effects, healing, selected/filtered targets, AP, persistence, replay and Assassin Mark passed
+Enemy Assassin Deployment and Ronin Turn passive checks passed
+LionWing enemy simple wave: Heal, Gloat, Lick The Knife, guarded Stabilize and non-Attack damage passed
+LionWing Fodder creators OK
+LionWing Swarm and Bodyguards: deployment proxies, allied Fodder Brace, persistence/network, lifecycle and event authority passed
+LionWing L06 recovery stress passed: 280 events, 3 spaces, pending Resistance checkpoint, 200-row journal limit, 20 undo snapshots, localStorage, IndexedDB recovery, export/import, JSON reload and failed-write preservation
+LionWing R10 recovery passed: real storage helpers, IndexedDB-to-localStorage fallback precedence, failed-write preservation, pending Resistance export/import, bounded journal and corrupt/oversized input
+
+> dawn-ru-companion@2.0.0 test
+> node tests/service-worker-navigation.mjs && npm run test:hero-gadgets && node tests/diagnostics-ui.mjs && node build_technique_foundation_map.mjs --check && node build_automation_readiness.mjs --check && node build_lionwing_automation_map.mjs --check && node build_lionwing_automation_registry.mjs --check && node build_rule_reference_docs.mjs --check && node tests/syntax.mjs && node tests/lionwing-engine.mjs && node tests/lionwing-reaction-gates.mjs && node tests/lionwing-information-query.mjs && node tests/lionwing-replacements.mjs && node tests/lionwing-after-events.mjs && node tests/lionwing-technician.mjs && node tests/lionwing-student-of-stars.mjs && node tests/lionwing-duel-entry.mjs && node tests/lionwing-automation-registry.mjs && node tests/lionwing-technique-status-ui.mjs && npm run test:hero-sheet-view && node ../../tools/content/build_lionwing_requirements.mjs --check && node tests/enemy-modifiers.mjs && node tests/lionwing-modifier-isolation.mjs && node tests/lionwing-modifier-artillery.mjs && node tests/lionwing-modifier-haven.mjs && node tests/lionwing-modifier-contagion.mjs && node tests/lionwing-modifier-earthquake.mjs && node tests/lionwing-modifier-vip.mjs && node tests/lionwing-modifier-collateral.mjs && node tests/lionwing-modifier-legion.mjs && node tests/lionwing-modifier-vortex.mjs && node tests/lionwing-modifier-blaze.mjs && node tests/lionwing-modifier-giant.mjs && node tests/lionwing-modifier-gargantuan.mjs && node tests/lionwing-modifier-legacy-scene.mjs && node tests/edition-registry.mjs && node tests/edition-isolation.mjs && node tests/lionwing-localization.mjs && node tests/lionwing-table-data.mjs && node tests/supplements.mjs && node tests/localization.mjs && node tests/network-mvp.mjs && node tests/network-v2.mjs && node tests/intent-batch-rpc-postgres.mjs && node tests/network-flow.mjs && node tests/network-load-race.mjs && node tests/network-session-switch.mjs && node tests/network-table-switch-history.mjs && node tests/network-timeout-abort.mjs && node tests/network-placement-preview.mjs && node tests/manual-token-counters.mjs && node tests/manual-optimistic-snapshot.mjs && node tests/network-size-guard.mjs && node tests/dim-mak-siren.mjs && node tests/raasha.mjs && node tests/freeplay-tools.mjs && node tests/freeplay-resources-gadgets.mjs && node tests/scene-engine.mjs && node tests/technique-engine.mjs && node tests/hero-builds.mjs && node tests/catalog-smoke.mjs && node tests/qa.mjs && node tests/lionwing-siren-bombardier-audit.mjs && npm run test:alpha-stress
+
+PASS: real SW shell aliases, isolated testing/iframe navigation cache, own offline variants, uncached failure, non-GET/external bypass.
+
+> dawn-ru-companion@2.0.0 test:hero-gadgets
+> node tests/hero-gadgets.mjs
+
+Hero gadgets QA passed: accounting, editing isolation, refunds, portable JSON, validation and legacy compatibility
+Alpha diagnostics UI passed: bilingual report, recent-Round state, runtime and interaction journal, copy/download and redaction
+Technique foundation map is current: 333 levels
+Automation readiness map is current: 333 technique levels, 122 enemy rules
+LionWing automation map is current: 37 capabilities, 333 Technique Levels
+LionWing automation registry is current: 333 rows, 9 explicit reviews
+Rule reference documents are current: 4; technique title issues: 0; enemy title issues: 0; trait title issues: 0
+Syntax QA passed: 82 browser scripts
+LionWing kernel: actions, turns, damage, Wounds, Resistance, deferred hits, movement, effects, atomicity and replay passed
+LionWing regression: flow contract, strict resources, alternate Focus, Compound Effects, movement, batch deferral, reset and network isolation passed
+LionWing Duel: author-confirmed one Wound, old saves, Bail, Double Down and edge return passed
+LionWing serialized two-client flow: ownership, reactions, private continuation and Resistance passed
+LionWing effects and counters: source removal, reappearance, Blighted, lifecycle, persistence and strict bounds passed
+LionWing canonical lifetimes: UI default, Compound Banish and immediate Launch delay passed
+LionWing reactions: localized Cast, NPC auto-pass, forged defenses, mixed clients and hero gates passed
+LionWing information-query: authoritative Study receipts, scoped facts, private projections, Narrator choices, replay/undo, adapters and UI passed
+LionWing replacements: anonymous contracts, source digest, opt-in, ordered effects, Resistance, reload, undo snapshots, ownership and replay passed
+LionWing after-effect rules: Flagellant I, cancellation, nested replacement, optional pass, provenance and public player submission passed
+LionWing after-event adapters passed: opt-in, Clash reward choice, Turn limit, KO rewards, Fear/Weaken choices, reload/replay and unsupported Meal/Bond exclusion
+LionWing Technician I–III passed: digests, authoritative combo order, forged context, neutral scheduler, reload/duplicate safety, expiry fixture, and cancellable Finisher plan
+LionWing Student Of Stars: authoritative Charge -> Finisher gate, typed 3×Tension Focus cap, linked line area revalidation, forged claims, and stale/over-cap rejection passed
+LionWing Duel entry: trusted Focus snapshot, Moment Of Truth threshold/ceil, sources, cancel, reload and forged choice rejection passed
+LionWing automation registry: 333 canonical rows, strict ids/digests, explicit audit reviews and inherited defaults passed
+LionWing technique status UI/logic QA passed: canonical rows, filters, partial/manual help and HTML escaping
+
+> dawn-ru-companion@2.0.0 test:hero-sheet-view
+> node tests/lionwing-hero-sheet-view.mjs && node tests/lionwing-sheet-manual.mjs && node tests/lionwing-hero-bridge-persistence.mjs && node tests/lionwing-ui-localization-l09.mjs
+
+LionWing Hero Build/Sheet mode QA passed: mode policy, per-Hero preference, canonical statuses, RU/EN, resource counters and legacy isolation
+Hero initial-view lifecycle: completion/invalidation retain current editor/sheet, separate Heroes keep separate choices
+Hero export button: bilingual UI locale stays separate from canonical language, partial LionWing support and schema=2 remain explicit
+LionWing manual sheet behavior QA passed: gifts/bonds/playbook, actionable manual guide, read-only consequence bridge, and combat-queue exclusion
+LionWing hero consequence bridge persistence passed
+L09 LionWing UI localization passed: RU display mapping, canonical ids/enums, production reference render path and RU/EN role search
+LionWing requirements: 333 indexed, 333 manual drafts, 10 planned families; source digests and dependency graph valid
+Enemy modifier QA passed
+LionWing Isolation: Host, anchor, damage division, refresh and KO lifecycle passed
+LionWing Artillery: exact shape, Round-end Tension, damage and refresh passed
+LionWing Haven: exact Zone, outside damage, Round refresh, and scene lifetime passed
+LionWing Contagion: player anchor, Evasion, damage, refresh and source loss passed
+LionWing Earthquake: Evasion, range boundary, automatic flip and KO source loss passed
+LionWing VIP: configuration and PC-only defeat on KO passed
+LionWing Collateral: PC count, deployment HP, Spirit rescue, Peril clock and defeat passed
+LionWing Legion: deployment clock, collapse and round-start return passed
+LionWing Vortex: Host attachment, Armor and five edge Zones passed
+LionWing Blaze: attachment Speed, critical threshold and four effects passed
+LionWing Giant: footprint, Armor, Speed, charge, push and Launch passed
+LionWing Gargantuan: board expansion, defenses, terrain, push and damage passed
+Legacy LionWing modifier scenes: preserved read-only, event and edit gates passed
+Edition registry QA passed: 1 tracked changes
+Edition isolation QA passed: RU catalogue immutable, LionWing provenance complete, manual table isolated
+LionWing RU/EN QA passed: stable ids and budgets; 104 Ability words (35 new); ✢/✝/☾ and X cost verified; 10 Outlooks, 21 new and 33 changed Boons, 5 new and 106/106 changed Techniques
+LionWing manual table data OK: 41 NPC profiles and 12 separate modifiers, stable RU/EN ids
+Supplement registry QA passed: 4 isolated packages
+Localization architecture QA passed
+Network MVP QA passed: cloud character ownership, rule handouts, and atomic command SQL
+Network v2 QA passed: local UI isolation, structured intents, ownership, coalescing, and atomic ticks
+Network PostgreSQL tests: receipt ambiguity and SQL-NULL corruption in legacy RPCs reproduced; fixes, five isolated scenes, one-winner version race, consistent scene->command lock ordering, RLS cross-campaign insert rejection with valid insert preserved, and RPC timeout settings passed. Simultaneous multi-connection row-lock contention is not covered by single-session PGlite.
+Network flow integration QA passed: ordered batches, immediate recovery, version invariant and exact retry
+Network load race QA passed: subscription update wins over stale initial snapshot
+Network session-switch QA passed: queued writes, character saves, and overlapping table selections stay session-bound
+Network table-switch QA passed: scene-local history and selection never cross tables
+DAWN scene refresh failed Error: Истекло время ожидания проверки версии Сцены; запрос будет безопасно повторён
+    at Timeout.<anonymous> (evalmachine.<anonymous>:21:78)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7) {
+  code: 'DAWN_REQUEST_TIMEOUT',
+  retryable: true
+}
+DAWN command refresh failed Error: Истекло время ожидания обновления очереди команд; запрос будет безопасно повторён
+    at Timeout.<anonymous> (evalmachine.<anonymous>:21:78)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7) {
+  code: 'DAWN_REQUEST_TIMEOUT',
+  retryable: true
+}
+Network timeout abort QA passed: bounded RPC/insert/readback, one committed duplicate, polling and reload recovery
+Network placement preview QA passed: immediate visual position, unchanged rules state, rejection rollback
+Manual provisional view: immediate resource, immutable confirmed state, exact replay and rejection rollback passed
+Tension production renderer: same DOM/draft/focus after external wounds, no early commit, Enter/change/blur dedup, Escape and role reset passed
+Manual token counters QA passed: removal-change guards, empty draft, explicit input, fresh repeated steps and rights
+Token counter preferences survive actual persistNow/persistableStore and JSON reload
+Manual optimistic snapshot QA passed: refresh/remote overlay, rapid steps, canonical isolation, receipts and rollback
+Manual sync status: player outbox/in-flight/awaiting canonical, stale snapshot, exact receipt, terminal reject and settled repaint passed
+Network size guard QA passed: oversized edit and rejected shared undo roll back; safe edits queue normally
+Dim Mak and Siren QA passed
+Legacy 0.9 Raasha exact-sheet QA skipped: set DAWN_RAASHA_FIXTURE explicitly; shared UI assertions passed
+Ephemeral presentation model: geometry, clipping guards, scope/epoch/expiry/shape validation passed.
+Presentation actual listeners: cancelled/stray/mismatched releases, lifecycle cleanup, normal draw and actual Space/middle pan routing passed without Scene changes.
+Manual dice route: typed storage command, bounded pool, ownership, policy and no local resource writes passed
+Manual Tools: typed accepted/pending/rejected roll, own actor, unchanged resources/frozen requests, raw ranks, no automatic hooks and live policy guards passed; DOM/transport mocked
+manual clock UI route: create/set/remove, owner recheck, atomic bounds and no combat mutations passed
+Manual clock actual DOM handlers: delayed writer, fresh-node rebuild, repaint suppression, exact rejection, retry and blank input passed.
+manual deletion route: no mechanical planner, GM/pending guards, selection cleanup and read-only clock migration passed
+Manual reader: actor-owned formula, canonical NPC actions/passives/aces, rewards, read-only data and no automation controls passed
+Manual map UI/core: create, same-edge rejection, canonical cells/capacity, hidden persistence/projection, no targets/resources, marker clocks and replay passed
+Manual table network: real intent classification/authority reducer, ownership, epoch, old-client rejection, storage rolls, actor labels, clocks and informational areas passed
+Manual counters: owned authority commands, concurrent increments, bounds, privacy, removal and frozen resources passed.
+manual persistence/read contracts passed
+Manual layout: typed atomic space/table replacement, frozen heroes/runtime, caps, stale revision/epoch, private audit, replay, player denial, real preview/cancel route passed
+Full preset producer: excluded hidden sheet owner, orphan owner, walls/markers/areas and intentional public annotations passed
+Manual table policy: real engine storage commands, side-effect isolation, atomic validation, references, replay, stale guards and blocked automatic APIs passed
+Manual workspace actual adapter: read-only render, complete text, private selection, explicit command payloads, validation and live permission/policy guards passed. Browser geometry is not covered by this harness.
+Manual workspace shell: script order, policy options, RU/EN labels and versioned offline assets passed (structural checks; browser layout remains separate).
+Manual journal: actual RU/EN summaries, explicit zero, coordinates and no raw command/private rule IDs passed.
+Manual inputs: actual reentrant change handlers are suppressed during HP/Reader repaint; HP focus/draft retained without a command.
+Manual number inputs: fresh-node repaint preserves submission markers; explicit new values work and room changes discard drafts.
+Manual number inputs: synchronous refusals and exact player/authority rejection receipts restore retry without clearing unrelated submissions.
+Manual surfaces: Reader routing, NPC privacy, actor-bound typed resources, hint authority and no legacy runtime writes passed
+Manual inspector fresh DOM: no repaint writes, restored drafts submit once, pending markers survive, epoch invalidates and refusal permits retry.
+Manual panel regressions: stale sheet/director render is nonrecursive, environment remains readable, rules resource chips execute
+Manual movement: typed clear isolation, space validation, replay, GM UI authority and actual SVG without legacy query passed
+Pan lifecycle: actual keyboard/mouse handlers, displacement, synthetic-click suppression and lost-keyup recovery passed
+Hero dice history: reload/export retains author, D6 formula, faces, thresholds, opposed badge and payment; old sheets and bounded malformed input pass
+Freeplay localization: RU/EN results, tie/winner/pending, read-only roles and language round-trip preserve history, D6 and user text
+Challenge target scenarios passed: real director, target/scenario/guide, free roll, utility, snapshot, scene roll and request/input/reset/recipient handlers; DOM/network dependencies mocked.
+Freeplay resource/gadget VM PASS: own actor binding, local/shared/legacy resource policy, denied/failed writes, Hero writer reuse, conditional/stale gadgets, actual engine pool and roll payload. Network transport and canonical correction writer mocked; browser not exercised.
+Manual snapshots: frozen runtime, policy/undo, receipts preserved, explicit backup limits, direct frozen Entities and actual network queue/flush guards passed; DOM/transport/normalization mocked
+Manual area actual capture + camera handlers: Space/middle pan, scroll, synthetic-click suppression, draft preservation and normal placement passed.
+Manual tool labels: policy/language transitions describe storage-only movement and target marking passed.
+Manual terrain brush: interpolated drag produces one actual area packet; preview, cancelled/outside/stale/mismatched gestures and pan produce none.
+Manual table SQL projection: raw leak reproduced, hidden/orphan clocks filtered, pointer/receipts private, backfill and repeat apply passed
+Free-play tools QA passed: roles, requested difficulty, immediate resources, character features, Bonds, and Risks
+Freeplay resource/gadget VM PASS: own actor binding, local/shared/legacy resource policy, denied/failed writes, Hero writer reuse, conditional/stale gadgets, actual engine pool and roll payload. Network transport and canonical correction writer mocked; browser not exercised.
+Scene engine QA passed: canonical Turns and AP, once-per-Round actions, strict Reactions, truthful enemy automation, effects, movement, damage, and public events
+Technique engine QA passed: 151 rules
+Hero build QA passed: Nari Tier 2, Neel Tier 2, Autophage/Constrictor, Spellcrafter III, Will-O-Wisp III, and deferred chained support
+Catalog smoke QA passed: 111 families, 333 levels, 6105 pair builds, 151 adapters
+OK: 391 unique rule ids; companion data and invariants validated.
+LionWing Siren/Bombardier audit: canonical digests, Study→Fear, active-Turn and actual-adjacency guards, blocked/off-Turn negatives, Spirit/center/Focus/source checks, derived empty cells, reload and anti-spoofing passed
+
+> dawn-ru-companion@2.0.0 test:alpha-stress
+> node tests/lionwing-gm-ap-contract.mjs && node tests/lionwing-alpha-stress.mjs
+
+LionWing GM AP contract: creation, all NPC Turn budgets, Ronin/Staggered, progress after spend, presets, Fodder, Modifier, summons, old encounter policy passed
+LionWing alpha stress: hero creation, canonical AP, Fodder, Compound parts, base Attacks, Reactions, damage, Effects, and Round reset passed
