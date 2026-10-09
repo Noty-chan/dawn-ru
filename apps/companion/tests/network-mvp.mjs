@@ -136,10 +136,10 @@ const playUiSource = fs.readFileSync(new URL("../play-ui.js", import.meta.url), 
 const networkQueueSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.meta.url), "utf8");
 assert.match(appCoreSource, /function friendlySyncError[\s\S]+failed to fetch[\s\S]+сервер временно недоступен/i, "transient transport failures must be shown in Russian");
 assert.doesNotMatch(syncUiSource, /Действие игрока[^\n]+error\?\.message/, "automatic command retries must not expose raw English transport errors");
-assert.match(syncUiSource, /delayedAutomaticCommands\.has\(id\)[\s\S]+Задержанное действие игрока обработано/, "the narrator must see when a delayed action eventually succeeds");
+assert.match(syncUiSource, /delayedAutomaticCommands\.has\(id\)[\s\S]+t\("sync\.notice\.delayedProcessed"\)/, "the narrator must see a localized notice when a delayed action eventually succeeds");
 assert.match(syncUiSource, /retryableAuthorityFailure\(error\)[\s\S]+attempt<=6/, "legacy automatic command retries are bounded and limited to transient failures");
 assert.match(playUiSource, /delayedAutomaticCommands\.has\(String\(command\.id\)\)/, "a permanently delayed automatic command remains visible for narrator review");
-assert.match(playUiSource, /failed\?"Изменения не сохранены"[\s\S]+Повторить сохранение/, "the scene status exposes unconfirmed authority changes and a retry action");
+assert.match(playUiSource, /failed\?t\("sync\.status\.unsaved"\)[\s\S]+t\("sync\.retry"\)/, "the scene status exposes localized unconfirmed authority changes and a retry action");
 assert.match(networkQueueSource, /function retryNetworkV2Failed\([\s\S]+authority\?\.retryFailed/, "permanent authority failures have an explicit reconnect retry path");
 assert.match(syncUiSource, /await Sync\.refreshScene\(\);if\(!retryNetworkV2Failed\(\)\)/, "reconnect refreshes pending commands before retrying a failed atomic batch");
 assert.match(syncUiSource, /function hydratePlayerScene[\s\S]+heroActorState\(S,actor\)/, "the local player's redacted actor must be hydrated from their own hero");

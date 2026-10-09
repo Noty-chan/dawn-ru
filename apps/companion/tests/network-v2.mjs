@@ -654,7 +654,7 @@ function automaticRetryContext(error){
   const scheduled=[],command={id:"legacy-1",command_type:"join_hero"},context={
     Scene:{version:4},Sync:{state:()=>({canNarrate:true})},NetworkV2:{AUTOMATIC_COMMANDS:new Set(["join_hero"]),retryableAuthorityFailure:Network.retryableAuthorityFailure},
     pendingSceneCommands:[command],automaticCommandAttempts:new Map(),automaticCommandRetries:new Map(),delayedAutomaticCommands:new Set(),automaticCommandChain:Promise.resolve(),
-    decideSceneCommand:async()=>{throw error},friendlySyncError:()=>"временная ошибка",toast(){},renderSync(){},setTimeout:(callback,delay)=>{scheduled.push({callback,delay});return scheduled.length},
+    decideSceneCommand:async()=>{throw error},friendlySyncError:()=>"временная ошибка",t:key=>key,toast(){},renderSync(){},setTimeout:(callback,delay)=>{scheduled.push({callback,delay});return scheduled.length},
   };
   vm.runInNewContext(commandSource.slice(commandStart,commandEnd)+";this.queueAutomaticCommand=queueAutomaticCommand;",context);
   return{context,command,scheduled};

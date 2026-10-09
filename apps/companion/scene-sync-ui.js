@@ -1,18 +1,18 @@
 "use strict";
 
 function commandSummary(command){
-  if(command.command_type==="set_targets")return "Предложены цели";
-  if(command.command_type==="request_undo")return "Запрошен откат";
-  if(command.command_type==="join_hero")return "Герой готов войти в Сцену";
-  if(command.command_type==="update_runtime")return "Изменение ресурса героя";
-  if(command.command_type==="intent_v2"){const intent=command.payload?.intent||{},actor=Scene.actors.find(item=>item.id===intent.actorId),names={action:"действие",reaction:"Реакция",technique:"Техника","rule-response":"решение правила","public-roll":"бросок"};return`${actor?.name||"Игрок"}: ${intent.label||names[intent.kind]||"действие"}`}
+  if(command.command_type==="set_targets")return t("sync.command.targets");
+  if(command.command_type==="request_undo")return t("sync.command.undo");
+  if(command.command_type==="join_hero")return t("sync.command.join");
+  if(command.command_type==="update_runtime")return t("sync.command.resource");
+  if(command.command_type==="intent_v2"){const intent=command.payload?.intent||{},actor=Scene.actors.find(item=>item.id===intent.actorId),names={action:t("sync.command.action"),reaction:t("sync.command.reaction"),technique:t("sync.command.technique"),"rule-response":t("sync.command.rule"),"public-roll":t("sync.command.roll")};return`${actor?.name||t("sync.role.player")}: ${intent.label||names[intent.kind]||t("sync.command.action")}`}
   if(command.command_type!=="dispatch_events")return command.command_type;
   const events=Array.isArray(command.payload?.events)?command.payload.events:[],prepared=events.find(event=>event.type==="action.prepare"),reaction=events.find(event=>event.type==="reaction.respond"),technique=events.find(event=>event.type==="technique.prepare"),ruleResponse=events.find(event=>event.type==="rule.respond"),actor=Scene.actors.find(item=>item.id===(prepared?.actorId||reaction?.actorId||technique?.actorId||ruleResponse?.actorId));
-  if(prepared)return `${actor?.name||"Игрок"}: ${prepared.payload?.name||"действие"}`;
-  if(reaction)return `${actor?.name||"Игрок"}: Реакция — ${reaction.payload?.choice||"ответ"}`;
-  if(technique)return `${actor?.name||"Игрок"}: ${technique.payload?.name||"Техника"}`;
-  if(ruleResponse)return `${actor?.name||"Игрок"}: ${Scene.pendingPrompt?.title||"решение правила"}`;
-  return "Пакет событий игрока";
+  if(prepared)return `${actor?.name||t("sync.role.player")}: ${prepared.payload?.name||t("sync.command.action")}`;
+  if(reaction)return `${actor?.name||t("sync.role.player")}: ${t("sync.command.reaction")} — ${reaction.payload?.choice||t("sync.command.response")}`;
+  if(technique)return `${actor?.name||t("sync.role.player")}: ${technique.payload?.name||t("sync.command.technique")}`;
+  if(ruleResponse)return `${actor?.name||t("sync.role.player")}: ${Scene.pendingPrompt?.title||t("sync.command.rule")}`;
+  return t("sync.command.events");
 }
 function canonicalPlayerEvents(command){
   if(window.DAWN_LIONWING_ENGINE?.isScene(Scene))throw new Error("LionWing принимает игровые намерения через новый сетевой протокол");

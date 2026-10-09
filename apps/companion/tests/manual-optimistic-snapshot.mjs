@@ -60,6 +60,9 @@ assert.equal(context.networkV2QueueStatus().pending,0);assert.equal(context.netw
 
 const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',innerHTML:'',className:'',hidden:false});return nodes.get(id);};
 let status='online';
+for(const file of ['localization.js','locale-ru.js'])vm.runInContext(fs.readFileSync(new URL(`../${file}`,import.meta.url),'utf8'),context);
+context.t=(key,params)=>context.window.DAWN_I18N.t(key,params);
+const appCore=fs.readFileSync(new URL('../app-core.js',import.meta.url),'utf8');vm.runInContext(appCore.slice(appCore.indexOf('const esc ='),appCore.indexOf('const uid =')),context);
 Object.assign(context,{$:node,S:{player:'QA'},pendingSceneCommands:[],delayedAutomaticCommands:new Set(),document:{body:{dataset:{}},activeElement:null}});
 context.Sync.state=()=>({status,sceneId:'qa',role:'player',canNarrate:false,authenticated:true,version:52,presence:[]});
 const play=fs.readFileSync(new URL('../play-ui.js',import.meta.url),'utf8');vm.runInContext(play.slice(play.indexOf('function renderSync('),play.indexOf('function renderSceneHeroSheet(')),context);

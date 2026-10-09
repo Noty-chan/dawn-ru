@@ -40,12 +40,14 @@ run(`let store={mode:"play"},Scene,sceneInterfaceVersion="next",sceneLeftPanelsE
   let pendingTechniqueRule=null,pendingCoreReaction=null,pendingCoreAction=null,pendingCoreActionPlan=false,pendingCoreActionContext=null;
   let lwDestination=null,lwTechniqueDraft=null,sceneNeutralTool=null,sceneMeasureEnd=null,sceneMeasureStart=null,sceneMeasureLabel="",hoveredSceneActorId=null;
   const scenePreviewCells=new Set(),sceneTopologyCells=new Set();let sceneMeasureCells=new Set();`);
-for(const name of ["activeSceneTool","sceneHasLocalPendingSelection","measurementPath","usingNextSceneInterface","scenePanelSide","isScenePanelOpen"])load(line(ui,`function ${name}(`));
+for(const name of ["activeSceneTool","canControlSceneActor","playerCanRepositionSceneActor","sceneHasLocalPendingSelection","measurementPath","usingNextSceneInterface","scenePanelSide","isScenePanelOpen"])load(line(ui,`function ${name}(`));
+load(section(ui,"function moveSceneActorFromBoard(","\nfunction measurementPath("));
 load(section(ui,"function setScenePanel(","\nfunction closeAllScenePanels("));
 load(section(ui,"function hideSceneContextMenu(","\nfunction showSceneContextMenu("));
 load(section(effects,"function clearSceneMeasurement(","\nfunction cancelCommittedAction("));
 load(section(events,'$("scene-board").addEventListener("click",event=>{','$("scene-board").addEventListener("dragstart"'));
 load(line(events,'$("scene-turn-strip").addEventListener("click"'));
+load(line(events,'$("scene-workbench").addEventListener("click",event=>{const close='));
 load(section(events,'$("scene-context-menu").addEventListener("click",','document.addEventListener("pointerdown",event=>{if(!event.target.closest?.("#scene-context-menu"))'));
 load(section(events,'document.addEventListener("keydown",event=>{\n  if(event.key!=="Escape"','\n},true);')+'\n},true);');
 load(line(events,'document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!event.defaultPrevented'));
@@ -212,4 +214,19 @@ reset();run('lwTechniqueDraft={actorId:"hero",payload:{kind:"action"}}');const b
 assert.equal(run("lwTechniqueDraft"),null,"the ordinary visible LionWing preview can still be cancelled");
 assert.equal(resources(),beforeCancel,"local preview cancellation spends no resources");
 
-console.log("Scene pointer routing passed: inspection/targets, independent panels, Player context ruler, safe Map routes and Escape ownership.");
+// Manual Player click-to-move uses the canonical table command and retains ownership.
+const moves=[];
+context.window.DAWN_TABLE_POLICY={isManual:scene=>scene.tablePolicy?.mode==="manual"};
+context.commitSceneEvents=(label,events)=>{moves.push(plain(events));return true;};
+const chooseTool=tool=>handlers.get("scene-workbench:click")({target:{closest:selector=>selector==="[data-scene-tool]"?{dataset:{sceneTool:tool}}:null}});
+reset("player");chooseTool("place");assert.equal(run("activeSceneTool()"),"select","rules-mode Players cannot enter free placement");
+run('Scene.tablePolicy={mode:"manual"}');chooseTool("place");assert.equal(run("activeSceneTool()"),"place");
+const beforeOwnMove=resources();clickBoard("hero");clickBoard(null,"2,3");
+assert.deepEqual(moves.at(-1),[{type:"table.command",actorId:"hero",payload:{kind:"move",space:"main",x:2,y:3}}]);
+assert.equal(resources(),beforeOwnMove,"movement sends no automated AP or combat event");
+const moveCount=moves.length;clickBoard("enemy");assert.equal(run("Scene.selectedActor"),"hero","Player cannot select an enemy for free placement");
+run('Scene.selectedActor="enemy"');clickBoard(null,"4,3");assert.equal(moves.length,moveCount,"stale selection cannot move an enemy");
+run('Scene.actors.push({id:"other",heroId:"other-hero",team:"hero",space:"main",x:0,y:0})');clickBoard("other");
+assert.equal(moves.length,moveCount,"another player's Hero remains protected");
+
+console.log("Scene pointer routing passed: inspection/targets, independent panels, Player context ruler, safe Map routes, manual owned movement and Escape ownership.");

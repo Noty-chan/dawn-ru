@@ -129,14 +129,16 @@ console.log('Manual area actual capture + camera handlers: Space/middle pan, scr
 
 // Reused classic/next buttons must describe the current policy and language,
 // including a live transition back to rules; changing labels never changes Scene.
-const toolNodes=Object.fromEntries(['select','place','target','marker'].map(tool=>[tool,{dataset:{},attrs:{},setAttribute(k,v){this.attrs[k]=v;}}]));
+const toolNodes=Object.fromEntries(['select','place','target','marker'].map(tool=>{const label={textContent:''},classes=new Set();return[tool,{dataset:{},attrs:{},label,classes,querySelector:()=>label,classList:{toggle(k,on){if(on)classes.add(k);else classes.delete(k);}},setAttribute(k,v){this.attrs[k]=v;}}]}));
 let manualLabels=true,englishLabels=false;
-const labelContext={manualTableActive:()=>manualLabels,manualTableCopy:(ru,en)=>englishLabels?en:ru,document:{querySelectorAll:selector=>[toolNodes[selector.match(/="(.*?)"/)[1]]]}};
+const labelContext={playerSceneTool:'place',activeSceneView:()=>"player",manualTableActive:()=>manualLabels,manualTableCopy:(ru,en)=>englishLabels?en:ru,document:{querySelectorAll:selector=>[toolNodes[selector.match(/="(.*?)"/)[1]]]}};
 vm.createContext(labelContext);
 vm.runInContext(integration.slice(integration.indexOf('function renderManualToolLabels('),integration.indexOf('function renderManualTable(')),labelContext);
 labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/без расхода ресурсов/);assert.match(toolNodes.target.title,/действия не выполняются/);assert.equal(toolNodes.marker.title,'Поставить обозначение на карту');
 englishLabels=true;labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/without spending resources/);assert.equal(toolNodes.select.attrs['aria-label'],toolNodes.select.dataset.toolHelp);
+assert.equal(toolNodes.place.classes.has('gm-only'),false);assert.equal(toolNodes.place.label.textContent,'Move');
 manualLabels=false;labelContext.renderManualToolLabels();assert.match(toolNodes.select.title,/performs Step/);assert.match(toolNodes.target.title,/next action/);assert.equal(toolNodes.marker.attrs['aria-label'],'Place a rule marker');
+assert.equal(toolNodes.place.classes.has('gm-only'),true);assert.equal(labelContext.playerSceneTool,'select','rules transition removes free Player placement');
 manualLabels=true;labelContext.renderManualToolLabels();assert.doesNotMatch(toolNodes.select.title,/Step/);
 console.log('Manual tool labels: policy/language transitions describe storage-only movement and target marking passed.');
 

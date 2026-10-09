@@ -504,6 +504,8 @@ function openManualActorReader(actorId){
 }
 function renderManualToolLabels(){
   const manual=manualTableActive();
+  for(const button of document.querySelectorAll('[data-scene-tool="place"]')){button.classList.toggle("gm-only",!manual);const label=button.querySelector(".scene-board-tool-original-label")||button;label.textContent=manualTableCopy("Переставить","Move");}
+  if(!manual&&activeSceneView()==="player"&&playerSceneTool==="place")playerSceneTool="select";
   const labels={
     select:manual?["Выбрать участника; передвижение записывается вручную без расхода ресурсов","Select a participant; movement is recorded manually without spending resources"]:["Выбирать токены; движение текущего участника выполняет Шаг","Select tokens; moving the current participant performs Step"],
     place:manual?["Переставить участника и записать перемещение в журнал","Reposition a participant and record the movement in the journal"]:["Переставить любого участника без затрат и записать это в журнал","Reposition any participant without costs and record it in the journal"],
@@ -542,6 +544,10 @@ function renderManualTable(){
   }
   const sizeLabel=$("scene-space-size-label");if(sizeLabel?.firstChild)sizeLabel.firstChild.textContent=manualTableCopy("Размер нового поля","New board size");
   if(manual){
+    if(activeSceneTool()==="place"){
+      const selected=Scene.actors.find(a=>a.id===Scene.selectedActor&&canControlSceneActor(a));
+      $("scene-selection-summary").textContent=selected?manualTableCopy(`${selected.name}: выберите клетку для перемещения`,`${selected.name}: choose a cell to move to`):manualTableCopy("Выберите своего участника для перемещения","Select your participant to move");
+    }
     const current=Scene.actors.find(a=>a.id===Scene.manualTable?.actorId&&(activeSceneView()==="gm"||!a.hidden));
     if($("scene-active-turn"))$("scene-active-turn").textContent=current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Участник не назначен","No current participant");
     if($("scene-encounter-status"))$("scene-encounter-status").textContent=manualTableCopy("Раунд ","Round ")+Math.max(1,Number(Scene.manualTable?.round)||1);
@@ -594,8 +600,8 @@ function renderManualTensionContext(status,space,current){
     try{status.innerHTML='<strong></strong><span></span><label class="manual-tension"><span></span> <input type="number" min="0" max="999" data-manual-tension></label>';status.dataset.scope=scope;}
     finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
   }
-  status.querySelector('strong').textContent=Scene.name||manualTableCopy("Стол","Table");
-  status.querySelector(':scope > span').textContent=(space?.name||manualTableCopy("Поле","Board"))+" · "+(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"));
+  status.querySelector('strong').textContent=sceneDisplayName();
+  status.querySelector(':scope > span').textContent=sceneSpaceDisplayName(space)+" · "+(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"));
   status.querySelector('label span').textContent=manualTableCopy("Напряжение","Tension");
   const input=status.querySelector('[data-manual-tension]');input.disabled=activeSceneView()!=="gm";
   input.setAttribute('aria-label',manualTableCopy("Напряжение","Tension"));
