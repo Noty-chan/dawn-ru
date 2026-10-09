@@ -18,10 +18,7 @@
     return {value:compound.active?compound.hp:Number(actor.hp||0),maximum:compound.active?compound.maxHp:Number(actor.maxHp||0)};
   };
   function healthChange(value,current,maximum=null){
-    const text=String(value??"").trim();
-    if(!/^[+-]?\d+$/.test(text))return null;
-    const number=Number(text),next=/^[+-]/.test(text)?current+number:number;
-    return Number.isSafeInteger(next)&&next<=9999?Math.max(0,/^[+-]/.test(text)&&Number.isFinite(maximum)&&maximum>0?Math.min(maximum,next):next):null;
+    return window.DAWN_TABLE_POLICY.healthInput(value,current,maximum);
   }
   function close(){
     cancelLeave();menu.style.width="";menu.style.height="";
@@ -245,5 +242,6 @@
   board.addEventListener("transitionend",schedule);
   if(typeof ResizeObserver==="function"){const geometry=new ResizeObserver(schedule);geometry.observe(board);geometry.observe(wrap);}
   if($("scene-sync-status"))new MutationObserver(schedule).observe($("scene-sync-status"),{childList:true,attributes:true});
+  window.addEventListener?.("dawn:locale-change",()=>{if(state&&!menu.hidden)draw();});
   window.DAWN_SCENE_TOKEN_HUD=Object.freeze({perimeterLayout,healthChange,show,close,refresh,applyHealth,action});
 })();

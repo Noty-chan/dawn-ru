@@ -61,6 +61,7 @@ vm.runInContext(sceneUiSource.slice(sceneUiSource.indexOf("function sceneNumeric
 const identitySource=read("lionwing-ui.js");
 vm.runInContext(identitySource.slice(identitySource.indexOf("function lwGeometrySceneIdentity("),identitySource.indexOf("function lwApplyGeometryPreviewCells(")),context);
 vm.runInContext(read("ui-icons.js"),context);
+vm.runInContext(read("scene-table-policy.js"),context);
 vm.runInContext(read("scene-token-hud.js"),context,{filename:"actual token HUD"});
 const hud=context.window.DAWN_SCENE_TOKEN_HUD;
 const reset=()=>{
@@ -261,7 +262,7 @@ let placements=0,fallbacks=0;
 for(const manual of [false,true])for(const fieldWidth of [250,400,900])for(const size of [40,80,150])for(const factor of [.3,.7,1,1.8])for(const fx of [0,.5,1])for(const fy of [0,.5,1]){
   const field={left:300,right:300+fieldWidth,top:100,bottom:650},width=size*factor;
   const rect={left:field.left+fx*(fieldWidth-width),top:field.top+fy*(550-width)};rect.right=rect.left+width;rect.bottom=rect.top+width;
-  context.window.DAWN_TABLE_POLICY={isManual:()=>manual};
+  context.window.DAWN_TABLE_POLICY={...context.window.DAWN_TABLE_POLICY,isManual:()=>manual};
   const result=hud.perimeterLayout(rect,field);if(!result){fallbacks++;continue;}
   placements++;
   const controls=(manual?[0,48]:[0,48,96]).flatMap(dy=>[result.leftControl,result.rightControl].map(x=>({left:x,right:x+40,top:result.controlTop+dy,bottom:result.controlTop+dy+40})));

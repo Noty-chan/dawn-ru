@@ -48,7 +48,7 @@ const context = {
   refreshSceneRoundControls: () => calls.push({ kind: "availability", source: vm.runInContext("sceneDirectorActor()?.id", context) }),
   setScenePanel: panel => calls.push({ kind: "panel", panel }), setSheetTab: tab => calls.push({ kind: "sheet-tab", tab }),
   setMode: mode => calls.push({ kind: "mode", mode }), toast: message => calls.push({ kind: "toast", message }),
-  isEnglishPreview: () => false, t: key => key,
+  isEnglishPreview: () => false, t: (key,params,options) => options?.fallback||key,
   sceneActionDisplayName: action => action.name,
 };
 vm.createContext(context);

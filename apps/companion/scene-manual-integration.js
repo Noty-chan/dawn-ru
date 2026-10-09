@@ -273,10 +273,13 @@ function manualClockCommand(payload){
   const result=commitSceneEvents(manualTableCopy("Ручные часы","Manual clock"),[event]);
   return result?{...result,manualEventIds:[event.id]}:null;
 }
-function manualClockScope(){return `${Sync?.state?.()?.sceneId||"local"}:${Scene.tablePolicy?.epoch||0}`}
+let manualTableDraftGeneration=0;
+function resetManualTableDraftScope(){manualTableDraftGeneration++;}
+function manualClockScope(){return `${Sync?.state?.()?.sceneId||"local"}:${Scene.tablePolicy?.epoch||0}:${manualTableDraftGeneration}`}
 function reconcileManualClockNumbers(command,events=[]){
   const dialog=$("manual-table-clocks"),root=$("scene-inspector"),scope=manualClockScope();
-  const inputs=[...(dialog?.open&&dialog.dataset.scope===scope?dialog.querySelectorAll('[data-manual-clock-id]'):[]),...(root?.manualActorScope===scope?root.querySelectorAll('[data-manual-resource]'):[])];
+  const tension=$("scene-manual-context")?.querySelector("[data-manual-tension]");
+  const inputs=[...(tension?[tension]:[]),...(dialog?.open&&dialog.dataset.scope===scope?dialog.querySelectorAll('[data-manual-clock-id]'):[]),...(root?.manualActorScope===scope?root.querySelectorAll('[data-manual-resource]'):[])];
   const intentId=command?.payload?.clientIntentId||command?.clientIntentId,ids=new Set(events.map(event=>event.id));
   for(const input of inputs){
     const receipt=input.manualSubmission;
@@ -409,11 +412,11 @@ function renderManualActorInspector(actor){
   const root=$("scene-inspector");if(!root)return;
   const active=document.activeElement,scope=manualClockScope();
   const editable=actor&&canControlSceneActor(actor),same=root.manualActorScope===scope&&root.manualActorId===actor?.id;
-  const draft=same&&editable&&root.contains(active)&&active?.matches?.('[data-manual-resource]')?{key:active.dataset.manualResource,value:active.value,submitted:active.manualSubmitted,receipt:active.manualSubmission}:null;
+  const draft=same&&editable&&root.contains(active)&&active?.matches?.('[data-manual-resource],[data-scene-actor-name]')?{key:active.dataset.manualResource,name:active.dataset.sceneActorName,value:active.value,start:active.selectionStart,end:active.selectionEnd,submitted:active.manualSubmitted,receipt:active.manualSubmission}:null;
   root.manualActorScope=scope;root.manualActorId=actor?.id;
   paintingManualInspector=true;
   try{drawManualActorInspector(actor);}finally{paintingManualInspector=false;}
-  if(draft){const input=root.querySelector(`[data-manual-resource="${draft.key}"]`);if(input&&!input.disabled){input.value=draft.value;if(draft.submitted===draft.value){input.manualSubmitted=draft.submitted;input.manualSubmission=draft.receipt;}input.focus({preventScroll:true});}}
+  if(draft){const input=root.querySelector(draft.name?`[data-scene-actor-name="${CSS.escape(draft.name)}"]`:`[data-manual-resource="${draft.key}"]`);if(input&&!input.disabled){input.value=draft.value;if(draft.submitted===draft.value){input.manualSubmitted=draft.submitted;input.manualSubmission=draft.receipt;}input.focus({preventScroll:true});if(draft.name&&Number.isInteger(draft.start))input.setSelectionRange(draft.start,draft.end);}}
 }
 function drawManualActorInspector(actor){
   const root=$("scene-inspector");if(!root)return;
@@ -503,7 +506,7 @@ function renderManualTable(){
   if(status){
     status.hidden=!manual;
     if(manual){const space=activeSceneSpace(),current=Scene.actors.find(a=>a.id===Scene.manualTable?.actorId&&(activeSceneView()==="gm"||!a.hidden));
-      window.DAWN_MANUAL_SURFACE_PAINTING=true;try{status.innerHTML=`<strong>${esc(Scene.name||manualTableCopy("Стол","Table"))}</strong><span>${esc(space?.name||manualTableCopy("Поле","Board"))} · ${esc(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"))}</span><label class="manual-tension">${manualTableCopy("Напряжение","Tension")} <input type="number" min="0" max="999" data-manual-tension value="${Number(Scene.tension)||0}" ${activeSceneView()!=="gm"?"disabled":""}></label>`;}finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
+      renderManualTensionContext(status,space,current);
     }
   }
   const sizeLabel=$("scene-space-size-label");if(sizeLabel?.firstChild)sizeLabel.firstChild.textContent=manualTableCopy("Размер нового поля","New board size");
@@ -517,10 +520,10 @@ function renderManualTable(){
   for(const button of document.querySelectorAll('#scene-dock [data-scene-panel="director"],#scene-dock [data-scene-panel="sheet"],#scene-dock [data-scene-panel="utility"],#scene-dock [data-scene-panel="entities"]'))button.hidden=manualTableActive();
   if(manualTableActive()&&["director","sheet","utility","entities"].includes(activeScenePanel))closeAllScenePanels();
   window.DAWN_MANUAL_WORKSPACE?.render({scene:Scene,canNarrate:activeSceneView()==="gm",canControl:canControlSceneActor,
-    scopeId:Sync?.state?.()?.sceneId||"local",
+    scopeId:manualClockScope(),
     canRead:actor=>activeSceneView()==="gm"||!actor.hidden,
     commit:commitSceneEvents,readAbilities:manualTableAbilities,
-    beforeRead:()=>{for(const menu of document.querySelectorAll(".scene-chrome-menu[open]"))menu.open=false;closeAllScenePanels();},
+    beforeRead:prepareManualReader,
     selectActor:actor=>{
       const areaTools=$("manual-table-area-tools");if(areaTools)areaTools.areaDraft=null;
       clearManualAreaPreview();window.DAWN_SCENE_BOARD_TOOLS?.select?.("tokens");
@@ -550,9 +553,50 @@ function renderManualTokenCounters(){
   panel.addEventListener("change",event=>{if(window.DAWN_MANUAL_SURFACE_PAINTING)return;const key=event.target.dataset.tokenCountInput;if(key&&event.target.value.trim())write(key,Number(event.target.value));const visibility=event.target.dataset.tokenCountVisible;if(visibility){store.sceneUi||={};store.sceneUi.tokenCounters||={};store.sceneUi.tokenCounters[actor.id]=Array.from(panel.querySelectorAll('[data-token-count-visible]:checked'),node=>node.dataset.tokenCountVisible);persist();renderScene();}});
   window.DAWN_MANUAL_SURFACE_PAINTING=true;try{footer.querySelector('.manual-token-counters')?.remove();footer.append(panel);}finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
 }
-document.addEventListener("change",event=>{if(window.DAWN_MANUAL_SURFACE_PAINTING||!event.target.matches?.('[data-manual-tension]')||!manualTableActive()||activeSceneView()!=="gm")return;const value=Number(event.target.value);if(event.target.value.trim()&&Number.isSafeInteger(value)&&value>=0&&value<=999)commitSceneEvents(manualTableCopy("Напряжение","Tension"),[{type:"table.command",actorId:null,payload:{kind:"tension",value}}]);});
+function manualTensionScope(){return JSON.stringify([manualClockScope(),Scene.id||Scene.sceneId||null,Scene.lionwing?.sceneSerial??0,Scene.activeSpace,activeSceneView()]);}
+
+function renderManualTensionContext(status,space,current){
+  const scope=manualTensionScope(),old=status.querySelector('[data-manual-tension]');
+  const keep=old&&status.dataset.scope===scope;
+  if(!keep){
+    window.DAWN_MANUAL_SURFACE_PAINTING=true;
+    try{status.innerHTML='<strong></strong><span></span><label class="manual-tension"><span></span> <input type="number" min="0" max="999" data-manual-tension></label>';status.dataset.scope=scope;}
+    finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
+  }
+  status.querySelector('strong').textContent=Scene.name||manualTableCopy("Стол","Table");
+  status.querySelector(':scope > span').textContent=(space?.name||manualTableCopy("Поле","Board"))+" · "+(current?manualTableCopy("Сейчас: ","Now: ")+current.name:manualTableCopy("Вручную","Manual"));
+  status.querySelector('label span').textContent=manualTableCopy("Напряжение","Tension");
+  const input=status.querySelector('[data-manual-tension]');input.disabled=activeSceneView()!=="gm";
+  input.setAttribute('aria-label',manualTableCopy("Напряжение","Tension"));
+  input.dataset.manualValue=String(Number(Scene.tension)||0);
+  if(!keep||input.disabled||document.activeElement!==input&&!input.manualSubmission)input.value=input.dataset.manualValue;
+}
+function submitManualTension(input){
+  const root=$("scene-manual-context");
+  if(window.DAWN_MANUAL_SURFACE_PAINTING||!manualTableActive()||activeSceneView()!=="gm"||!root?.contains(input)||root.dataset.scope!==manualTensionScope())return;
+  const value=Number(input.value),draft=input.value;
+  if(!draft.trim()||!Number.isSafeInteger(value)||value<0||value>999||draft===input.manualSubmitted)return;
+  if(value===Number(Scene.tension||0))return;
+  input.manualSubmitted=draft;
+  const result=submitManualNumber(null,{kind:"tension",value},manualTableCopy("Напряжение","Tension"));
+  if(result)input.manualSubmission=result;else{delete input.manualSubmitted;delete input.manualSubmission;}
+}
+for(const type of ['change','focusout'])document.addEventListener(type,event=>{if(event.target.matches?.('[data-manual-tension]'))submitManualTension(event.target);});
+document.addEventListener('keydown',event=>{
+  const input=event.target;if(!input.matches?.('[data-manual-tension]'))return;
+  if(event.key==='Enter'){event.preventDefault();submitManualTension(input);}
+  if(event.key==='Escape'){event.preventDefault();event.stopPropagation();input.value=String(Number(Scene.tension)||0);delete input.manualSubmitted;delete input.manualSubmission;}
+});
+function prepareManualReader(){
+  for(const menu of document.querySelectorAll(".scene-chrome-menu[open]"))menu.open=false;
+  // Reader occupies the right rail; an explicitly enabled desktop left panel survives.
+  if(usingNextSceneInterface()&&sceneViewportProfile()==="desktop"){
+    activeScenePanels.right=null;activeScenePanel=activeScenePanels.left||null;syncScenePanels();
+  }else closeAllScenePanels();
+}
+
 function submitManualNumber(actor,payload,label){
-  const event={id:uid(),type:"table.command",actorId:actor.id,payload};
+  const event={id:uid(),type:"table.command",actorId:actor?.id||null,payload};
   const result=commitSceneEvents(label,[event]);
   return result?{...result,manualEventIds:[event.id]}:null;
 }

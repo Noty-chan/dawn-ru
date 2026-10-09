@@ -1,6 +1,6 @@
 "use strict";
 window.DAWN_I18N?.registerLocale?.("ru", {
-  "scene.manual.statusHints":"Подсказки статусов", "scene.manual.policyName":"Ведение", "scene.manual.policyAria":"Режим игрового стола", "scene.manual.manual":"Вручную", "scene.manual.rules":"По правилам",
+  "scene.manual.healthHelp":"Число — задать ЗД; -5 / +5 — изменить. Enter или выход применяет, Escape отменяет.", "scene.manual.statusHints":"Подсказки статусов", "scene.manual.policyName":"Ведение", "scene.manual.policyAria":"Режим игрового стола", "scene.manual.manual":"Вручную", "scene.manual.rules":"По правилам",
   "scene.manual.select":"Выберите участника", "scene.manual.sheet":"Лист", "scene.manual.close":"Закрыть", "scene.manual.marked":"Личная отметка ✓", "scene.manual.mark":"Личная отметка",
   "scene.manual.counter":"Счётчик", "scene.manual.removeCounter":"Убрать счётчик", "scene.manual.counterValue":"Значение счётчика", "scene.manual.less":"Уменьшить", "scene.manual.more":"Увеличить",
   "scene.manual.area":"Показать область", "scene.manual.noAbilities":"Способности этого участника не добавлены.", "scene.manual.hp":"ЗД", "scene.manual.exactHp":"Записать здоровье",
@@ -8,7 +8,7 @@ window.DAWN_I18N?.registerLocale?.("ru", {
   "scene.manual.round":"Раунд", "scene.manual.nextRound":"+1", "scene.manual.nextRoundHint":"Следующий раунд: +1 Напряжение", "scene.manual.participants":"Участники", "scene.manual.abilities":"Способности участника"
 });
 window.DAWN_I18N?.registerLocale?.("en", {
-  "scene.manual.statusHints":"Status hints", "scene.manual.policyName":"Table mode", "scene.manual.policyAria":"Table play mode", "scene.manual.manual":"Manual", "scene.manual.rules":"With rules",
+  "scene.manual.healthHelp":"A number sets HP; -5 / +5 changes it. Enter or leaving applies, Escape cancels.", "scene.manual.statusHints":"Status hints", "scene.manual.policyName":"Table mode", "scene.manual.policyAria":"Table play mode", "scene.manual.manual":"Manual", "scene.manual.rules":"With rules",
   "scene.manual.select":"Select a participant", "scene.manual.sheet":"Sheet", "scene.manual.close":"Close", "scene.manual.marked":"Personal mark ✓", "scene.manual.mark":"Personal mark",
   "scene.manual.counter":"Counter", "scene.manual.removeCounter":"Remove counter", "scene.manual.counterValue":"Counter value", "scene.manual.less":"Decrease", "scene.manual.more":"Increase",
   "scene.manual.area":"Show area", "scene.manual.noAbilities":"No abilities have been added for this participant.", "scene.manual.hp":"HP", "scene.manual.exactHp":"Set Health",
@@ -102,7 +102,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     reader.setAttribute('aria-label',text('abilities','Способности участника'));
     footer.hidden = initiative.hidden = !state.manual;
     if (!state.manual) { reading = false; paintReader(state); return state; }
-    const footerMarkup = `<div class="scene-manual-selected"><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${actor ? `<label><span>${escape(text("hp", "ЗД"))}</span><input type="number" inputmode="numeric" data-manual-hp data-manual-actor="${escape(actor.id)}" data-manual-value="${escape(actor.hp ?? 0)}" aria-label="${escape(text("exactHp", "Записать здоровье"))}" value="${escape(actor.hp ?? 0)}" min="0" max="${escape(actor.maxHp ?? 9999)}" ${!state.control || !(adapter.editResource || adapter.commit) ? "disabled" : ""}><small>/ ${escape(actor.maxHp ?? "—")}</small></label>` : ""}</div><nav aria-label="${escape(text("commands", "Команды ручного стола"))}">${button("read", text("read", "Читать"), "sheet", !actor, `aria-expanded="${reading}"`)}${button("dice", text("dice", "Кубы"), "dice", !adapter.roll)}${button("clocks", text("clocks", "Часы"), "history", !adapter.openClocks)}${state.narrator ? button("point", text("point", "Сейчас играет"), "tokens", !actor || !(adapter.setCurrent || adapter.commit)) : ""}</nav><span class="scene-manual-round">${escape(text("round", "Раунд"))} ${state.round}${state.narrator ? button("round", text("nextRound", "+1"), "add", !(adapter.setRound || adapter.commit), `title="${escape(text("nextRoundHint", "Следующий раунд: +1 Напряжение"))}"`) : ""}</span><output class="scene-manual-message" aria-live="polite"></output>`;
+    const footerMarkup = `<div class="scene-manual-selected"><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${actor ? `<label><span>${escape(text("hp", "ЗД"))}</span><input type="text" inputmode="text" maxlength="6" data-manual-hp data-manual-actor="${escape(actor.id)}" data-manual-value="${escape(actor.hp ?? 0)}" aria-label="${escape(text("exactHp", "Записать здоровье"))}" value="${escape(actor.hp ?? 0)}" title="${escape(text("healthHelp", "Число — задать ЗД; -5 / +5 — изменить. Enter или выход применяет, Escape отменяет."))}" ${!state.control || !(adapter.editResource || adapter.commit) ? "disabled" : ""}><small>/ ${escape(actor.maxHp ?? "—")}</small></label>` : ""}</div><nav aria-label="${escape(text("commands", "Команды ручного стола"))}">${button("read", text("read", "Читать"), "sheet", !actor, `aria-expanded="${reading}"`)}${button("dice", text("dice", "Кубы"), "dice", !adapter.roll)}${button("clocks", text("clocks", "Часы"), "history", !adapter.openClocks)}${state.narrator ? button("point", text("point", "Сейчас играет"), "tokens", !actor || !(adapter.setCurrent || adapter.commit)) : ""}</nav><span class="scene-manual-round">${escape(text("round", "Раунд"))} ${state.round}${state.narrator ? button("round", text("nextRound", "+1"), "add", !(adapter.setRound || adapter.commit), `title="${escape(text("nextRoundHint", "Следующий раунд: +1 Напряжение"))}"`) : ""}</span><output class="scene-manual-message" aria-live="polite"></output>`;
     if(footer.manualRenderedMarkup!==footerMarkup||editingHp){paintingFooter=true;window.DAWN_MANUAL_SURFACE_PAINTING=true;try{footer.innerHTML=footerMarkup;footer.manualRenderedMarkup=footerMarkup;}finally{paintingFooter=false;window.DAWN_MANUAL_SURFACE_PAINTING=false;}}
     adapter.afterFooterRender?.();
     initiative.innerHTML = `<span class="scene-manual-initiative-label">${escape(text("participants", "Участники"))}</span>${state.initiativeActors.map(item => {const image=item.tokenImage || item.portraitImage || item.portraitUrl;return `<button type="button" data-manual-action="select" data-actor-id="${escape(item.id)}" class="${item.id === actor?.id ? "selected" : ""} ${item.id === state.current?.id ? "current" : ""}" title="${escape(item.name)}" aria-label="${escape(item.name)}" ${!state.actors.some(actor=>actor.id===item.id)?"disabled":""} ${item.id === state.current?.id ? 'aria-current="step"' : ""}>${image ? `<img src="${escape(image)}" alt="">` : `<span aria-hidden="true">${escape(item.name?.slice(0,2) || "?")}</span>`}<small>${escape(item.name)}</small></button>`;}).join("")}`;
@@ -132,8 +132,9 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       if (adapter.setRound) adapter.setRound(state.round + 1); else adapter.commit(text("nextRound", "Ручной раунд +1"), [{type:"table.command",actorId:null,payload:{kind:"round",delta:1}}]); return true;
     }
     if (action === "hp" && state.control && (adapter.editResource || adapter.commit)) {
-      const amount = String(value).trim() === "" ? NaN : Number(value);
-      if (!Number.isSafeInteger(amount) || amount < 0 || amount > (actor.maxHp ?? 9999)) { paint(); return false; }
+      const amount = window.DAWN_TABLE_POLICY.healthInput(value,Number(actor.hp||0),actor.maxHp);
+      if (amount===null) return false;
+      if (amount===Number(actor.hp||0)) return true;
       lastWriteResult=adapter.editResource ? adapter.editResource(actor, {field:"hp",value:amount}) : adapter.commit(text("exactHp", "Записать здоровье"), [{type:"table.command",actorId:actor.id,payload:{kind:"resource",values:{hp:amount}}}]);return Boolean(lastWriteResult);
     }
     if (actor && action.startsWith("counter-") && state.control && adapter.editCounter) {
@@ -163,9 +164,11 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     return false;
   }
   function submitNumber(target,isCounter){
+    if(target.value===target.manualSubmitted)return;
     const state=model(adapter),actorId=state.selected?.id,writeScope=scope;
     const entry=isCounter?abilities(state.selected)[Number(target.dataset.manualCounter)]?.id:null;
     const value=target.value;target.manualSubmitted=value;lastWriteResult=null;
+    const healthValue=isCounter?null:window.DAWN_TABLE_POLICY.healthInput(value,Number(state.selected?.hp||0),state.selected?.maxHp);
     const accepted=act(isCounter?'counter-set':'hp',isCounter?{index:target.dataset.manualCounter,value}:value);
     const receipt=accepted?lastWriteResult:null;
     // A local writer may synchronously render and replace this very input.
@@ -174,7 +177,7 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       ?isCounter?Array.from(reader.querySelectorAll('[data-manual-counter]')).find(node=>abilities(current.selected)[Number(node.dataset.manualCounter)]?.id===entry):footer.querySelector('[data-manual-hp]'):null;
     for(const node of new Set([target,replacement].filter(Boolean))){
       if(node.value!==value)continue;
-      if(accepted){node.manualSubmitted=value;node.manualSubmission=receipt;}
+      if(accepted){if(!isCounter)node.value=String(healthValue);node.manualSubmitted=node.value;node.manualSubmission=receipt;}
       else{delete node.manualSubmitted;delete node.manualSubmission;}
     }
   }
@@ -201,6 +204,11 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
       });
     }
     footer.addEventListener("change", event => { if (paintingFooter) return; if (event.target.matches("[data-manual-hp]")) submitNumber(event.target,false); });
+    footer.addEventListener("keydown",event=>{
+      if(!event.target.matches("[data-manual-hp]"))return;
+      if(event.key==="Enter"){event.preventDefault();submitNumber(event.target,false);}
+      if(event.key==="Escape"){event.preventDefault();event.stopPropagation();event.target.value=event.target.dataset.manualValue;delete event.target.manualSubmitted;delete event.target.manualSubmission;}
+    });
     footer.addEventListener("focusout", event => {
       const target=event.target;
       if(!paintingFooter&&footer.contains(target)&&target.matches("[data-manual-hp]")&&target.value!==target.dataset.manualValue&&target.value!==target.manualSubmitted)submitNumber(target,false);

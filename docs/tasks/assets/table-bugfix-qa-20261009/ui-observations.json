@@ -1,0 +1,50 @@
+{
+  "provenance": "Manual transcription of fresh read-only DOM/AX outputs returned during the published-site audit; not an automatic full trace, fixture or VM result.",
+  "build": "fd77b67755de0f38da0034ea70cc37220ae84bf6",
+  "site": "https://noty-chan.github.io/dawn-ru/companion/index.html?lang=ru&edition=lionwing&mode=play",
+  "campaign": "Independent Table QA 20261009",
+  "hp": {
+    "footerType": "number",
+    "absolute12Enter": {"footer": "12", "tokenHp": 12},
+    "minus1Tab": {"footer": "-1", "tokenHp": 12, "playerTokenHp": 12},
+    "minus1Enter": {"footer": "-1", "tokenHp": 12},
+    "plus5Enter": {"footer": "5", "tokenHp": 5},
+    "hudMinus1EnterFrom12": {"textbox": "11", "tokenHp": 11}
+  },
+  "dirtyDraftExternalPlayerWounds": {
+    "hp": {"value": "13", "focused": true, "otherClientCanonicalHpBeforeTab": 16},
+    "ap": {"value": "6", "focused": true},
+    "clockProgress": {"value": "4", "focused": true, "afterTabAndReopen": "4"},
+    "techniqueCounter": {"value": "5", "focused": true, "afterTabPlusMinusAndRound": "5"},
+    "tensionFirstAfterRepaint": {"value": "999", "focused": false},
+    "tensionRepeatBefore": {"value": "17", "focused": true, "otherClientCanonical": "999"},
+    "tensionRepeatAfter": {"value": "999", "focused": false},
+    "tensionBeforeScreenshotLimitation": "Screenshot11 captured previous paint999; before17/focus=true is DOM evidence only."
+  },
+  "reader": {
+    "initialNpcSectionsExpanded": ["Пассивная способность", "Устранить цель", "Рассечение", "Скрытые клинки"],
+    "collapsedSectionAfterHpRepaint": "Устранить цель",
+    "foreignPlayer": "Способности этого участника доступны Нарратору.",
+    "leftPanelThenReader": {"leftComplementary": "▸ −; no context content", "rightReader": "Способности участника", "readExpanded": true},
+    "contextReopened": {"leftComplementaryContent": "Управление · QA Hero GM", "rightComplementary": "empty", "readExpanded": false}
+  },
+  "manualCrowdLabels": ["Сдвинуть всю группу после Хода врага:", "Массовка перемещается после завершения Хода своей стороны.", "2 урона: QA Hero A", "Урон массовки необязателен и доступен в конце Раунда."],
+  "manualHeroContextLabels": ["Действия, Техники и текущие решения собраны в Пульте. Здесь можно прочитать профиль.", "Открыть действия в Пульте", "Ручное решение"],
+  "stressObservationNotConfirmedDefect": {
+    "toolsAfterThirdDiamond": {"group": "Стресс: 3 из 3", "buttonsDisabled": true, "warning": "Предел Стресса"},
+    "subsequentClickAttempt": "visible=true disabled=true",
+    "laterTableObservation": {"stress": "3", "status": "Синхронизировано", "version": 48},
+    "afterNavigationBack": {"buttonsDisabled": false, "clickThirdFilledDiamondResult": "Стресс: 2 из 3"},
+    "limitation": "Ack not observed independently while Tools stayed open; disabled may be legitimate pending. No FAIL assigned."
+  },
+  "spaceTransfer": {"spaces": ["Основное поле7x7", "QA Second7x7", "QA Interior3x3"], "interiorTokenCell": "Клетка 1, 2", "hp": "13/16", "ap": "6", "focus": "2", "wounds": "0"},
+  "square3CenterCells": ["Клетка 3, 3", "Клетка 4, 3", "Клетка 5, 3", "Клетка 3, 4", "Клетка 4, 4", "Клетка 5, 4", "Клетка 3, 5", "Клетка 4, 5", "Клетка 5, 5"],
+  "terrainBrush": {"title": "QA Brush", "cellsAfterRelease": ["Клетка 2, 3", "Клетка 3, 3", "Клетка 4, 3", "Клетка 5, 3"], "matchingMarksAfterOneUndo": []},
+  "counterVisibility": {"heroGmAllHiddenAfterReload": true, "heroAStillShowsThreeCounters": true, "menuSurvivedUncheckingThree": true, "linkedHeroSheetHp": "13 / 16"},
+  "round": {"initialRound": 1, "nativeTension": 7, "afterPlus1": {"round": 2, "tension": 8}, "ceilingProbe": {"round": 3, "tension": 999}, "techniqueMarkSurvivedRound4": true},
+  "roll": {"attributeButtons": ["Тело 4D6", "Талант 3D6", "Дух 2D6", "Разум 2D6"], "talentSelectedPool": 3, "nativePool": 30, "publicResultLabel": "QA Hero GM: 30D6", "resultRetainedAfterReload": true},
+  "englishUntranslatedServiceLabels": ["Закрыть настройки", "ВЕРСИЯ ИНТЕРФЕЙСА", "Новый стол", "Рабочие панели", "Разрешить рабочие панели слева", "Игрок", "Нарратор", "Настройки вида и Сцены", "Поле DAWN 7 на 7", "Клетка 1, 1", "ЗД ... из ..."],
+  "preset": {"preview": {"actors": 4, "areas": 5, "walls": 2, "markers": 2}, "cancelPreservedPreviousQaActors": true, "confirmAppliedLayout": true, "qaHeroGmHpPreserved": "13/16", "undoOutcome": "UNKNOWN: JavaScript confirm followed by browser control timeout/stop"},
+  "additionalRenameObservation": "Native typing during external repaint lost focus mid-string; subsequent rendered actor name QA As. Not a clean repeat after control stopped.",
+  "blocked": ["Third independent player browser unavailable", "Browser stopped at JavaScript confirm; native fallback could not determine Windows browser URL for policy", "No hidden SDK or fixture substitutions for exact retry/reject/loss tests"]
+}

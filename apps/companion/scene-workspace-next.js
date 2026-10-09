@@ -41,6 +41,9 @@ window.DAWN_SCENE_WORKSPACE=(()=>{
     if(next&&!phone){if(turns.parentElement!==left)left.prepend(turns)}else if(turns.previousSibling!==turnHome)turnHome.after(turns);
     revealCurrentTurn(turns,next,phone);
     palettePanel.classList.toggle('rail-active',phone&&isScenePanelOpen('fieldtools'));
+    const paletteClose=palettePanel.querySelector('[data-close-scene-panel]'),paletteTitle=palettePanel.querySelector('h2');
+    if(paletteClose)paletteClose.setAttribute('aria-label',copy('Закрыть панель','Close panel'));
+    if(paletteTitle)paletteTitle.textContent=copy('Инструменты поля','Field tools');
     const actor=Scene.actors.find(item=>item.id===Scene.selectedActor&&item.space===Scene.activeSpace),compound=actor&&SceneEngine.compoundEnemyStatus(Scene,actor.id),hp=compound?.active?compound.hp:actor?.hp,maximum=compound?.active?compound.maxHp:actor?.maxHp;
     bar.querySelector('.scene-mobile-selection').textContent=actor?`${actor.name} · ${copy('ЗД','HP')} ${hp} / ${maximum||'—'}`:copy('Выберите участника на поле','Select a participant on the field');
     bar.querySelector('[data-mobile-actor-action]').disabled=!actor||(activeSceneView()!=='gm'&&actor.heroId!==S.id);

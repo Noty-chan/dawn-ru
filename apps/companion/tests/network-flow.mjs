@@ -261,6 +261,7 @@ const runtimeStart = sceneSyncSource.indexOf("function ensureNetworkV2Runtime(){
 const queueStatusStart = sceneSyncSource.indexOf("function networkV2QueueStatus(){", runtimeStart);
 const retryFailedStart = sceneSyncSource.indexOf("function retryNetworkV2Failed(){", queueStatusStart);
 assert.ok(runtimeStart >= 0 && queueStatusStart > runtimeStart && retryFailedStart > queueStatusStart);
+context.pendingManualUiIntents=new Map();context.networkV2PlayerError="";
 vm.runInNewContext(sceneSyncSource.slice(runtimeStart, retryFailedStart), context, { filename: "scene-sync-ui.js#authority-runtime" });
 context.pendingNetworkPlacements = new Map(); context.refreshPendingManualUi = ()=>{}; context.networkV2Authority = null;
 context.networkV2Outbox = null;
