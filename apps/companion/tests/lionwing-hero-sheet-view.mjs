@@ -92,7 +92,8 @@ const resourceCards=new Map(["influence","stress"].map(key=>{
   const count={textContent:""},note={textContent:"",hidden:true},buttons=[-1,1].map(delta=>({dataset:{heroResource:key,heroResourceDelta:String(delta)},disabled:false,attributes:{},setAttribute(name,value){this.attributes[name]=value;}}));
   return[key,{count,note,buttons,querySelector:selector=>selector==="strong"?count:selector===".hero-sheet-resource-reason"?note:null,querySelectorAll:()=>buttons}];
 }));
-const resourceRoot={querySelector:selector=>resourceCards.get(selector.match(/data-resource="([^"]+)"/)?.[1])||null};
+const liveIndicator={hidden:true},readOnlyCounts=new Map(["health","ap","focus","armor","evasion","speed"].map(key=>[key,{textContent:""}]));
+const resourceRoot={querySelector:selector=>selector===".hero-sheet-live"?liveIndicator:selector.endsWith(" strong")?readOnlyCounts.get(selector.match(/data-resource="([^"]+)"/)?.[1])||null:resourceCards.get(selector.match(/data-resource="([^"]+)"/)?.[1])||null};
 const resourceContext={window:{},Scene:{rulesEdition:"lionwing",actors:[resourceActor]},S:{id:"hero",runtime:{influence:1,stress:1}},Sync:{state:()=>resourceRole},
   $:()=>resourceRoot,networkV2QueueStatus:()=>resourceQueue,isEnglishPreview:()=>englishResources,
   ensureRuntime(){},derived:()=>({hp:10,focus:2,speed:4}),stressMaximumFor:()=>3,
@@ -121,6 +122,10 @@ assert.ok([...resourceCards.values()].every(card=>card.buttons.every(button=>but
 assert.equal(resourceCards.get("influence").note.textContent,"Сохранение…");
 assert.equal(resourceCards.get("influence").note.hidden,false);
 resourceQueue.pending=0;resourceActor.influence=2;resourceRun("refreshHeroSheetResourceControls()");
+Object.assign(resourceActor,{hp:7,maxHp:16,ap:2,baseAp:3,focus:5,armor:1,evasion:2,speed:6});
+resourceRun("refreshHeroSheetResourceControls()");
+assert.deepEqual([...readOnlyCounts].map(([key,node])=>[key,node.textContent]),[["health","7 / 16"],["ap","2 / 3"],["focus","5"],["armor","1"],["evasion","2"],["speed","6"]],"remote resources refresh while the sheet stays open");
+assert.equal(liveIndicator.hidden,false,"publishing links the visible sheet without reopening it");
 assert.equal(resourceCards.get("influence").count.textContent,"2","acknowledgement updates the displayed count");
 assert.ok(resourceCards.get("influence").buttons.every(button=>!button.disabled),"acknowledgement restores available controls without rebuilding the sheet");
 assert.equal(resourceCards.get("influence").note.hidden,true);
@@ -133,6 +138,8 @@ resourceRole.canNarrate=false;englishResources=true;resourceRun("refreshHeroShee
 assert.equal(resourceCards.get("influence").note.textContent,"Only the Narrator can edit.");
 assert.match(resourceCards.get("influence").buttons[1].attributes["aria-label"],/Only the Narrator can edit/);
 resourceContext.Scene.actors=[];
+resourceRun("refreshHeroSheetResourceControls()");
+assert.equal(liveIndicator.hidden,true,"leaving the table clears the live indicator");
 assert.ok(buttonsIn(resourceMarkup("influence")).every(button=>!/\bdisabled\b/.test(button)),"an unlinked Hero retains the existing local resource route");
 assert.doesNotMatch(resourceRun("heroSheetResourceMarkup('hp',10)"),/data-hero-resource/,"health remains read-only in the Hero resource rail");
 

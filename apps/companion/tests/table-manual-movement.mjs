@@ -31,7 +31,7 @@ vm.runInContext(source.slice(start,source.indexOf('\n',start)),context);node.onc
 console.log('Manual movement: typed clear isolation, space validation, replay, GM UI authority and actual SVG without legacy query passed');
 
 // Load the final LionWing override too: base UI coverage alone missed deployment.
-Object.assign(context,{moveSceneActorFromBoard:undefined,canControlSceneActor:()=>true,toast:()=>null});
+Object.assign(context,{moveSceneActorFromBoard:undefined,canControlSceneActor:()=>true,toast:()=>null,isEnglishPreview:()=>true});
 vm.runInContext(ui.slice(ui.indexOf('function moveSceneActorFromBoard('),ui.indexOf('function ',ui.indexOf('function moveSceneActorFromBoard(')+10)),context);
 const lwUi=read('lionwing-ui.js');vm.runInContext(lwUi.slice(lwUi.indexOf('const lwOldBoardMove ='),lwUi.indexOf('document.addEventListener',lwUi.indexOf('const lwOldBoardMove ='))),context);
 events=[];scene.activeSpace='main';context.moveSceneActorFromBoard(scene.actors[0],3,3,{manual:true});

@@ -64,6 +64,10 @@
       element.setAttribute("aria-label", translate(element.dataset.i18nAriaLabel, {}, options));
       count += 1;
     });
+    root.querySelectorAll("[data-i18n-title]").forEach(element => {
+      element.setAttribute("title", translate(element.dataset.i18nTitle, {}, options));
+      count += 1;
+    });
     return count;
   }
 

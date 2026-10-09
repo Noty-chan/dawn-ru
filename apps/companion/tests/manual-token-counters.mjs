@@ -49,6 +49,8 @@ const context={
   },
 };
 vm.createContext(context);
+const sceneUi=fs.readFileSync(new URL('../scene-ui.js',import.meta.url),'utf8');
+for(const name of ['sceneDisplayName','sceneSpaceDisplayName'])vm.runInContext(sceneUi.split(/\r?\n/).find(line=>line.startsWith(`function ${name}(`)),context);
 vm.runInContext(source.slice(begin,end),context);
 vm.runInContext(source.slice(source.indexOf('function submitManualNumber('),source.indexOf('window.DAWN_TABLE_POLICY?.install()')),context);
 const render=()=>context.renderManualTokenCounters();
