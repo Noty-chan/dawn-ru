@@ -1,0 +1,27 @@
+{
+  "probe": "Focus 2→7",
+  "clicks": [
+    {
+      "startMs": 0,
+      "endMs": 317
+    },
+    {
+      "startMs": 317,
+      "endMs": 628
+    },
+    {
+      "startMs": 628,
+      "endMs": 911
+    },
+    {
+      "startMs": 911,
+      "endMs": 1210
+    },
+    {
+      "startMs": 1210,
+      "endMs": 1590
+    }
+  ],
+  "value": "      - generic: Игрок · версия Сцены 54\n    - spinbutton \"Фокус\": \"7\"",
+  "earlierWoundsProbe": "5 clicks at wounds=3; unsuitable saturation probe, no acceptance evidence"
+}
