@@ -16,6 +16,14 @@
       epoch: Number.isSafeInteger(raw?.epoch) && raw.epoch >= 0 ? raw.epoch : 0 };
   }
   const isManual = scene => normalizePolicy(scene?.tablePolicy).mode === "manual";
+  // Shared text-input contract: a sign denotes a delta, unsigned digits a set.
+  // Exact corrections are validated by the command boundary, not silently capped.
+  function healthInput(value,current,maximum=null){
+    const text=String(value??"").trim();
+    if(!/^[+-]?\d+$/.test(text))return null;
+    const number=Number(text),relative=/^[+-]/.test(text),next=relative?current+number:number;
+    return Number.isSafeInteger(next)&&next<=9999?Math.max(0,relative&&Number.isFinite(maximum)&&maximum>0?Math.min(maximum,next):next):null;
+  }
   function resourceMaximum(target,key){
     if(key==="stress")return 3+Number(Array.isArray(target?.gifts)&&target.gifts.includes("rebel.supernatural-deafness"));
     if(key==="wounds")return target?.rulesEdition==="lionwing"||String(target?.profileId||"").startsWith("lionwing.")?3:99;
@@ -430,5 +438,5 @@
     }
     return global.DAWN_TABLE_POLICY;
   }
-  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceMaximum, resourceFields: RESOURCE_FIELDS, layoutActorFields:LAYOUT_ACTOR_FIELDS };
+  global.DAWN_TABLE_POLICY = { isManual, normalizePolicy, dispatchMany, install, pendingWork, validateSnapshot, resourceMaximum, healthInput, resourceFields: RESOURCE_FIELDS, layoutActorFields:LAYOUT_ACTOR_FIELDS };
 })(typeof window === "object" ? window : globalThis);

@@ -38,7 +38,7 @@ context.Scene.tablePolicy.mode='manual';context.activeSceneView=()=> 'player';co
 context.Scene.sessionClocks=[{id:'draft',manual:true,ownerActorId:'a',size:6,value:1}];
 const focused={dataset:{manualClockId:'draft'},value:'4',max:'6'};
 let closed=false,replaced=false;
-const dialog={open:true,contains:()=>true,dataset:{scope:'local:2',visibility:context.manualClockVisibilityScope()},close:()=>closed=true,querySelectorAll:()=>[],querySelector:()=>({replaceChildren:()=>{replaced=true;throw Error('rebuild')}})};
+const dialog={open:true,contains:()=>true,dataset:{scope:'local:2:0',visibility:context.manualClockVisibilityScope()},close:()=>closed=true,querySelectorAll:()=>[],querySelector:()=>({replaceChildren:()=>{replaced=true;throw Error('rebuild')}})};
 context.Sync={state:()=>({})};context.$=()=>dialog;context.document={activeElement:focused};
 context.renderManualClocks();assert.equal(replaced,false);assert.equal(focused.value,'4','unconfirmed draft survives scene render');
 context.Scene.sessionClocks[0].size=3;context.renderManualClocks();assert.equal(focused.max,'3','new bounds update without losing draft');
@@ -62,7 +62,7 @@ class ClockNode {
 const list=new ClockNode('div');list.replaceChildren=()=>{rebuildChange?.();inputs=[];createdInputs=[];list.children=[];};
 Object.defineProperty(list,'childElementCount',{get:()=>list.children.length});
 const create=new ClockNode('button');
-const pendingDialog={open:true,dataset:{scope:'local:0'},contains:input=>inputs.includes(input),close(){this.open=false},querySelector:selector=>selector==='[data-clock-list]'?list:create,querySelectorAll:()=>inputs};
+const pendingDialog={open:true,dataset:{scope:'local:0:0'},contains:input=>inputs.includes(input),close(){this.open=false},querySelector:selector=>selector==='[data-clock-list]'?list:create,querySelectorAll:()=>inputs};
 context.$=id=>id==='manual-table-clocks'?pendingDialog:null;
 context.document={activeElement:null,createElement:tag=>{const node=new ClockNode(tag);if(tag==='input'){createdInputs.push(node);inputs.push(node);}return node}};
 context.manualClockCommand=()=>({pending:true,clientIntentId:`clock-intent-${++clockSends}`,manualEventIds:[`clock-event-${clockSends}`]});

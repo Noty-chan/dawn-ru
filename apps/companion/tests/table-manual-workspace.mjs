@@ -16,6 +16,7 @@ const host = new Element('section');
 nodes.set('scene-workbench', host);
 const calls = [];
 const context = vm.createContext({window:{},document:{getElementById:id=>nodes.get(id),createElement:tag=>new Element(tag)}});
+vm.runInContext(fs.readFileSync(new URL('../scene-table-policy.js',import.meta.url),'utf8'), context);
 vm.runInContext(fs.readFileSync(new URL('../scene-manual-workspace.js',import.meta.url),'utf8'), context);
 const ui = context.window.DAWN_MANUAL_WORKSPACE;
 const scene = {tablePolicy:{mode:'manual',processStatuses:false},manualTable:{actorId:'npc',round:3},activeSpace:'main',selectedActor:'hero',actors:[
@@ -101,8 +102,11 @@ nodes.get('scene-manual-footer').events.change({target:{matches:()=>true,value:'
 assert.equal(calls.at(-1).events[0].payload.kind,'resource');
 assert.equal(calls.at(-1).events[0].actorId,'hero');
 assert.equal(calls.at(-1).events[0].payload.values.hp,0,'explicit HP zero is sent without inferred KO or damage');
-for (const invalid of ['', '11', '-1', '1.5', 'NaN']) assert.equal(ui.act('hp',invalid),false);
+for (const invalid of ['', '1.5', 'NaN', '10000']) assert.equal(ui.act('hp',invalid),false);
 assert.equal(calls.filter(call=>call.events).length,1,'invalid exact resources are rejected');
+assert.equal(ui.act('hp','-1'),true);assert.equal(calls.at(-1).events[0].payload.values.hp,6);
+assert.equal(ui.act('hp','+5'),true);assert.equal(calls.at(-1).events[0].payload.values.hp,10);
+assert.equal(ui.act('hp','11'),true);assert.equal(calls.at(-1).events[0].payload.values.hp,11,'exact correction shares HUD contract, server validates');
 ui.act('point'); ui.act('round');
 assert.equal(calls.at(-2).events[0].payload.actorId,'hero');
 assert.equal(calls.at(-2).events[0].payload.kind,'pointer');

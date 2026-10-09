@@ -556,9 +556,10 @@
   }
 
   class PlayerOutbox{
-    constructor({send,onError,tickMs=TICK_MS,maxItems=MAX_OUTBOX_ITEMS}={}){
+    constructor({send,onError,onSettled,tickMs=TICK_MS,maxItems=MAX_OUTBOX_ITEMS}={}){
       this.send=send;
       this.onError=onError;
+      this.onSettled=onSettled;
       this.tickMs=Math.max(TICK_MS,Number(tickMs)||TICK_MS);
       this.maxItems=maxItems;
       this.queue=[];
@@ -599,6 +600,7 @@
         this.inFlight=null;
         this.sending=false;
         if(generation===this.generation&&this.queue.length)this.schedule();
+        if(generation===this.generation)try{this.onSettled?.()}catch(error){console.warn("DAWN player settled handler failed",error)}
       }
     }
     clear(){this.generation++;clearTimeout(this.timer);this.timer=null;this.queue=[];this.inFlight=null;this.failures=0}
