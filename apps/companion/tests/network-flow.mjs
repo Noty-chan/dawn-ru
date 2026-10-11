@@ -260,8 +260,12 @@ const sceneSyncSource = fs.readFileSync(new URL("../scene-sync-ui.js", import.me
 const runtimeStart = sceneSyncSource.indexOf("function ensureNetworkV2Runtime(){");
 const queueStatusStart = sceneSyncSource.indexOf("function networkV2QueueStatus(){", runtimeStart);
 const retryFailedStart = sceneSyncSource.indexOf("function retryNetworkV2Failed(){", queueStatusStart);
+const rulesPendingStart = sceneSyncSource.indexOf("const pendingRulesUiIntents=new Map();");
+const manualProjectionStart = sceneSyncSource.indexOf("function projectPendingManualScene(", rulesPendingStart);
 assert.ok(runtimeStart >= 0 && queueStatusStart > runtimeStart && retryFailedStart > queueStatusStart);
+assert.ok(rulesPendingStart >= 0 && manualProjectionStart > rulesPendingStart);
 context.pendingManualUiIntents=new Map();context.networkV2PlayerError="";
+vm.runInNewContext(sceneSyncSource.slice(rulesPendingStart, manualProjectionStart), context, { filename: "scene-sync-ui.js#rules-pending-dependencies" });
 vm.runInNewContext(sceneSyncSource.slice(runtimeStart, retryFailedStart), context, { filename: "scene-sync-ui.js#authority-runtime" });
 context.pendingNetworkPlacements = new Map(); context.refreshPendingManualUi = ()=>{}; context.networkV2Authority = null;
 context.networkV2Outbox = null;
