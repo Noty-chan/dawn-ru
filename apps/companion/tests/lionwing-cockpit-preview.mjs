@@ -10,8 +10,9 @@ let narrator = true;
 const root = { dataset: { lwActor: "hero" }, querySelectorAll: () => [] };
 Object.assign(context, {
   structuredClone, Scene: fixture(), SceneEngine: engine,
-  document: { addEventListener(type, handler) { if (type === "click") handlers.push(handler); }, querySelector: () => null, querySelectorAll: () => [] },
+  document: { documentElement: {}, addEventListener(type, handler) { if (type === "click") handlers.push(handler); }, querySelector: () => null, querySelectorAll: () => [] },
   esc: value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;"),
+  t: (...args) => context.window.DAWN_I18N.t(...args),
   lwOwns: id => narrator || id === "hero", lwCanNarrate: () => narrator, lwActive: () => true,
   lwGeometrySceneIdentity: () => "cockpit-preview-scene", renderScene: () => {}, toast: value => notices.push(value),
   lwRules: () => context.window.DAWN_LIONWING_DATA.coreRules,
@@ -414,4 +415,61 @@ assert.match(kit.innerHTML,/data-lw-technique-preview/);
 assert.equal(value("lwTechniqueDraft.actorId"),"hero");
 cancel();
 
-console.log("LionWing cockpit preview passed: exact price, board/strip targeting, Player sheet refresh/pending/reaction/destination, retained fields/focus/details/source/roll, cancel, version guard, replay and ownership");
+// The transport helper identifies the unresolved actor without owning any UI
+// text or replacing existing access checks. A stale confirmation cannot reuse
+// its paid packet while another command from that actor remains unconfirmed.
+narrator=false;freshSheetScene();context.Scene.targetIds=["enemy"];
+action(engine.ACTION_IDS.spell);html();
+const pendingBefore=clone(context.Scene),pendingCommits=commits.length,pendingDraft=value("lwTechniqueDraft");
+let waiting=true;
+context.rulesPlayerPendingReason=id=>waiting&&id==="hero"?{code:"rules-command-pending",actorId:id,pending:true}:null;
+assert.match(html(),/data-lw-technique-confirm disabled/);
+assert.match(html(),/Действие отправлено/);
+assert.match(html(),/data-lw-shape-cancel>/, "the local cancel remains available while transport is pending");
+confirm();
+assert.equal(commits.length,pendingCommits);
+assert.equal(value("lwTechniqueDraft"),pendingDraft, "a pending confirmation leaves the unpaid draft available to cancel");
+assert.equal(context.lwSubmit("hero",{kind:"resource",resource:"focus",operation:"spend",amount:1}),false);
+action(engine.ACTION_IDS.breathe);
+assert.equal(value("lwTechniqueDraft"),pendingDraft, "a pending actor cannot replace its draft with a new submission");
+assert.equal(context.lwPendingCommandReason("enemy"),"", "another actor's controls do not inherit this pending reason");
+cancel();assert.equal(value("lwTechniqueDraft"),null);assert.equal(commits.length,pendingCommits);
+assert.deepEqual(clone(context.Scene),pendingBefore);
+waiting=false;action(engine.ACTION_IDS.spell);html();confirm();
+assert.equal(commits.length,pendingCommits+1);assert.equal(context.Scene.actors[0].ap,2);
+
+// Render the actual service sections with populated dice, inventory and old
+// consequences. A current decision stays first, basic actions precede these
+// services, and adding records does not auto-open service disclosures.
+vm.runInContext(source.slice(source.indexOf("function lwDiceHtml("),source.indexOf("function lwDiceClick(")),context);
+vm.runInContext(source.slice(source.indexOf("const lwConsequenceFallbackCategories ="),source.indexOf("function lwPendingHtml()")),context);
+vm.runInContext(source.slice(source.indexOf("function lwInventoryHtml("),source.indexOf("function lwActionsHtml(")),context);
+freshSheetScene();context.Scene.targetIds=["enemy"];
+const displayInventory=core.prepare(context.Scene,{actorId:"hero",kind:"inventory",operation:"configure",id:"qa-ammo",inventoryKind:"charges",label:"QA ammo",current:3,initial:0,maximum:6,ruleId:"test.cockpit-display",sourceDigest:"a".repeat(64),visibility:"owner"});
+assert.equal(displayInventory.ok,true,displayInventory.errors?.join(" "));
+context.Scene=core.dispatchMany(context.Scene,displayInventory.events).scene;
+context.Scene.actors[0].lionwing.legacyNotes=[{note:"Recorded consequence"}];
+const displayDice=core.prepare(context.Scene,{actorId:"hero",kind:"dice-create",pool:1,rollId:"qa"});
+assert.equal(displayDice.ok,true,displayDice.errors?.join(" "));
+context.Scene=core.dispatchMany(context.Scene,displayDice.events).scene;
+action(engine.ACTION_IDS.spell);html();
+const compact=context.lwActionsHtml(context.Scene.actors[0]);
+const position=key=>compact.indexOf(key);
+assert.ok(position("data-lw-technique-preview")>=0);
+assert.ok(position("data-lw-technique-preview")<position('data-lw-cockpit-section="actions"'));
+for(const section of ["parameters","inventory","dice","consequence-history"]){
+  const tag=compact.match(new RegExp(`<details[^>]*data-lw-cockpit-section="${section}"[^>]*>`))?.[0];
+  assert.ok(tag,`${section}: actual populated service markup exists`);
+  assert.doesNotMatch(tag,/\bopen\b/,`${section}: records do not auto-expand service sections`);
+  assert.ok(position('data-lw-cockpit-section="actions"')<position(`data-lw-cockpit-section="${section}"`));
+}
+assert.match(compact,/data-lw-technique-confirm >/);
+cancel();
+vm.runInContext(read("locale-en-builder.js"),context,{filename:"locale-en-builder.js"});
+context.window.DAWN_I18N.setLocale("en");waiting=true;
+assert.equal(context.lwPendingCommandReason("hero"),"Action sent. Waiting for the table to confirm it.");
+waiting=false;
+const englishCompact=context.lwActionsHtml(context.Scene.actors[0]);
+assert.match(englishCompact,/aria-label="Basic actions"/);assert.match(englishCompact,/<summary>Action parameters<\/summary>/);assert.match(englishCompact,/<summary>Inventory and charges<\/summary>/);
+
+console.log("LionWing cockpit preview passed: exact price, targeting/Player refresh, retained fields/source/roll, safe cancel, version/replay/ownership, pending actor guard and compact RU/EN service order");

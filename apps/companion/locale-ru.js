@@ -5,6 +5,22 @@
 // system messages. New or edited UI text must be added here rather than adding
 // a second language directly to feature code.
 window.DAWN_I18N?.registerLocale("ru", {
+  "scene.measure.distance": "{distance} кл.",
+  "scene.selection.markerMove": "Перемещение: {label} — выберите подсвеченную клетку",
+  "scene.selection.place": "Ручная перестановка: {name} — выберите клетку",
+  "scene.selection.placeEmpty": "Ручная перестановка: выберите участника",
+  "scene.selection.topology": "Разрыв поля: выбрано {count} клеток",
+  "scene.selection.targets": "Цели ({count}): {names}",
+  "scene.selection.selected": "Выбран: {name}",
+  "scene.selection.empty": "Нет выбранных целей",
+  "sync.notice.commandRejected": "Общий стол отклонил действие. Проверьте цели и ресурсы, затем повторите его.",
+  "sync.notice.commandRefreshPending": "Действие принято, но обновление стола ещё не подтверждено. Переподключитесь, чтобы проверить результат.",
+  "lionwing.cockpit.commandPending": "Действие отправлено. Ждём подтверждения стола.",
+  "lionwing.cockpit.basicActions": "Основные действия",
+  "lionwing.cockpit.parameters": "Параметры действия",
+  "lionwing.cockpit.inventoryTitle": "Инвентарь и заряды",
+  "lionwing.cockpit.destinationHint": "Выберите клетку на поле.",
+  "lionwing.cockpit.cancelDestination": "Отменить выбор",
   "scene.rulesStart.title": "Начать бой по правилам",
   "scene.rulesStart.started": "Начат бой по правилам: {actor}",
   "scene.rulesStart.first": "Первый участник",

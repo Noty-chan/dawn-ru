@@ -3,6 +3,22 @@
 // Preview catalogue for the new-edition character builder. Loading this file
 // does not expose English in the public locale selector or change saved heroes.
 window.DAWN_I18N?.registerLocale("en", {
+  "scene.measure.distance": "{distance} spaces",
+  "scene.selection.markerMove": "Move {label}: choose a highlighted cell",
+  "scene.selection.place": "Reposition {name}: choose a cell",
+  "scene.selection.placeEmpty": "Reposition: choose a participant",
+  "scene.selection.topology": "Field break: {count} cells selected",
+  "scene.selection.targets": "Targets ({count}): {names}",
+  "scene.selection.selected": "Selected: {name}",
+  "scene.selection.empty": "No targets selected",
+  "sync.notice.commandRejected": "The table rejected this action. Check its targets and resources, then try again.",
+  "sync.notice.commandRefreshPending": "The action was accepted, but the table refresh is still unconfirmed. Reconnect to check the result.",
+  "lionwing.cockpit.commandPending": "Action sent. Waiting for the table to confirm it.",
+  "lionwing.cockpit.basicActions": "Basic actions",
+  "lionwing.cockpit.parameters": "Action parameters",
+  "lionwing.cockpit.inventoryTitle": "Inventory and charges",
+  "lionwing.cockpit.destinationHint": "Choose a cell on the field.",
+  "lionwing.cockpit.cancelDestination": "Cancel selection",
   "scene.rulesStart.title": "Start a rules battle",
   "scene.rulesStart.started": "Rules battle started: {actor}",
   "scene.rulesStart.first": "First participant",
