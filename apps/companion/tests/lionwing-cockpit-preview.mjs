@@ -472,4 +472,45 @@ waiting=false;
 const englishCompact=context.lwActionsHtml(context.Scene.actors[0]);
 assert.match(englishCompact,/aria-label="Basic actions"/);assert.match(englishCompact,/<summary>Action parameters<\/summary>/);assert.match(englishCompact,/<summary>Inventory and charges<\/summary>/);
 
-console.log("LionWing cockpit preview passed: exact price, targeting/Player refresh, retained fields/source/roll, safe cancel, version/replay/ownership, pending actor guard and compact RU/EN service order");
+// Player controls must be honest in their shared HTML before any GM-only DOM
+// refresh. Keep mechanical availability intact and gate only the pending actor.
+const playerButton=(markup,attribute)=>markup.match(new RegExp(`<button[^>]*${attribute}[^>]*>`))?.[0];
+const inventoryAmount=()=>Object.values(context.window.DAWN_LIONWING_INVENTORY.project(context.Scene,{role:"owner",actorIds:["hero"]}).hero.records).map(record=>context.window.DAWN_LIONWING_INVENTORY.readNumeric(record))[0];
+for(const [locale,message]of [["ru","Действие отправлено. Ждём подтверждения стола."],["en","Action sent. Waiting for the table to confirm it."]]){
+  context.window.DAWN_I18N.setLocale(locale);narrator=false;waiting=false;freshSheetScene();
+  const inventoryPacket=core.prepare(context.Scene,{actorId:"hero",kind:"inventory",operation:"configure",id:"qa-player-ammo",inventoryKind:"charges",label:"QA Player ammo",current:3,initial:0,maximum:6,ruleId:"test.cockpit-player-pending",sourceDigest:"a".repeat(64),visibility:"owner"});
+  assert.equal(inventoryPacket.ok,true,inventoryPacket.errors?.join(" "));
+  context.Scene=core.dispatchMany(context.Scene,inventoryPacket.events).scene;
+  const assertPlayerWaiting=attribute=>{
+    const locked=context.sceneActionPanel(context.Scene.actors[0]),tag=playerButton(locked,attribute);
+    assert.ok(tag,`${locale}: actual Player control exists`);assert.match(tag,/\bdisabled\b/);assert.ok(tag.includes(`title="${message}"`),`${locale}: disabled control explains the exact pending reason`);
+    assert.ok(locked.includes(`<p role="status">${message}</p>`),`${locale}: the Player can read why the controls are waiting`);
+  };
+  const assertPlayerReady=attribute=>{
+    const unlocked=context.sceneActionPanel(context.Scene.actors[0]);assert.doesNotMatch(playerButton(unlocked,attribute),/\bdisabled\b/);
+    assert.ok(!unlocked.includes(message),`${locale}: the pending message disappears after terminal confirmation`);
+  };
+  waiting=true;assertPlayerWaiting('data-lw-inventory="spend"');
+  const inventoryScene=clone(context.Scene),inventoryCommits=commits.length;
+  click({lwActor:"hero",lwInventory:"spend",lwInventoryId:"qa-player-ammo"},["data-lw-inventory"]);
+  assert.equal(commits.length,inventoryCommits);assert.deepEqual(clone(context.Scene),inventoryScene,"a stale Player inventory click remains unpaid");
+  waiting=false;assertPlayerReady('data-lw-inventory="spend"');
+  click({lwActor:"hero",lwInventory:"spend",lwInventoryId:"qa-player-ammo"},["data-lw-inventory"]);
+  assert.equal(commits.length,inventoryCommits+1,notices.at(-1));assert.equal(inventoryAmount(),2);
+
+  context.Scene.activeActorId="enemy";
+  const attackPacket=core.prepare(context.Scene,{actorId:"enemy",kind:"attack",targetIds:["hero"],amount:2});
+  assert.equal(attackPacket.ok,true,attackPacket.errors?.join(" "));context.Scene=core.dispatchMany(context.Scene,attackPacket.events).scene;
+  const block=core.reactionOptions(context.Scene,"hero").find(option=>option.id==="block");assert.equal(block.available,true);
+  waiting=true;assertPlayerWaiting('data-lw-reaction="block"');
+  const reactionScene=clone(context.Scene),reactionCommits=commits.length;
+  click({lwActor:"hero",lwReaction:"block"},["data-lw-reaction"]);
+  assert.equal(commits.length,reactionCommits);assert.deepEqual(clone(context.Scene),reactionScene,"a stale Player reaction click remains unpaid");
+  waiting=false;assertPlayerReady('data-lw-reaction="block"');
+  const focusBefore=context.Scene.actors[0].focus;
+  click({lwActor:"hero",lwReaction:"block"},["data-lw-reaction"]);
+  assert.equal(commits.length,reactionCommits+1);assert.equal(context.Scene.actors[0].focus,focusBefore-block.costModel.amount);
+  assert.equal(engine.pendingActionStatus(context.Scene).waitingIds.includes("hero"),false);
+}
+
+console.log("LionWing cockpit preview passed: exact price, targeting/Player refresh, retained fields/source/roll, safe cancel, version/replay/ownership, pending actor guard, actual Player inventory/reaction lock/unlock and compact RU/EN service order");

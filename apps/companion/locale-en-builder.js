@@ -13,6 +13,7 @@ window.DAWN_I18N?.registerLocale("en", {
   "scene.selection.empty": "No targets selected",
   "sync.notice.commandRejected": "The table rejected this action. Check its targets and resources, then try again.",
   "sync.notice.commandRefreshPending": "The action was accepted, but the table refresh is still unconfirmed. Reconnect to check the result.",
+  "sync.error.rulesPolicyChanged": "The table policy changed. Reload the page and submit the action again.",
   "lionwing.cockpit.commandPending": "Action sent. Waiting for the table to confirm it.",
   "lionwing.cockpit.basicActions": "Basic actions",
   "lionwing.cockpit.parameters": "Action parameters",

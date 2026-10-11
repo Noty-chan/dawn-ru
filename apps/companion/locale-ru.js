@@ -15,6 +15,7 @@ window.DAWN_I18N?.registerLocale("ru", {
   "scene.selection.empty": "Нет выбранных целей",
   "sync.notice.commandRejected": "Общий стол отклонил действие. Проверьте цели и ресурсы, затем повторите его.",
   "sync.notice.commandRefreshPending": "Действие принято, но обновление стола ещё не подтверждено. Переподключитесь, чтобы проверить результат.",
+  "sync.error.rulesPolicyChanged": "Ведение стола изменилось. Обновите страницу и отправьте действие заново.",
   "lionwing.cockpit.commandPending": "Действие отправлено. Ждём подтверждения стола.",
   "lionwing.cockpit.basicActions": "Основные действия",
   "lionwing.cockpit.parameters": "Параметры действия",
