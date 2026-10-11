@@ -105,7 +105,7 @@ const pointerEvents=new Map(),documentEvents=new Map(),windowEvents=new Map();
 const register=(map,type,fn)=>{const rows=map.get(type)||[];rows.push(fn);map.set(type,rows)};
 let writes=0;
 const areaDraft={id:'annotation',actorId:'actor'},pointerPanel={areaDraft,querySelector:()=>({value:'cell',textContent:''})};
-const cell={dataset:{sceneCell:'0,0'},closest:()=>cell,matches:()=>false};
+const cell={dataset:{sceneCell:'0,0'},closest:selector=>selector==='[data-scene-cell]'?cell:null,matches:()=>false};
 const pointerBoard={addEventListener:(type,fn)=>register(pointerEvents,type,fn),querySelector:()=>({classList:{add(){}}})};
 const toolbar={addEventListener(){}};
 const cameraWrap={scrollLeft:100,scrollTop:80,classList:{add(){},remove(){}},addEventListener:(type,fn)=>register(pointerEvents,`wrap:${type}`,fn)};
@@ -148,7 +148,7 @@ console.log('Manual tool labels: policy/language transitions describe storage-on
  const boardEvents={},docEvents={},winEvents={},cells=new Map();let scope='local:1',tool='area',packets=[],held=false;
  const listen=(bag,type,fn)=>(bag[type]??=[]).push(fn);
  const board={addEventListener:(type,fn)=>listen(boardEvents,type,fn),contains:n=>cells.has(n.key),querySelector:selector=>cells.get(selector.match(/="([^"]+)"/)[1])};
- for(let y=0;y<7;y++)for(let x=0;x<7;x++){const key=`${x},${y}`;cells.set(key,{key,dataset:{sceneCell:key},closest(){return this},classList:{add(){},remove(){}}});}
+ for(let y=0;y<7;y++)for(let x=0;x<7;x++){const key=`${x},${y}`;cells.set(key,{key,dataset:{sceneCell:key},closest(selector){return selector==='[data-scene-cell]'?this:null},classList:{add(){},remove(){}}});}
  const bc={window:{addEventListener:(type,fn)=>listen(winEvents,type,fn),DAWN_TABLE_POLICY:Policy,DAWN_PRESENTATION_MODEL:c.window.DAWN_PRESENTATION_MODEL},document:{addEventListener:(type,fn)=>listen(docEvents,type,fn)},performance:{now:()=>100},CSS:{escape:String},Scene:plain(normal.blankScene()),Logic:c.Logic,manualTableActive:()=>true,activeSceneView:()=> 'gm',activeSceneTool:()=>tool,usingNextSceneInterface:()=>true,sceneHasLocalPendingSelection:()=>false,manualClockScope:()=>scope,manualAreaCameraGesture:()=>held,clearManualAreaPreview(){},manualTableCopy:ru=>ru,toast(){},uid:()=>`brush-${packets.length}`,sceneObjectDisplayName:()=> 'Area'};
  bc.$=id=>id==='scene-board'?board:id==='manual-table-area-tools'?null:fields[id];bc.activeSceneSpace=()=>bc.Scene.spaces[0];
  bc.commitSceneEvents=(label,events)=>{const result=Engine.dispatchMany(bc.Scene,events);bc.Scene=plain(result.scene);packets.push(events);return result;};
