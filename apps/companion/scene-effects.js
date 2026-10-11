@@ -86,7 +86,7 @@ function sceneFlowSteps(labels,current){
   }).join("")}</ol>`;
 }
 function rulePromptChoiceLabel(prompt,choice){const names={"pure-water":"Чистая вода","rage-fumes":"Пары ярости","growth-serum":"Сыворотка роста",adrenaline:"Адреналиновый стимулятор","stone-skin":"Бальзам каменной кожи","thorn-rot":"Яд мерзошипа",attack:"Быстрая Стычка",pass:"Не использовать",accept:"Принять перенаправление",resist:"Сопротивляться (+2 Стресса)",place:"Поставить Слабую точку",study:"Изучить атакующего",stun:"Наложить Ошеломлен",transform:"Трансформироваться",rush:"Переместиться",pull:"Притянуть",stop:"Остановить",continue:"Продолжить",convert:"Преобразовать Сосульку",finale:"Использовать Финал",single:"Оставить один Дух",cancel:"Отменить",fill:"Заполнить",invoke:"Использовать",flow:"Получить ОД и переместиться",provoke:"Наложить Спровоцирован",frighten:"Наложить Испуган","hold-back":"Сдержаться",disappear:"Исчезнуть",reapply:"Применить снова"};const spirits={dreamy:"Мечтательный дух",angry:"Злой дух",insightful:"Проницательный дух",bright:"Пылкий дух",kind:"Добрый дух",fierce:"Яростный дух"};if(prompt.context?.optionLabels?.[choice])return prompt.context.optionLabels[choice];if(names[choice])return names[choice];if(spirits[choice])return spirits[choice];if(choice.startsWith("cell:")){const[x,y]=choice.slice(5).split(",").map(Number);return `Клетка ${String.fromCharCode(65+x)}${y+1}`}if(choice.startsWith("combine:"))return `Объединить: ${spirits[choice.slice(8)]||choice.slice(8)}`;if(choice.startsWith("split:"))return `Два Пламени: ${spirits[choice.slice(6)]||choice.slice(6)}`;const marker=Scene.markers.find(item=>item.id===choice);if(marker)return `${marker.label} · ${String.fromCharCode(65+Number(marker.x))}${Number(marker.y)+1}`;const actor=Scene.actors.find(item=>item.id===choice);if(actor)return actor.name;return D.effects.positive.concat(D.effects.negative).find(effect=>effect.id===choice)?.name||choice}
-function cancelSceneFlow(){if(typeof lwCancelDestination==="function")lwCancelDestination();if(Scene.pendingActionPlan){const prepared=SceneEngine.cancelActionPlan(Scene,{actorId:Scene.pendingActionPlan.actorId,reason:"Отменено до оплаты и применения."});if(!prepared.ok)return toast(prepared.errors.join(" "));if(!commitSceneEvents(`Отмена: ${Scene.pendingActionPlan.actionName}`,prepared.events))return}delete Scene.__masterFinisherRequest;pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;pendingCoreActorId=null;pendingCoreReaction=null;pendingTechniqueRule=null;pendingTechniqueAnchor=null;pendingTechniqueOptions={};pendingTechniqueCells=[];pendingTechniqueLines=[];pendingEnemyRule=null;pendingEnemyStepActorId=null;pendingZealotPlan=null;scenePreviewCells.clear();sceneTopologyCells.clear();sceneMeasureStart=null;sceneMeasureCells.clear();sceneMeasureLabel="";Scene.tool="select";persist();renderScene();toast("Подготовка действия отменена без затрат")}
+function cancelSceneFlow(){if(typeof lwCancelDestination==="function")lwCancelDestination();if(Scene.pendingActionPlan){const prepared=SceneEngine.cancelActionPlan(Scene,{actorId:Scene.pendingActionPlan.actorId,reason:"Отменено до оплаты и применения."});if(!prepared.ok)return toast(prepared.errors.join(" "));if(!commitSceneEvents(`Отмена: ${Scene.pendingActionPlan.actionName}`,prepared.events))return}delete Scene.__masterFinisherRequest;pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;pendingCoreActorId=null;pendingCoreReaction=null;pendingTechniqueRule=null;pendingTechniqueAnchor=null;pendingTechniqueOptions={};pendingTechniqueCells=[];pendingTechniqueLines=[];pendingEnemyRule=null;pendingEnemyStepActorId=null;pendingZealotPlan=null;scenePreviewCells.clear();sceneTopologyCells.clear();clearSceneMeasurement({render:false});Scene.tool="select";persist();renderScene();toast("Подготовка действия отменена без затрат")}
 function sceneEnvironmentTarget({x,y,markerId=null,wallId=null}){
   const eligible=item=>item.space===Scene.activeSpace;
   const wall=wallId&&Scene.walls.find(item=>eligible(item)&&item.id===wallId);
@@ -118,20 +118,83 @@ function previewSceneEnvironmentErase(point){
   for(const key of keys)board.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`)?.classList.add("scene-erase-preview");
   board.querySelector(`[data-scene-cell="${point.x},${point.y}"]`)?.insertAdjacentHTML("beforeend",`<span class="scene-erase-label">${esc((isEnglishPreview()?"Remove: ":"Удалить: ")+target.entity.label)}</span>`);
 }
-function clearSceneMeasurement(){
-  sceneNeutralTool=null;sceneMeasureStart=null;sceneMeasureEnd=null;sceneMeasureCells.clear();sceneMeasureLabel="";
+let sceneMeasurementScope=null;
+function currentSceneMeasurementScope(){
+  const sync=typeof Sync==="undefined"?null:Sync?.state?.(),space=Scene.spaces?.find(item=>item.id===Scene.activeSpace);
+  return JSON.stringify([sync?.sceneId||Scene.sceneId||Scene.sceneIdentity||Scene.id||"local",sync?.userId||null,Scene.rulesEdition,Scene.tablePolicy?.mode,Scene.tablePolicy?.epoch||0,Scene.activeSpace,space?.width,space?.height,activeSceneView()]);
+}
+function reconcileSceneMeasurement(){
+  if(sceneMeasurementScope!==null&&sceneMeasurementScope!==currentSceneMeasurementScope())clearSceneMeasurement({render:false});
+}
+function sceneMeasurementSummary(){
+  if(sceneMeasureLabel)return sceneMeasureLabel;
+  const view=activeSceneView(),tool=activeSceneTool(),selected=Scene.actors.find(actor=>actor.id===Scene.selectedActor&&(view==="gm"||!actor.hidden)),targets=Scene.actors.filter(actor=>(Scene.targetIds||[]).includes(actor.id)&&(view==="gm"||!actor.hidden)),promptMarker=typeof canControlScenePrompt==="function"&&canControlScenePrompt()?Scene.markers?.find(marker=>marker.id===Scene.pendingPrompt?.context?.markerId):null;
+  if(promptMarker)return t("scene.selection.markerMove",{label:promptMarker.label});
+  if(tool==="place")return selected?t("scene.selection.place",{name:selected.name}):t("scene.selection.placeEmpty");
+  if(tool==="topology")return t("scene.selection.topology",{count:sceneTopologyCells.size});
+  return targets.length?t("scene.selection.targets",{count:targets.length,names:targets.map(actor=>actor.name).join(", ")}):selected?t("scene.selection.selected",{name:selected.name}):t("scene.selection.empty");
+}
+function renderSceneMeasurement({tools=false}={}){
+  const board=$("scene-board");
+  if(board){
+    for(const cell of board.querySelectorAll("[data-scene-cell]"))cell.classList.toggle("measured",sceneMeasureCells.has(cell.dataset.sceneCell));
+    const host=sceneMeasureEnd&&sceneMeasureLabel?board.querySelector(`[data-scene-cell="${sceneMeasureEnd.x},${sceneMeasureEnd.y}"]`):null,outputs=[...board.querySelectorAll(".scene-measure-readout")];
+    let output=outputs.shift();
+    for(const extra of outputs)extra.remove();
+    if(!host)output?.remove();
+    else{
+      if(!output){output=document.createElement("output");output.className="scene-measure-readout";output.setAttribute("aria-live","polite");}
+      if(output.parentElement!==host)host.appendChild(output);
+      if(output.textContent!==sceneMeasureLabel)output.textContent=sceneMeasureLabel;
+    }
+  }
+  const summary=$("scene-selection-summary");if(summary)summary.textContent=sceneMeasurementSummary();
+  if(!tools)return;
+  const tool=activeSceneTool(),areaType=$("scene-area-type")?.value;
+  for(const button of document.querySelectorAll("[data-scene-tool]")){
+    const selected=button.dataset.sceneTool===tool&&(tool!=="area"||button.dataset.sceneAreaType===areaType);
+    button.classList.toggle("on",selected);button.setAttribute("aria-pressed",String(selected));
+  }
+  for(const [id,kind]of [["scene-area-controls","area"],["scene-wall-controls","wall"],["scene-marker-controls","marker"],["scene-topology-controls","topology"]]){const controls=$(id);if(controls)controls.hidden=tool!==kind;}
+}
+function clearSceneMeasurement({render=true}={}){
+  sceneNeutralTool=null;sceneMeasureStart=null;sceneMeasureEnd=null;sceneMeasureCells.clear();sceneMeasureLabel="";sceneMeasurementScope=null;
+  if(render)renderSceneMeasurement({tools:true});
+}
+// Full canonical updates still use the established board renderer. Only the
+// local ruler is reconciled here; its pointer path never rebuilds the board.
+if(typeof renderScene==="function"){
+  const renderSceneWithoutMeasurement=renderScene;
+  renderScene=function(){reconcileSceneMeasurement();return renderSceneWithoutMeasurement.apply(this,arguments);};
+}
+if(typeof renderSceneBoard==="function"){
+  const renderSceneBoardWithoutMeasurement=renderSceneBoard;
+  renderSceneBoard=function(){
+    const previousScope=sceneMeasurementScope;
+    reconcileSceneMeasurement();
+    const result=renderSceneBoardWithoutMeasurement.apply(this,arguments);
+    if(previousScope!==null)renderSceneMeasurement({tools:sceneMeasurementScope===null});
+    return result;
+  };
 }
 function updateSceneMeasurement(point,{complete=false}={}){
-  if(!sceneMeasureStart){sceneMeasureStart={...point};sceneMeasureEnd={...point};sceneMeasureCells=new Set([`${point.x},${point.y}`]);sceneMeasureLabel=isEnglishPreview()?"0 spaces":"0 кл.";}
+  const previousScope=sceneMeasurementScope;reconcileSceneMeasurement();
+  if(previousScope!==null&&sceneMeasurementScope===null){renderSceneMeasurement({tools:true});return false;}
+  if(activeSceneTool()!=="measure")return false;
+  const space=Scene.spaces?.find(item=>item.id===Scene.activeSpace);
+  if(!space||!Number.isInteger(point?.x)||!Number.isInteger(point?.y)||point.x<0||point.y<0||point.x>=space.width||point.y>=space.height)return false;
+  sceneMeasurementScope=currentSceneMeasurementScope();
+  if(!sceneMeasureStart){sceneMeasureStart={...point};sceneMeasureEnd={...point};sceneMeasureCells=new Set([`${point.x},${point.y}`]);sceneMeasureLabel=t("scene.measure.distance",{distance:0});}
   else{
     const distance=Math.abs(point.x-sceneMeasureStart.x)+Math.abs(point.y-sceneMeasureStart.y);
-    sceneMeasureEnd={...point};sceneMeasureCells=new Set(measurementPath(sceneMeasureStart,point));sceneMeasureLabel=isEnglishPreview()?`${distance} spaces`:`${distance} кл.`;
+    sceneMeasureEnd={...point};sceneMeasureCells=new Set(measurementPath(sceneMeasureStart,point));sceneMeasureLabel=t("scene.measure.distance",{distance});
     if(complete)sceneMeasureStart=null;
   }
+  renderSceneMeasurement();return true;
 }
 function changeSceneTool(requested){
-  if(requested==="measure"){clearSceneMeasurement();sceneNeutralTool="measure";renderScene();return;}
-  clearSceneMeasurement();
+  if(requested==="measure"){clearSceneMeasurement({render:false});sceneNeutralTool="measure";sceneMeasurementScope=currentSceneMeasurementScope();renderSceneMeasurement({tools:true});return;}
+  clearSceneMeasurement({render:false});
   const localFlow=Boolean(typeof lwDestination!=="undefined"&&lwDestination||Scene.pendingActionPlan||pendingCoreAction||pendingCoreReaction||pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingZealotPlan);
   if(localFlow)cancelSceneFlow();
   const current=activeSceneTool(),toggleOff=requested===current&&requested==="target";

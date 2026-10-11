@@ -18,20 +18,21 @@ let role="gm",openDialog=null,renders=0,cancellations=0;
 const handlers=new Map(),keyboard=[],messages=[];
 const elements=new Map();
 const element=id=>{
-  if(!elements.has(id))elements.set(id,{id,hidden:true,addEventListener(type,handler){handlers.set(`${id}:${type}`,handler);}});
+  if(!elements.has(id))elements.set(id,{id,hidden:true,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(type,handler){handlers.set(`${id}:${type}`,handler);}});
   return elements.get(id);
 };
 const context={
   console,performance:{now:()=>1000},HTMLElement:class {},requestAnimationFrame:()=>{},
-  document:{activeElement:null,querySelector:selector=>selector==="dialog[open]"?openDialog:null,
+  document:{activeElement:null,querySelector:selector=>selector==="dialog[open]"?openDialog:null,querySelectorAll:()=>[],
     addEventListener(type,handler,capture=false){if(type==="keydown")keyboard.push({handler,capture});}},
    $:element,sceneViewportProfile:()=>"desktop",activeSceneView:()=>role,canControlScenePrompt:()=>false,
   syncScenePanels:()=>{},persist:()=>{},renderScene:()=>{renders++;},toast:text=>messages.push(text),
   focusSceneActorOnBoard:()=>{},SceneEngine:{},window:{},S:{id:"owned-hero"},
-  isEnglishPreview:()=>false,lwActive:()=>true,cancelSceneFlow:()=>{cancellations++;},
+  isEnglishPreview:()=>false,t:(...args)=>context.window.DAWN_I18N.t(...args),lwActive:()=>true,cancelSceneFlow:()=>{cancellations++;},
 };
 vm.createContext(context);
 const run=code=>vm.runInContext(code,context),load=code=>vm.runInContext(code,context,{filename:"actual Scene pointer/keyboard controller"});
+load(read("localization.js"));load(read("locale-ru.js"));
 run(`let store={mode:"play"},Scene,sceneInterfaceVersion="next",sceneLeftPanelsEnabled=true,scenePanelLayoutMode="split";
   let activeScenePanel=null,activeScenePanels={left:null,right:null},scenePanelTrigger=null;
   const DEFAULT_SCENE_PANEL_SIDES={director:"left",inspector:"right",map:"right"},scenePanelSides={};
@@ -44,7 +45,7 @@ for(const name of ["activeSceneTool","canControlSceneActor","playerCanReposition
 load(section(ui,"function moveSceneActorFromBoard(","\nfunction measurementPath("));
 load(section(ui,"function setScenePanel(","\nfunction closeAllScenePanels("));
 load(section(ui,"function hideSceneContextMenu(","\nfunction showSceneContextMenu("));
-load(section(effects,"function clearSceneMeasurement(","\nfunction cancelCommittedAction("));
+load(section(effects,"let sceneMeasurementScope=","\nfunction cancelCommittedAction("));
 load(section(events,'$("scene-board").addEventListener("click",event=>{','$("scene-board").addEventListener("dragstart"'));
 load(line(events,'$("scene-turn-strip").addEventListener("click"'));
 load(line(events,'$("scene-workbench").addEventListener("click",event=>{const close='));
@@ -68,7 +69,7 @@ const reset=(view="gm",interfaceVersion="next")=>{
     pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;pendingCoreReaction=null;
     pendingTechniqueRule=null;pendingEnemyRule=null;pendingEnemyStepActorId=null;pendingZealotPlan=null;
     lwTechniqueDraft=null;lwDestination=null;sceneContextTarget=null;sceneNeutralTool=null;sceneMeasureEnd=null;sceneMeasureStart=null;sceneMeasureLabel="";
-    scenePreviewCells.clear();sceneTopologyCells.clear();sceneMeasureCells.clear();`);
+    scenePreviewCells.clear();sceneTopologyCells.clear();clearSceneMeasurement({render:false});`);
   element("scene-context-menu").hidden=true;
 };
 const targets=()=>plain(run("({actorIds:Scene.targetIds,cells:Scene.targetCells})"));
