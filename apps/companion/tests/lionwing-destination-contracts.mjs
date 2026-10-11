@@ -81,7 +81,9 @@ for (const seed of [1, 4, 17, 904]) {
 // the real core. This reproduces the UI path which used to omit Jump previews.
 const uiSource = fs.readFileSync(new URL("../lionwing-ui.js", import.meta.url), "utf8");
 const helpers = uiSource.slice(uiSource.indexOf("let lwDestination ="), uiSource.indexOf("const lwRules ="));
-const handler = uiSource.slice(uiSource.indexOf('document.addEventListener("click", event => {'), uiSource.indexOf('document.addEventListener("change",event=>{'));
+const handlerStart = uiSource.indexOf('document.addEventListener("click", event => {');
+const handler = uiSource.slice(handlerStart, uiSource.indexOf('document.addEventListener("change",event=>{', handlerStart));
+const pendingGuard = uiSource.slice(uiSource.indexOf("function lwPendingCommandReason"), uiSource.indexOf("function lwRefreshPendingControls"));
 const cells = Array.from({ length: 48 }, (_, index) => {
   const classes = new Set();
   return { dataset: { sceneCell: `${index % 8},${Math.floor(index / 8)}` }, classes, classList: {
@@ -101,7 +103,7 @@ vm.runInContext(`
  let scenePreviewCells=new Set();
  function renderScene(){this.renders++;lwApplyDestinationHighlights(this.board,Scene.spaces[0])}
  function lwSubmit(actorId,payload){const p=LionwingEngine.prepare(Scene,{actorId,...payload});if(!p.ok)throw new Error(p.errors.join(" "));Scene=SceneEngine.dispatchMany(Scene,p.events).scene;this.submissions++;return true}
- ${helpers}\n${handler}
+ ${helpers}\n${pendingGuard}\n${handler}
  this.getScene=()=>Scene;this.getDestination=()=>lwDestination;this.getDraft=()=>lwTechniqueDraft;this.cancel=lwCancelDestination;this.setScene=value=>{Scene=value};this.setDestination=lwSetDestination;
 `, Object.assign(ui, { board }));
 const root = { dataset: { lwActor: "hero" }, querySelector: () => null,

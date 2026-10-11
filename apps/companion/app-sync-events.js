@@ -46,7 +46,7 @@ $("sync-join-campaign").onclick=()=>runSyncAction(async()=>{configureSyncFromFor
 $("sync-create-invite").onclick=()=>runSyncAction(async()=>{lastInviteToken=await Sync.createInvite("player");$("sync-invite-output").textContent=t("sync.inviteOutput",{link:inviteLink(lastInviteToken)});$("sync-copy-invite").hidden=false},t("sync.notice.inviteCreated"));
 $("sync-copy-invite").onclick=()=>runSyncAction(async()=>{if(!lastInviteToken)throw new Error(t("sync.error.inviteFirst"));await navigator.clipboard.writeText(inviteLink(lastInviteToken))},t("sync.notice.copied"));
 $("sync-publish-hero").onclick=()=>runSyncAction(publishCurrentHero,t("sync.notice.published"));
-$("sync-reconnect").onclick=()=>runSyncAction(async()=>{const state=Sync.state();if(!state.authenticated)await Sync.connect();if(Sync.state().sceneId){await Sync.refreshScene();if(!retryNetworkV2Failed())toast(t("sync.notice.reconnected"))}},"");
+$("sync-reconnect").onclick=()=>runSyncAction(async()=>{const state=Sync.state();if(!state.authenticated)await Sync.connect();if(Sync.state().sceneId){await Sync.refreshScene();if(typeof reconcilePendingRulesPlayerCommands==="function")await reconcilePendingRulesPlayerCommands({force:true});if(!retryNetworkV2Failed()&&!(typeof rulesPlayerPendingActorIds==="function"&&rulesPlayerPendingActorIds().length))toast(t("sync.notice.reconnected"))}},"");
 const leaveCurrentTable=()=>runSyncAction(async()=>{resetClientTableRuntime();await Sync.leave();await refreshSavedCampaigns()},t("sync.notice.left"));
 $("sync-leave").onclick=leaveCurrentTable;
 $("sync-leave-table").onclick=leaveCurrentTable;
@@ -95,3 +95,9 @@ Sync?.on("commands",commands=>{pendingSceneCommands=Array.isArray(commands)?comm
 Sync?.on("command",command=>{if(command&&!pendingSceneCommands.some(item=>String(item.id)===String(command.id)))pendingSceneCommands.push(command);renderSync();queueAutomaticCommand(command)});
 Sync?.on("command-update",command=>{if(!command)return;if(typeof reconcileManualToolsRoll==="function")reconcileManualToolsRoll(command);if(typeof reconcileManualAreaDraft==="function")reconcileManualAreaDraft(command);window.DAWN_MANUAL_WORKSPACE?.reconcileNumber(command);if(typeof reconcileManualClockNumbers==="function")reconcileManualClockNumbers(command);if(command.status!=="pending"){if(command.status==="rejected")clearPendingNetworkPlacement(command);discardNetworkV2Commands([command.id]);pendingSceneCommands=pendingSceneCommands.filter(item=>String(item.id)!==String(command.id));automaticCommandAttempts.delete(String(command.id));automaticCommandRetries.delete(String(command.id));delayedAutomaticCommands.delete(String(command.id))}renderSync()});
 globalThis.addEventListener("dawn-network-v2-settled",event=>{const ids=new Set([...(event.detail?.commandIds||[]),...(event.detail?.rejectedCommandIds||[])].map(String));discardNetworkV2Commands([...ids]);pendingSceneCommands=pendingSceneCommands.filter(command=>!ids.has(String(command.id)));ids.forEach(id=>{automaticCommandAttempts.delete(id);automaticCommandRetries.delete(id);delayedAutomaticCommands.delete(id)});renderSync()});
+
+// Observe after the normal Scene handler has installed the canonical projection.
+// A command INSERT and an unrelated version change do not confirm a rules write.
+Sync?.on("scene",payload=>{if(payload?.state&&typeof payload.state==="object"&&typeof noteRulesPlayerCanonicalScene==="function")noteRulesPlayerCanonicalScene(payload);});
+Sync?.on("command-update",command=>{if(typeof reconcileRulesPlayerCommand==="function")reconcileRulesPlayerCommand(command);});
+Sync?.on("status",()=>{if(typeof syncRulesPlayerPendingStatus==="function")syncRulesPlayerPendingStatus();});

@@ -21,7 +21,7 @@ class Node {
   append(node){node.parent=this;this.children.push(node);if(node.id)nodes.set(node.id,node);}
   remove(){if(this.parent)this.parent.children=this.parent.children.filter(node=>node!==this);}
   setAttribute(){} addEventListener(type,fn){const list=this.events.get(type)||[];list.push(fn);this.events.set(type,list);}
-  closest(){return this.dataset.sceneCell?this:null;} matches(){return false;}
+  closest(selector){return selector==='[data-scene-cell]'&&this.dataset.sceneCell?this:null;} matches(){return false;}
   querySelector(selector){if(selector==='span')return this.span||=(new Node('span'));const match=selector.match(/data-scene-cell="([^"]+)"/);return match?cells.get(match[1]):null;}
   querySelectorAll(){return [...cells.values()].flatMap(cell=>cell.children).filter(node=>node.className.includes('scene-presentation-cell'));}
   contains(node){return node===this||[...cells.values()].includes(node);}

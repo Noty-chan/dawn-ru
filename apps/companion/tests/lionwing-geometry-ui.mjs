@@ -4,7 +4,9 @@ import vm from "node:vm";
 
 const source=fs.readFileSync(new URL("../lionwing-ui.js",import.meta.url),"utf8");
 const helper=source.slice(source.indexOf("const lwGeometryStopReasons"),source.indexOf("function lwCostsFrom"));
-const clickHandler=source.slice(source.indexOf('document.addEventListener("click", event => {'),source.indexOf('document.addEventListener("change",event=>{'));
+const clickStart=source.indexOf('document.addEventListener("click", event => {');
+const clickHandler=source.slice(clickStart,source.indexOf('document.addEventListener("change",event=>{',clickStart));
+const pendingGuard=source.slice(source.indexOf("function lwPendingCommandReason"),source.indexOf("function lwRefreshPendingControls"));
 
 const classList=()=>({values:new Set(),toggle(name,force){if(force)this.values.add(name);else this.values.delete(name)},add(name){this.values.add(name)},remove(name){this.values.delete(name)},contains(name){return this.values.has(name)}});
 const cells=["1,1","2,1","3,1"].map(key=>({dataset:{sceneCell:key},classList:classList()}));
@@ -56,7 +58,7 @@ function fireClick(button){document.handlers.click({target:button,preventDefault
 
 const context={window:{DAWN_LIONWING_ENGINE:engine},document,console,structuredClone:clone,Scene,Sync,scenePreviewCells,SceneEngine:{},localizedLionwingCoreRules, currentHeroActor, toast, renderScene, commitSceneEvents, lwSubmit, $, $$, esc,counters,queueMicrotask,setTimeout};
 vm.createContext(context);
-vm.runInContext(`let Scene=this.Scene,Sync=this.Sync,scenePreviewCells=this.scenePreviewCells;const LionwingEngine=window.DAWN_LIONWING_ENGINE;const lwActive=()=>LionwingEngine.isScene(Scene),lwCanNarrate=()=>!Sync?.state?.().sceneId||Sync.state().canNarrate,lwOwns=actorId=>lwCanNarrate()||currentHeroActor()?.id===actorId;${helper}\n${clickHandler}\nthis.ui={setPreview:lwSetGeometryPreview,previewHtml:lwGeometryPreviewHtml,reconcile:lwReconcileGeometryPreview,installGuard:lwInstallGeometryPreviewGuard,clear:lwClearGeometryPreview,getPreview:()=>lwGeometryPreview,getDestination:()=>lwDestination,getCells:()=>Array.from(scenePreviewCells),getRenderCount:()=>this.counters.render};this.setScene=value=>{Scene=value};this.setSync=value=>{Sync=value};`,context,{filename:"lionwing-ui-behavior-harness.js"});
+vm.runInContext(`let Scene=this.Scene,Sync=this.Sync,scenePreviewCells=this.scenePreviewCells;const LionwingEngine=window.DAWN_LIONWING_ENGINE;const lwActive=()=>LionwingEngine.isScene(Scene),lwCanNarrate=()=>!Sync?.state?.().sceneId||Sync.state().canNarrate,lwOwns=actorId=>lwCanNarrate()||currentHeroActor()?.id===actorId;${helper}\n${pendingGuard}\n${clickHandler}\nthis.ui={setPreview:lwSetGeometryPreview,previewHtml:lwGeometryPreviewHtml,reconcile:lwReconcileGeometryPreview,installGuard:lwInstallGeometryPreviewGuard,clear:lwClearGeometryPreview,getPreview:()=>lwGeometryPreview,getDestination:()=>lwDestination,getCells:()=>Array.from(scenePreviewCells),getRenderCount:()=>this.counters.render};this.setScene=value=>{Scene=value};this.setSync=value=>{Sync=value};`,context,{filename:"lionwing-ui-behavior-harness.js"});
 const ui=context.ui;
 setVmScene=value=>context.setScene(value);
 const replaceScene=(patch={})=>{Scene={...clone(Scene),...patch};setVmScene(Scene);return Scene};

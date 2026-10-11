@@ -1446,7 +1446,9 @@
   }
   function prepare(scene, request, options = {}) {
     try {
-      const eventId = request?.eventId ?? request?.commandId ?? request?.id ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
+      // `id` belongs to the requested entity (item, clock, choice), never to
+      // this invocation. Keep an explicit event/command ID only for replay.
+      const eventId = request?.eventId ?? request?.commandId ?? global.crypto?.randomUUID?.() ?? `lw-prepared-${Date.now()}-${preparedSerial++}`;
       const payload = copy(request), actorlessKinds = ["scene-reset","round-end","intermission","tension","note","banish","vanish","compound","information-reveal","information-cancel","information-handout"], optionalActorKinds = ["choice","correct","resolve-attack","cancel-attack","batch","banish","vanish","compound","information-reveal","information-cancel","information-handout"], actorlessInventoryReset = payload.kind === "inventory" && payload.operation === "reset" && !payload.actorId, a = (actorlessKinds.includes(payload.kind) && !payload.actorId || actorlessInventoryReset) ? null : requiredActor(scene, payload.actorId, !optionalActorKinds.includes(payload.kind));
       const rollMeta = (extra = {}) => ({ rootActionId: eventId, actionInstanceId: eventId, causeEventId: eventId, ownerActorId: a?.id || null, ...extra });
       validatePublicRequest(payload);

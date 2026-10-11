@@ -175,7 +175,26 @@
     };
   }
 
-  function intentFromEvents(scene,events,label="Действие игрока"){
+  function rulesIntentPolicyEpoch(scene){
+    return global.DAWN_TABLE_POLICY?.normalizePolicy(scene?.tablePolicy)?.epoch??scene?.tablePolicy?.epoch??0;
+  }
+  function bindRulesIntentPolicy(intent,scene){
+    const bound=clone(intent);
+    // Existing epochs belong to the original preparation. Never rebind a
+    // queued/retried draft to a later policy, even if its actor still exists.
+    if(bound.kind!=="table"&&!global.DAWN_TABLE_POLICY?.isManual(scene)&&!Object.prototype.hasOwnProperty.call(bound,"policyEpoch"))bound.policyEpoch=rulesIntentPolicyEpoch(scene);
+    return bound;
+  }
+  function assertRulesIntentPolicy(scene,intent){
+    const epoch=rulesIntentPolicyEpoch(scene),supplied=Object.prototype.hasOwnProperty.call(intent,"policyEpoch");
+    // Legacy clients can only prove the original rules epoch. After a mode
+    // change their missing epoch cannot establish which battle was intended.
+    if(supplied?Number.isSafeInteger(intent.policyEpoch)&&intent.policyEpoch>=0&&intent.policyEpoch===epoch:epoch===0)return;
+    const fallback="Ведение стола изменилось. Обновите страницу и отправьте действие заново.",error=new Error(global.DAWN_I18N?.t("sync.error.rulesPolicyChanged",{},{fallback})||fallback);
+    error.code="TABLE_POLICY_CONFLICT";throw error;
+  }
+  function intentFromEvents(scene,events,label){return bindRulesIntentPolicy(inferIntentFromEvents(scene,events,label),scene);}
+  function inferIntentFromEvents(scene,events,label="Действие игрока"){
     const raw=Array.isArray(events)?events:[];
     if(!raw.length||raw.length>192)throw new Error("Некорректный пакет событий");
     const tablePolicy=global.DAWN_TABLE_POLICY;
@@ -286,6 +305,7 @@
       return[event];
     }
     if(intent.kind==="table")throw new Error("Ручная команда требует ручной политики стола");
+    assertRulesIntentPolicy(scene,intent);
     const actor=ownedActor(scene,intent.actorId,ownerId);
     if(intent.kind==="lionwing"){
       const kernel=global.DAWN_LIONWING_ENGINE,raw=safeObject(intent.request);
@@ -570,7 +590,7 @@
       this.generation=0;
     }
     enqueue(intent,baseVersion){
-      const row={protocol:PROTOCOL,clientIntentId:makeId(),baseVersion:Number(baseVersion)||0,intent:clone(intent)};
+      const row={protocol:PROTOCOL,clientIntentId:makeId(),baseVersion:Number(baseVersion)||0,intent:bindRulesIntentPolicy(intent,confirmedScene)};
       const key=intent?.kind==="runtime"?`runtime:${intent.actorId}:${intent.key}`:intent?.kind==="targets"?`targets:${intent.actorId}`:"";
       const index=key?this.queue.findIndex(item=>(item.intent?.kind==="runtime"?`runtime:${item.intent.actorId}:${item.intent.key}`:item.intent?.kind==="targets"?`targets:${item.intent.actorId}`:"")===key):-1;
       if(index>=0)this.queue[index]=row;

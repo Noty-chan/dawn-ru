@@ -79,6 +79,152 @@ async function acceptPreparedRemoteCommand(command,prepared){
 let networkV2Authority=null,networkV2Outbox=null,networkV2Reconciling=false,networkV2PlayerError="";
 const pendingNetworkPlacements=new Map();
 const pendingManualUiIntents=new Map();
+const pendingRulesUiIntents=new Map();
+const RULES_PENDING_CHECK_DELAYS=[1500,5000,15000];
+let rulesPendingScope="",rulesPendingGeneration=0,rulesPendingTimer=null,rulesPendingWork=null,rulesPendingCancelRead=null,rulesPendingReconnect=false,rulesPlayerLastSendAt=-Infinity;
+let rulesCanonicalSerial=0,rulesCanonicalScope="";
+function rulesPlayerCommandScope(){
+  const sync=Sync?.state?.();
+  if(!sync?.sceneId||sync.canNarrate||sync.authenticated===false||sync.role&&sync.role!=="player"||window.DAWN_TABLE_POLICY?.isManual(Scene))return "";
+  return JSON.stringify([sync.sceneId,sync.campaignId||null,sync.userId||null,sync.role||"player",Scene.tablePolicy?.mode||"rules",Number(Scene.tablePolicy?.epoch||0)]);
+}
+function syncRulesPlayerPendingScope(){
+  const scope=rulesPlayerCommandScope();
+  if(scope!==rulesPendingScope){
+    const oldIds=new Set(pendingRulesUiIntents.keys());
+    rulesPendingGeneration++;clearTimeout(rulesPendingTimer);rulesPendingTimer=null;rulesPendingCancelRead?.();rulesPendingWork=null;rulesPendingReconnect=false;rulesPlayerLastSendAt=-Infinity;
+    pendingRulesUiIntents.clear();
+    for(const [actorId,pending]of pendingNetworkPlacements)if(oldIds.has(String(pending.intentId)))pendingNetworkPlacements.delete(actorId);
+    if(rulesPendingScope){networkV2Outbox?.clear();networkV2Outbox=null;networkV2PlayerError="";}
+    rulesPendingScope=scope;
+  }
+  return scope;
+}
+function rulesPlayerPendingActorIds(){syncRulesPlayerPendingScope();return [...new Set([...pendingRulesUiIntents.values()].map(row=>row.envelope.intent.actorId).filter(Boolean))];}
+function rulesPlayerPendingReason(actorId){return rulesPlayerPendingActorIds().includes(actorId)?{code:"rules-command-pending",actorId,pending:true}:null;}
+function renderRulesPlayerPendingUi(){
+  if(typeof renderSync==="function")renderSync();
+  if(typeof refreshHeroSheetResourceControls==="function")refreshHeroSheetResourceControls();
+  if(typeof store!=="undefined"&&store.mode==="play"&&typeof renderScene==="function")renderScene();
+}
+function flushRulesPlayerOutboxNow(outbox){
+  if(outbox.sending||outbox.failures||Date.now()-rulesPlayerLastSendAt<outbox.tickMs)return;
+  // Send the first explicit action immediately while preserving subsequent
+  // batching and retry backoff in the production Outbox.
+  clearTimeout(outbox.timer);outbox.timer=null;void outbox.flush();
+}
+function scheduleRulesPlayerPendingCheck(){
+  clearTimeout(rulesPendingTimer);rulesPendingTimer=null;
+  if(!syncRulesPlayerPendingScope()||rulesPendingWork)return;
+  const due=[...pendingRulesUiIntents.values()].filter(row=>row.inserted&&row.checks<RULES_PENDING_CHECK_DELAYS.length).map(row=>row.nextCheckAt);
+  if(!due.length)return;
+  const generation=rulesPendingGeneration;
+  rulesPendingTimer=setTimeout(()=>{rulesPendingTimer=null;if(generation===rulesPendingGeneration)void reconcilePendingRulesPlayerCommands();},Math.max(0,Math.min(...due)-Date.now()));
+}
+function trackRulesPlayerIntent(envelope){
+  const scope=syncRulesPlayerPendingScope();if(!scope)return;
+  pendingRulesUiIntents.set(String(envelope.clientIntentId),{scope,envelope:structuredClone(envelope),commandId:null,inserted:false,applied:false,checks:0,nextCheckAt:Infinity,notified:false});
+  renderRulesPlayerPendingUi();
+}
+function forgetRulesPlayerIntent(envelope,error){
+  syncRulesPlayerPendingScope();
+  const id=String(envelope?.clientIntentId||envelope?.client_intent_id||envelope?.payload?.clientIntentId||"");
+  if(!pendingRulesUiIntents.delete(id))return false;
+  if(error)networkV2PlayerError=friendlySyncError(error,t("sync.notice.commandRejected"));
+  scheduleRulesPlayerPendingCheck();renderRulesPlayerPendingUi();return true;
+}
+function reconcileRulesPlayerCommand(command){
+  const scope=syncRulesPlayerPendingScope();if(!scope||!command)return false;
+  const sync=Sync.state();
+  if(command.scene_id&&String(command.scene_id)!==String(sync.sceneId)||command.actor_id&&sync.userId&&command.actor_id!==sync.userId)return false;
+  const intentId=String(command.clientIntentId||command.client_intent_id||command.payload?.clientIntentId||"");
+  const row=pendingRulesUiIntents.get(intentId)||[...pendingRulesUiIntents.values()].find(item=>item.commandId&&item.commandId===String(command.id));
+  if(!row||row.scope!==scope)return false;
+  if(command.id!=null)row.commandId=String(command.id);
+  row.inserted=true;
+  if(command.status==="rejected"){
+    forgetRulesPlayerIntent(row.envelope,command.result?.error||command.result?.message||t("sync.notice.commandRejected"));
+    clearPendingNetworkPlacement({...command,status:"rejected"});return true;
+  }
+  if(command.status==="applied"){
+    if(!row.applied){row.applied=true;row.checks=0;row.nextCheckAt=Date.now();}
+    void reconcilePendingRulesPlayerCommands();
+  }else if(!row.applied&&row.nextCheckAt===Infinity)row.nextCheckAt=Date.now()+RULES_PENDING_CHECK_DELAYS[0];
+  scheduleRulesPlayerPendingCheck();return true;
+}
+function noteRulesPlayerCanonicalScene(payload){
+  const scope=syncRulesPlayerPendingScope();
+  // loadScene/refreshScene label their read result initial:true. Realtime and
+  // polling notifications alone cannot prove completion of this canonical read.
+  if(payload?.initial!==true)return;
+  rulesCanonicalScope=scope;rulesCanonicalSerial++;
+  scheduleRulesPlayerPendingCheck();
+}
+function syncRulesPlayerPendingStatus(){
+  const scope=syncRulesPlayerPendingScope(),status=Sync?.state?.().status;
+  if(!scope||!pendingRulesUiIntents.size)return;
+  if(status==="offline"||status==="error")rulesPendingReconnect=true;
+  if(status==="online"&&rulesPendingReconnect){rulesPendingReconnect=false;void reconcilePendingRulesPlayerCommands({force:true});}
+  else scheduleRulesPlayerPendingCheck();
+}
+function readRulesPlayerPending(request,label){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    const finish=(complete,value)=>{if(settled)return;settled=true;clearTimeout(timer);if(rulesPendingCancelRead===cancel)rulesPendingCancelRead=null;complete(value);};
+    const cancel=()=>finish(reject,Object.assign(new Error("Rules pending scope changed"),{code:"DAWN_PENDING_SCOPE_CHANGED"}));
+    const timer=setTimeout(()=>finish(reject,Object.assign(new Error(`Timed out waiting for ${label}`),{code:"DAWN_REQUEST_TIMEOUT",retryable:true})),5000);
+    rulesPendingCancelRead=cancel;
+    Promise.resolve(request).then(value=>finish(resolve,value),error=>finish(reject,error));
+  });
+}
+function reconcilePendingRulesPlayerCommands({force=false}={}){
+  const scope=syncRulesPlayerPendingScope();
+  if(!scope||!pendingRulesUiIntents.size)return Promise.resolve();
+  if(rulesPendingWork)return rulesPendingWork;
+  const generation=rulesPendingGeneration;
+  const current=()=>generation===rulesPendingGeneration&&scope===syncRulesPlayerPendingScope();
+  clearTimeout(rulesPendingTimer);rulesPendingTimer=null;
+  const work=Promise.resolve().then(async()=>{
+    // Recovery queries replay the exact envelope, so a missed notification or
+    // lost INSERT reply never creates a second command or a fresh roll.
+    const checking=[...pendingRulesUiIntents.values()].filter(row=>row.inserted&&!row.applied&&(force||row.checks<RULES_PENDING_CHECK_DELAYS.length&&row.nextCheckAt<=Date.now()));
+    for(const row of checking){
+      if(!current())return;
+      if(force)row.checks=0;
+      row.checks++;row.nextCheckAt=Date.now()+RULES_PENDING_CHECK_DELAYS[Math.min(row.checks,RULES_PENDING_CHECK_DELAYS.length-1)];
+      try{
+        const command=await readRulesPlayerPending(Sync.submitCommand("intent_v2",structuredClone(row.envelope)),"intent status");
+        if(current())reconcileRulesPlayerCommand(command);
+      }catch(error){
+        if(!current())return;
+        // A failed status query cannot establish rejection of the already
+        // inserted command. Keep it pending even when this read cannot retry.
+        if(!NetworkV2.retryableAuthorityFailure(error))row.checks=RULES_PENDING_CHECK_DELAYS.length;
+      }
+    }
+    if(!current())return;
+    const applied=[...pendingRulesUiIntents.values()].filter(row=>row.applied&&(force||row.checks<RULES_PENDING_CHECK_DELAYS.length&&row.nextCheckAt<=Date.now()));
+    if(!applied.length)return;
+    for(const row of applied){if(force)row.checks=0;row.checks++;row.nextCheckAt=Date.now()+RULES_PENDING_CHECK_DELAYS[Math.min(row.checks,RULES_PENDING_CHECK_DELAYS.length-1)];}
+    const observedBefore=rulesCanonicalSerial;
+    try{
+      await readRulesPlayerPending(Sync.refreshScene(),"canonical Scene");
+      if(!current())return;
+      // A newer unrelated snapshot is not an ack. The applied status must be
+      // followed by an observed canonical read in this same connection.
+      const observed=rulesCanonicalSerial>observedBefore&&rulesCanonicalScope===scope;
+      const canonicalVersion=Number(NetworkV2.getConfirmedScene(Scene).version||0);
+      if(observed)for(const row of applied)if(canonicalVersion>Number(row.envelope.baseVersion))pendingRulesUiIntents.delete(String(row.envelope.clientIntentId));
+    }catch(error){
+      if(!current())return;
+      for(const row of applied)if(!row.notified){row.notified=true;toast(t("sync.notice.commandRefreshPending"));}
+    }
+  }).finally(()=>{
+    if(rulesPendingWork===work)rulesPendingWork=null;
+    if(current()){scheduleRulesPlayerPendingCheck();renderRulesPlayerPendingUi();}
+  });
+  rulesPendingWork=work;return work;
+}
 function projectPendingManualScene(canonical){
   if(!globalThis.window?.DAWN_TABLE_POLICY?.isManual(canonical))return canonical;
   for(const [id,row] of pendingManualUiIntents){try{if(SceneEngine.eventPacketContract?.replayStatus(canonical,row.events).complete)pendingManualUiIntents.delete(id);}catch{/* A conflicting receipt will be reconciled by the command update. */}}
@@ -144,11 +290,26 @@ function renderNetworkScene(events=[]){
 }
 function ensureNetworkV2Runtime(){
   if(!NetworkV2||!Sync)return null;
-  if(!networkV2Outbox)networkV2Outbox=new NetworkV2.PlayerOutbox({
-    onSettled:()=>{if(typeof renderSync==="function")renderSync();if(typeof refreshHeroSheetResourceControls==="function")refreshHeroSheetResourceControls();},
-    send:async payload=>{const command=await Sync.submitCommand("intent_v2",payload);for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);const pending=pendingManualUiIntents.get(String(payload.clientIntentId));if(pending)pending.commandId=String(command.id);return command},
-    onError:(error,row,{retrying=true}={})=>{if(!retrying){networkV2PlayerError=friendlySyncError(error,"Команда отклонена");clearPendingNetworkPlacement(row);if(typeof rejectManualToolsRollIntent==="function")rejectManualToolsRollIntent(row);if(typeof reconcileManualAreaDraft==="function")reconcileManualAreaDraft({...row,status:"rejected"});window.DAWN_MANUAL_WORKSPACE?.reconcileNumber({...row,status:"rejected"});if(typeof reconcileManualClockNumbers==="function")reconcileManualClockNumbers({...row,status:"rejected"});}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)},
-  });
+  syncRulesPlayerPendingScope();
+  if(!networkV2Outbox){
+    const outbox=new NetworkV2.PlayerOutbox({
+      onSettled:()=>{syncRulesPlayerPendingScope();if(networkV2Outbox!==outbox)return;if(typeof renderSync==="function")renderSync();if(typeof refreshHeroSheetResourceControls==="function")refreshHeroSheetResourceControls();},
+      send:async payload=>{
+        const scope=syncRulesPlayerPendingScope(),generation=rulesPendingGeneration;
+        if(scope)rulesPlayerLastSendAt=Date.now();
+        const command=await Sync.submitCommand("intent_v2",payload);
+        if(scope&&(scope!==syncRulesPlayerPendingScope()||generation!==rulesPendingGeneration||networkV2Outbox!==outbox))return command;
+        for(const pending of pendingNetworkPlacements.values())if(pending.intentId===payload.clientIntentId)pending.commandId=String(command.id);
+        const pending=pendingManualUiIntents.get(String(payload.clientIntentId));if(pending)pending.commandId=String(command.id);
+        reconcileRulesPlayerCommand(command);return command;
+      },
+      onError:(error,row,{retrying=true}={})=>{
+        syncRulesPlayerPendingScope();if(networkV2Outbox!==outbox)return;
+        if(!retrying){networkV2PlayerError=friendlySyncError(error,"Команда отклонена");forgetRulesPlayerIntent(row,error);clearPendingNetworkPlacement(row);if(typeof rejectManualToolsRollIntent==="function")rejectManualToolsRollIntent(row);if(typeof reconcileManualAreaDraft==="function")reconcileManualAreaDraft({...row,status:"rejected"});window.DAWN_MANUAL_WORKSPACE?.reconcileNumber({...row,status:"rejected"});if(typeof reconcileManualClockNumbers==="function")reconcileManualClockNumbers({...row,status:"rejected"});}toast(retrying?`Команда ждёт отправки: ${friendlySyncError(error,"нет соединения")}`:`Команда не отправлена: ${friendlySyncError(error,"ошибка проверки")}. Проверьте действие и повторите его.`)
+      },
+    });
+    networkV2Outbox=outbox;
+  }
   if(!networkV2Authority)networkV2Authority=new NetworkV2.AuthorityQueue({
     tickMs:NetworkV2.TICK_MS,
     flush:flushNetworkV2Authority,
@@ -169,14 +330,18 @@ function ensureNetworkV2Runtime(){
   });
   return{authority:networkV2Authority,outbox:networkV2Outbox};
 }
-function networkV2QueueStatus(){return{pending:(networkV2Authority?.pending?.()||0)+(networkV2Outbox?.pending?.()||0)+pendingManualUiIntents.size,failed:networkV2Authority?.failed?.length||0,...(networkV2PlayerError?{error:networkV2PlayerError}:{})}}
+function networkV2QueueStatus(){
+  syncRulesPlayerPendingScope();
+  const trackedInOutbox=[...(networkV2Outbox?.queue||[]),...(networkV2Outbox?.inFlight?[networkV2Outbox.inFlight]:[])].filter(row=>pendingRulesUiIntents.has(String(row.clientIntentId))).length;
+  return{pending:(networkV2Authority?.pending?.()||0)+Math.max(0,(networkV2Outbox?.pending?.()||0)-trackedInOutbox)+pendingManualUiIntents.size+pendingRulesUiIntents.size,failed:networkV2Authority?.failed?.length||0,...(networkV2PlayerError?{error:networkV2PlayerError}:{})};
+}
 function retryNetworkV2Failed(){
   if(networkV2PlayerError){networkV2PlayerError="";if(typeof renderSync==="function")renderSync();}
   const runtime=ensureNetworkV2Runtime(),count=runtime?.authority?.retryFailed?.()||0;
   if(count){toast(`Повторяем сохранение: ${count} сетевых изменений`);if(typeof renderSync==="function")renderSync()}
   return count;
 }
-function resetNetworkV2Runtime(){networkV2PlayerError="";networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();pendingManualUiIntents.clear();NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
+function resetNetworkV2Runtime(){networkV2PlayerError="";networkV2Authority?.clear();networkV2Outbox?.clear();pendingNetworkPlacements.clear();pendingManualUiIntents.clear();pendingRulesUiIntents.clear();rulesPendingGeneration++;rulesPendingScope="";clearTimeout(rulesPendingTimer);rulesPendingTimer=null;rulesPendingCancelRead?.();rulesPendingWork=null;rulesPendingReconnect=false;rulesPlayerLastSendAt=-Infinity;NetworkV2?.clearConfirmedScene?.();networkV2Authority=null;networkV2Outbox=null}
 function queueNetworkV2Snapshot(scene,label,options={}){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
   if(!runtime||!sync?.sceneId||!sync.canNarrate)return false;
@@ -201,17 +366,21 @@ function submitNetworkV2Events(label,events){
     return{queued:true,pending:true,authority:true,events:[]};
   }
   const intent=NetworkV2.intentFromEvents(Scene,events,label);
+  if(rulesPlayerPendingReason(intent.actorId))throw new Error(t("sync.status.saving"));
   networkV2PlayerError="";const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
   if(manual){pendingManualUiIntents.set(String(row.clientIntentId),{events,commandId:null});refreshPendingManualUi();}
+  else trackRulesPlayerIntent(row);
   previewNetworkPlacement(row,events,intent.actorId);
-  if(manual)void runtime.outbox.flush();
+  if(manual)void runtime.outbox.flush();else flushRulesPlayerOutboxNow(runtime.outbox);
   if(!pendingNetworkPlacements.has(intent.actorId))toast("Действие отправлено за общий стол");
   return{queued:true,pending:true,clientIntentId:row.clientIntentId,events:[]};
 }
 function submitNetworkV2Intent(intent){
   const runtime=ensureNetworkV2Runtime(),sync=Sync?.state?.();
   if(!runtime||!sync?.sceneId||sync.canNarrate)return false;
-  runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
+  if(rulesPlayerPendingReason(intent.actorId)){toast(t("sync.status.saving"));return false;}
+  networkV2PlayerError="";const row=runtime.outbox.enqueue(intent,NetworkV2.getConfirmedScene(Scene).version);
+  trackRulesPlayerIntent(row);if(rulesPlayerCommandScope())flushRulesPlayerOutboxNow(runtime.outbox);
   return true;
 }
 function enqueueNetworkV2Command(command){
