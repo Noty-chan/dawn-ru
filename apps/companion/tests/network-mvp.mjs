@@ -141,7 +141,12 @@ assert.match(syncUiSource, /retryableAuthorityFailure\(error\)[\s\S]+attempt<=6/
 assert.match(playUiSource, /delayedAutomaticCommands\.has\(String\(command\.id\)\)/, "a permanently delayed automatic command remains visible for narrator review");
 assert.match(playUiSource, /failed\?t\("sync\.status\.unsaved"\)[\s\S]+t\("sync\.retry"\)/, "the scene status exposes localized unconfirmed authority changes and a retry action");
 assert.match(networkQueueSource, /function retryNetworkV2Failed\([\s\S]+authority\?\.retryFailed/, "permanent authority failures have an explicit reconnect retry path");
-assert.match(syncUiSource, /await Sync\.refreshScene\(\);if\(!retryNetworkV2Failed\(\)\)/, "reconnect refreshes pending commands before retrying a failed atomic batch");
+const reconnectHandler = syncUiSource.match(/^\$\("sync-reconnect"\)\.onclick=[^\r\n]+/m)?.[0];
+assert.ok(reconnectHandler, "the reconnect contract is checked within its actual UI handler");
+const reconnectRefresh = reconnectHandler.indexOf("await Sync.refreshScene()");
+const reconnectRetry = reconnectHandler.indexOf("retryNetworkV2Failed()");
+assert.ok(reconnectRefresh >= 0 && reconnectRetry > reconnectRefresh, "reconnect refreshes pending commands before retrying a failed atomic batch");
+assert.match(reconnectHandler, /if\(!retryNetworkV2Failed\(\)&&!\(typeof rulesPlayerPendingActorIds==="function"&&rulesPlayerPendingActorIds\(\)\.length\)\)toast\(t\("sync\.notice\.reconnected"\)\)/, "reconnect must not report success while a rules player command is still unconfirmed");
 assert.match(syncUiSource, /function hydratePlayerScene[\s\S]+heroActorState\(S,actor\)/, "the local player's redacted actor must be hydrated from their own hero");
 assert.match(syncUiSource, /NetworkV2\.AUTOMATIC_COMMANDS[\s\S]+command_type===["']intent_v2["'][\s\S]+enqueueNetworkV2Command/, "safe player intents and legacy MVP commands must be applied automatically");
 assert.match(syncUiSource, /command_type===["']set_targets["'][\s\S]+applyTransientTargetsCommand[\s\S]+Sync\.decideCommand/, "player target suggestions must stay local to the narrator instead of versioning the whole Scene");
