@@ -142,6 +142,8 @@ function buildApp(storage, idb) {
   context.persist = () => { context.persistCalls = (context.persistCalls || 0) + 1; };
   context.renderScene = () => { context.renderCalls = (context.renderCalls || 0) + 1; };
   context.setScenePanel = panel => { context.lastScenePanel = panel; };
+  // This persistence fixture has no board DOM; measurement cleanup is covered in scene-measurement.
+  context.clearSceneMeasurement = () => {};
   vm.runInContext(`${eventsSource.slice(recoveryStart, recoveryEnd)}\nthis.saveTableRecovery=saveTableRecovery;this.readTableRecovery=readTableRecovery;this.applyTableBackup=applyTableBackup;`, context, { filename: "app-scene-events.recovery.js" });
   return context;
 }

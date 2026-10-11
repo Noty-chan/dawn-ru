@@ -360,6 +360,8 @@ function installUndoHarness(context, scene) {
   const restoreStart = eventsSource.indexOf("function applyTableBackup(");
   const restoreEnd = eventsSource.indexOf('$("scene-export-table")', restoreStart);
   context.setScenePanel = () => {};
+  // This persistence fixture has no board DOM; measurement cleanup is covered in scene-measurement.
+  context.clearSceneMeasurement = () => {};
   vm.runInContext(`${eventsSource.slice(restoreStart, restoreEnd)};this.applyTableBackup=applyTableBackup;`, context);
 }
 
