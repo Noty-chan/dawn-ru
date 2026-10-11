@@ -46,7 +46,7 @@ assert.equal(networkScene.actors[0].lionwing.inventory.records.ammo.count,1);
 assert.notEqual(networkPackets[0][0].id,networkPackets[1][0].id);
 exactReplay(engine,networkScene,networkPackets[0]);
 exactReplay(engine,core.reload(JSON.stringify(networkScene)),networkPackets[1]);
-rejectedWithoutMutation(networkScene,()=>network.materializeIntent(networkScene,data,{kind:'lionwing',actorId:'enemy',request:{kind:'inventory',operation:'spend',id:'ammo',amount:1}},'player',{sceneEngine:engine}),/владеет/i);
+rejectedWithoutMutation(networkScene,()=>network.materializeIntent(networkScene,data,{kind:'lionwing',actorId:'enemy',policyEpoch:networkScene.tablePolicy.epoch,request:{kind:'inventory',operation:'spend',id:'ammo',amount:1}},'player',{sceneEngine:engine}),/владеет/i);
 const exhausted=prepare(networkScene,{kind:'inventory',operation:'spend',id:'ammo',amount:1});
 networkScene=engine.dispatchMany(networkScene,exhausted).scene;
 const denied=core.prepare(networkScene,{actorId:'hero',kind:'inventory',operation:'spend',id:'ammo',amount:1});

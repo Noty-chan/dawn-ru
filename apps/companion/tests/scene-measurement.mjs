@@ -101,4 +101,32 @@ run('changeSceneTool("measure");updateSceneMeasurement({x:0,y:0})');scene.tableP
 run('changeSceneTool("measure");updateSceneMeasurement({x:0,y:0})');room='new-session';run('renderScene()');assert.equal(run('sceneNeutralTool'),null,'Full UI rendering clears the scope before header/tool computation');
 role='player';scene.targetIds=['secret'];scene.selectedActor='secret';run('clearSceneMeasurement()');assert.equal(summary.textContent,'No targets selected','Hidden names do not enter a player summary');
 assert.equal(cancels,0);assert.equal(persists,0,'All ruler interactions remain free of storage/writer calls');
-console.log('PASS local ruler: actual handler isolation, stable DOM/focus, one live/final readout, preserved rule highlights/action/AP, RU/EN, invalid coordinates, Escape/pan/context and scope reset; native paint/network not measured');
+
+// Execute the actual commitScene refusal paths. Import/reset clear a local
+// ruler before committing, so a rejected canonical edit must leave both the
+// tool state and the existing board DOM consistently cleared.
+role='gm';context.Scene.undo=[];context.Scene.redo=[];context.Scene.turnUndo=[];
+Object.assign(context,{sceneSnapshot:()=>structuredClone(context.Scene),normalizeScene:value=>structuredClone(value),validateTableEdit:()=>{throw new Error('QA canonical validation refused');},setScenePanel:()=>{throw new Error('A refused edit must not change panels');}});
+const commitStart=ui.indexOf('function commitScene('),commitEnd=ui.indexOf('\nfunction lionwingDestroyDescription(',commitStart);
+assert.ok(commitStart>=0&&commitEnd>commitStart);vm.runInContext(ui.slice(commitStart,commitEnd),context);
+const backupStart=events.indexOf('function applyTableBackup('),backupEnd=events.indexOf('$("scene-export-table").onclick',backupStart);
+assert.ok(backupStart>=0&&backupEnd>backupStart);vm.runInContext(events.slice(backupStart,backupEnd),context);
+context.Sync.state=()=>({sceneId:room,canNarrate:true});
+run('changeSceneTool("measure");updateSceneMeasurement({x:0,y:0});updateSceneMeasurement({x:1,y:1})');
+const beforeRefusal=JSON.stringify(context.Scene),beforeRefusalRenders=fullRenders;
+context.backup={scene:structuredClone(context.Scene)};assert.equal(run('applyTableBackup(backup,"Refused import")'),false);
+assert.equal(JSON.stringify(context.Scene),beforeRefusal,'actual commitScene rollback retains canonical data/resources');
+assert.equal(run('sceneNeutralTool'),null);assert.equal(outputs().length,0);assert.ok(cells.every(item=>!item.classList.contains('measured')));
+assert.equal(buttons.find(item=>item.dataset.sceneTool==='measure').attrs['aria-pressed'],'false');
+assert.equal(fullRenders,beforeRefusalRenders,'a refused import clears locally without a full render');
+// A stale administrative control can also reach the reset callback after
+// narrating rights are lost. The actual permission guard refuses the mutation.
+context.Scene.rulesEdition='legacy';context.Sync.state=()=>({sceneId:room,canNarrate:false});context.window.confirm=()=>true;context.saveTableRecovery=async()=>true;
+const resetStart=events.indexOf('$("scene-reset-table").onclick=async()=>{'),resetEnd=events.indexOf('$("scene-clear-log").onclick',resetStart);
+assert.ok(resetStart>=0&&resetEnd>resetStart);vm.runInContext(events.slice(resetStart,resetEnd),context);
+run('changeSceneTool("measure");updateSceneMeasurement({x:0,y:0});updateSceneMeasurement({x:1,y:1})');
+const beforeReset=JSON.stringify(context.Scene);await controls.get('scene-reset-table').onclick();
+assert.equal(JSON.stringify(context.Scene),beforeReset,'actual commitScene rights refusal retains the table');
+assert.equal(run('sceneNeutralTool'),null);assert.equal(outputs().length,0);assert.ok(cells.every(item=>!item.classList.contains('measured')));
+assert.equal(buttons.find(item=>item.dataset.sceneTool==='measure').attrs['aria-pressed'],'false');assert.equal(fullRenders,beforeRefusalRenders);
+console.log('PASS local ruler: actual handler isolation, stable DOM/focus, readout, preserved rule highlights/action/AP, actual RU/EN, Escape/pan/context/scope and actual commitScene import/reset refusal; native paint/network not measured');

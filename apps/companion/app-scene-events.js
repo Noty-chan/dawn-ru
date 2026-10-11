@@ -354,7 +354,7 @@ async function readTableRecovery(){
 }
 function applyTableBackup(backup,label){
   if(typeof resetManualTableDraftScope==="function")resetManualTableDraftScope();
-  clearSceneMeasurement({render:false});
+  clearSceneMeasurement();
   const candidate=normalizeScene(backup.scene),currentVersion=Number(Scene.version||0),currentView=Scene.view,currentUndo=Scene.undo;candidate.selectedActor=null;candidate.targetIds=[];const applied=commitScene(label,scene=>{for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,candidate,{version:currentVersion,view:currentView,undo:currentUndo})},{tableRestore:true});if(!applied)return false;if(backup.gmLibrary)store.gmLibrary=normalizeGmLibrary(backup.gmLibrary);persist();renderScene();setScenePanel("add");return true;
 }
 $("scene-export-table").onclick=()=>{const payload=tableBackupPayload(),stamp=new Date().toISOString().slice(0,10),name=(Scene.name||"table").replace(/[^a-zа-я0-9_-]+/gi,"-");download(`DAWN-стол-${name}-${stamp}.json`,JSON.stringify(payload,null,2));toast("Резервная копия стола скачана")};
@@ -377,7 +377,7 @@ $("scene-reset-table").onclick=async()=>{
   }
   const options=destroyPlan?{plannedDestroy:destroyPlan}:{};
   if(typeof resetManualTableDraftScope==="function")resetManualTableDraftScope();
-  clearSceneMeasurement({render:false});
+  clearSceneMeasurement();
   if(commitScene("Стол полностью очищен",scene=>{
     if(plannedScene){for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,plannedScene)}
     const view=scene.view,version=scene.version,edition=scene.rulesEdition,reset=blankScene(edition);

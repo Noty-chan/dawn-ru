@@ -321,7 +321,7 @@ const potionIntent=Network.intentFromEvents(baseScene,[
   {type:"technique.prepare",actorId:"hero",payload:{ruleId:"altruist.alchemist.1",targetIds:["enemy"]}},
   {type:"action.prepare",actorId:"hero",payload:{name:"Зелье: pure-water",targetIds:["enemy"]}},
 ],"Зелье применено");
-assert.deepEqual(JSON.parse(JSON.stringify(potionIntent)),{kind:"potion",label:"Зелье применено",actorId:"hero",targetId:"enemy",potion:"pure-water"});
+assert.deepEqual(JSON.parse(JSON.stringify(potionIntent)),{kind:"potion",label:"Зелье применено",actorId:"hero",targetId:"enemy",potion:"pure-water",policyEpoch:0});
 let potionRequest=null;
 const potionEvents=Network.materializeIntent(baseScene,data,potionIntent,"player-1",{sceneEngine:{preparePotionUse:(_scene,_data,request)=>{potionRequest=request;return{ok:true,events:[{type:"inventory.change",actorId:request.actorId,payload:{item:`potion:${request.potion}`,delta:-1}}]}}}});
 assert.equal(potionRequest.targetId,"enemy");
