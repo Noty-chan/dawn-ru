@@ -15,16 +15,19 @@ const line=(source,start)=>{
 };
 const plain=value=>JSON.parse(JSON.stringify(value));
 let role="gm",openDialog=null,renders=0,cancellations=0;
-const handlers=new Map(),keyboard=[],messages=[];
+const handlers=new Map(),keyboard=[],keyups=[],messages=[];
 const elements=new Map();
 const element=id=>{
-  if(!elements.has(id))elements.set(id,{id,hidden:true,querySelector:()=>null,querySelectorAll:()=>[],addEventListener(type,handler){handlers.set(`${id}:${type}`,handler);}});
+  if(!elements.has(id)){
+    const classes=new Set();
+    elements.set(id,{id,hidden:true,classList:{add:(...names)=>names.forEach(name=>classes.add(name)),remove:(...names)=>names.forEach(name=>classes.delete(name)),contains:name=>classes.has(name)},querySelector:()=>null,querySelectorAll:()=>[],addEventListener(type,handler){handlers.set(`${id}:${type}`,handler);}});
+  }
   return elements.get(id);
 };
 const context={
   console,performance:{now:()=>1000},HTMLElement:class {},requestAnimationFrame:()=>{},
   document:{activeElement:null,querySelector:selector=>selector==="dialog[open]"?openDialog:null,querySelectorAll:()=>[],
-    addEventListener(type,handler,capture=false){if(type==="keydown")keyboard.push({handler,capture});}},
+    addEventListener(type,handler,capture=false){if(type==="keydown")keyboard.push({handler,capture});if(type==="keyup")keyups.push(handler);}},
    $:element,sceneViewportProfile:()=>"desktop",activeSceneView:()=>role,canControlScenePrompt:()=>false,
   syncScenePanels:()=>{},persist:()=>{},renderScene:()=>{renders++;},toast:text=>messages.push(text),
   focusSceneActorOnBoard:()=>{},SceneEngine:{},window:{},S:{id:"owned-hero"},
@@ -46,6 +49,10 @@ load(section(ui,"function moveSceneActorFromBoard(","\nfunction measurementPath(
 load(section(ui,"function setScenePanel(","\nfunction closeAllScenePanels("));
 load(section(ui,"function hideSceneContextMenu(","\nfunction showSceneContextMenu("));
 load(section(effects,"let sceneMeasurementScope=","\nfunction cancelCommittedAction("));
+load(line(events,'function resetScenePanGesture('));
+load(line(events,'$("scene-board-wrap").addEventListener("mousedown"'));
+load(line(events,'document.addEventListener("keydown",event=>{if(event.code==="Space"'));
+load(line(events,'document.addEventListener("keyup",event=>{if(event.code==="Space"'));
 load(section(events,'$("scene-board").addEventListener("click",event=>{','$("scene-board").addEventListener("dragstart"'));
 load(line(events,'$("scene-turn-strip").addEventListener("click"'));
 load(line(events,'$("scene-workbench").addEventListener("click",event=>{const close='));
@@ -69,7 +76,7 @@ const reset=(view="gm",interfaceVersion="next")=>{
     pendingCoreAction=null;pendingCoreActionPlan=false;pendingCoreActionContext=null;pendingCoreReaction=null;
     pendingTechniqueRule=null;pendingEnemyRule=null;pendingEnemyStepActorId=null;pendingZealotPlan=null;
     lwTechniqueDraft=null;lwDestination=null;sceneContextTarget=null;sceneNeutralTool=null;sceneMeasureEnd=null;sceneMeasureStart=null;sceneMeasureLabel="";
-    scenePreviewCells.clear();sceneTopologyCells.clear();clearSceneMeasurement({render:false});`);
+    scenePreviewCells.clear();sceneTopologyCells.clear();clearSceneMeasurement({render:false});resetScenePanGesture();sceneSuppressBoardClickUntil=0;`);
   element("scene-context-menu").hidden=true;
 };
 const targets=()=>plain(run("({actorIds:Scene.targetIds,cells:Scene.targetCells})"));
@@ -93,6 +100,39 @@ const escape=()=>{
   for(const capture of [true,false])for(const row of keyboard){if(Boolean(row.capture)!==capture||event.stopped)continue;row.handler(event);}
   return event;
 };
+
+// The real global Space handler must leave summary activation to the browser,
+// including a focused descendant. Plain board Space still owns camera panning.
+const keyEvent=(target,code="Space",key=" ")=>({target,code,key,defaultPrevented:false,ctrlKey:false,metaKey:false,altKey:false,preventDefault(){this.defaultPrevented=true;}});
+const dispatchKey=event=>{for(const row of keyboard)row.handler(event);};
+const boardTarget={matches:()=>false,closest:()=>null};
+for(const view of ["gm","player"]){
+  for(const targetKind of ["summary","summary-child","input","textarea","select","button"]){
+    reset(view);run('lwDestination={actorId:"hero",field:"destination"};Scene.pendingActionPlan={actorId:"hero",phase:"destination"}');
+    const before=resources(),summary={tagName:"SUMMARY"},target={matches:()=>["input","textarea","select","button"].includes(targetKind),closest:selector=>selector==="summary"&&targetKind.startsWith("summary")?summary:null},event=keyEvent(target);
+    dispatchKey(event);
+    assert.equal(event.defaultPrevented,false,`${view}: ${targetKind} keeps native Space`);
+    assert.equal(run("sceneSpaceHeld"),false);assert.equal(element("scene-board-wrap").classList.contains("can-pan"),false);
+    for(const handler of keyups)handler(event);
+    assert.equal(resources(),before);assert.equal(cancellations,0);assert.equal(renders,0);
+    assert.equal(run("lwDestination.actorId"),"hero","native activation retains the prepared destination");
+  }
+  reset(view);const before=resources(),space=keyEvent(boardTarget);dispatchKey(space);
+  assert.equal(space.defaultPrevented,true);assert.equal(run("sceneSpaceHeld"),true);assert.equal(element("scene-board-wrap").classList.contains("can-pan"),true);
+  const wrap=element("scene-board-wrap");wrap.scrollLeft=20;wrap.scrollTop=30;
+  const mouse={button:0,currentTarget:wrap,clientX:10,clientY:15,preventDefault(){this.prevented=true;}};
+  handlers.get("scene-board-wrap:mousedown")(mouse);
+  assert.equal(mouse.prevented,true);assert.equal(run("scenePanState.left"),20);assert.equal(wrap.classList.contains("is-panning"),true);
+  for(const handler of keyups)handler(space);
+  assert.equal(run("sceneSpaceHeld"),false);assert.equal(run("scenePanState"),null);assert.equal(wrap.classList.contains("can-pan"),false);assert.equal(wrap.classList.contains("is-panning"),false);
+  assert.equal(resources(),before,"Space camera interaction never changes canonical AP/version");assert.equal(cancellations,0);assert.equal(renders,0);
+}
+for(const mode of ["rules","tools","reference","build"]){
+  reset();context.nextMode=mode;run("store.mode=nextMode");const before=resources(),event=keyEvent(boardTarget);dispatchKey(event);
+  assert.equal(event.defaultPrevented,false);assert.equal(run("sceneSpaceHeld"),false);assert.equal(resources(),before);
+}
+reset();const enter=keyEvent({matches:()=>false,closest:()=>({tagName:"SUMMARY"})},"Enter","Enter");dispatchKey(enter);
+assert.equal(enter.defaultPrevented,false);assert.equal(run("sceneSpaceHeld"),false,"summary Enter also retains native activation");
 
 // Deselecting inspection never closes the independent cockpit or another panel.
 for(const interfaceVersion of ["next","classic"]){
@@ -230,4 +270,4 @@ run('Scene.selectedActor="enemy"');clickBoard(null,"4,3");assert.equal(moves.len
 run('Scene.actors.push({id:"other",heroId:"other-hero",team:"hero",space:"main",x:0,y:0})');clickBoard("other");
 assert.equal(moves.length,moveCount,"another player's Hero remains protected");
 
-console.log("Scene pointer routing passed: inspection/targets, independent panels, Player context ruler, safe Map routes, manual owned movement and Escape ownership.");
+console.log("Scene pointer routing passed: inspection/targets, panels, Player context ruler, safe Map/manual movement, Escape ownership and actual Space summary/input/board routing with unchanged canonical AP/version.");
