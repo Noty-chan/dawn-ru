@@ -99,9 +99,9 @@ function sceneEnvironmentTarget({x,y,markerId=null,wallId=null}){
 }
 function sceneEnvironmentIsTerrain(row){return row.type==="manual-area"?["terrain","difficult","high","low"].includes(row.appearance):["terrain","difficult","high","low"].includes(row.type);}
 function sceneEnvironmentCopy(key,args={}){return t(`scene.cleanup.${key}`,args);}
-function sceneEnvironmentBlocked({allowPending=false}={}){
+function sceneEnvironmentBlocked({allowPending=false,notify=true}={}){
   if(activeSceneView()!=="gm"||typeof Sync==="object"&&Sync?.state?.()?.sceneId&&!Sync.state().canNarrate)return true;
-  if(!allowPending&&(Scene.pendingAction||Scene.pendingPrompt||Scene.pendingActionPlan||window.DAWN_TABLE_POLICY?.pendingWork?.(Scene)||sceneHasLocalPendingSelection())){toast(sceneEnvironmentCopy("pending"));return true;}
+  if(!allowPending&&(Scene.pendingAction||Scene.pendingPrompt||Scene.pendingActionPlan||window.DAWN_TABLE_POLICY?.pendingWork?.(Scene)||sceneHasLocalPendingSelection())){if(notify)toast(sceneEnvironmentCopy("pending"));return true;}
   return false;
 }
 function removeSceneEnvironment(target){
@@ -151,6 +151,18 @@ function clearSceneEnvironment(layer="all",{hostId="scene-layer-clear-confirmati
   }catch(error){toast(error.message||sceneEnvironmentCopy("failed"));return false;}
   });
 }
+function clearSceneNpcs(){
+  if(sceneEnvironmentBlocked())return false;
+  const removed=Scene.actors.filter(actor=>(actor.kind==="enemy"||actor.profileId||actor.kind==="crowd"||actor.kind==="token")&&!(actor.kind==="hero"||actor.heroId||actor.ownerId||actor.characterId));
+  if(!removed.length){toast(sceneEnvironmentCopy("emptyNpcs"));return false;}
+  const ids=removed.map(actor=>actor.id),selected=new Set(ids),preserveActorIds=Scene.actors.filter(actor=>!selected.has(actor.id)).map(actor=>actor.id);
+  return sceneCleanupConfirmation("scene-field-clear-confirmation",sceneEnvironmentCopy("confirmNpcs",{count:ids.length}),()=>{
+    const label=sceneEnvironmentCopy("removedNpcs",{count:ids.length});
+    if(window.DAWN_TABLE_POLICY?.isManual?.(Scene))return commitSceneEvents(label,ids.map(id=>({type:"table.command",actorId:null,payload:{kind:"actor/remove",id}})));
+    if(Scene.rulesEdition==="lionwing")return commitLionwingDestroy({kind:"actor",id:ids[0]},{confirm:false,actorIds:ids,preserveActorIds,label});
+    return commitScene(label,scene=>{scene.actors=scene.actors.filter(actor=>!selected.has(actor.id));scene.objects=scene.objects.filter(object=>!selected.has(object.ownerActorId));scene.markers=scene.markers.filter(marker=>!selected.has(marker.ownerActorId));scene.targetIds=scene.targetIds.filter(id=>!selected.has(id));if(selected.has(scene.selectedActor))scene.selectedActor=null;if(selected.has(scene.activeActorId))scene.activeActorId=null;});
+  });
+}
 function sceneEnvironmentScope(){
   const sync=typeof Sync==="object"?Sync?.state?.():null;
   return JSON.stringify([sync?.sceneId||Scene.sceneId||Scene.id||"local",sync?.userId,Scene.rulesEdition,Scene.tablePolicy,Scene.activeSpace,activeSceneView()]);
@@ -164,32 +176,39 @@ function sceneEnvironmentRowType({type,entity}){
   const key=`appearance.${appearance}`,label=sceneEnvironmentCopy(key);
   return label===`scene.cleanup.${key}`?(typeof sceneObjectDisplayName==="function"?sceneObjectDisplayName(entity):sceneEnvironmentCopy("object")):label;
 }
-function openSceneEnvironmentList(){
-  if(sceneEnvironmentBlocked())return false;
+function openSceneEnvironmentList({notify=true}={}){
   const list=$("scene-environment-list"),details=$("scene-environment-objects");if(!list||!details)return false;
+  if(sceneEnvironmentBlocked({notify})){list.setAttribute("aria-disabled","true");for(const button of list.querySelectorAll("[data-cleanup-index]"))button.disabled=true;return false;}
   const layer=$("scene-erase-layer")?.value||"all",rows=sceneEnvironmentRows(layer),scope=sceneEnvironmentScope(),version=Number(Scene.version||0),scene=Scene;
   details.open=true;
   const markup=rows.map((target,index)=>{const {type,entity}=target,cells=type==="object"?entity.cells||[]:type==="wall"?[entity.a,entity.b]:[`${entity.x},${entity.y}`],position=cells.slice(0,5).map(sceneEnvironmentCoordinate).join(type==="wall"?" — ":", ")+(cells.length>5?` · +${cells.length-5}`:"");
-    return `<article><div><strong>${esc(entity.label||sceneEnvironmentRowType(target))}</strong><small>${esc(sceneEnvironmentRowType(target))} · ${esc(position)}</small></div><button type="button" data-cleanup-index="${index}" aria-label="${esc(sceneEnvironmentCopy("removeNamed",{label:entity.label||sceneEnvironmentRowType(target)}))}">×</button></article>`;
+    return `<article><div><strong>${esc(entity.label||sceneEnvironmentRowType(target))}</strong><small>${esc(sceneEnvironmentRowType(target))} · ${esc(position)}</small></div><button type="button" data-cleanup-index="${index}" data-cleanup-key="${esc(`${type}:${entity.id}`)}" aria-label="${esc(sceneEnvironmentCopy("removeNamed",{label:entity.label||sceneEnvironmentRowType(target)}))}">×</button></article>`;
   }).join("")||`<p>${esc(sceneEnvironmentCopy("empty"))}</p>`;
-  if(list.innerHTML!==markup)list.innerHTML=markup;
+  if(list.innerHTML!==markup){
+    const focused=list.contains?.(document.activeElement)?document.activeElement?.dataset:null,scroll=list.scrollTop;
+    list.innerHTML=markup;list.scrollTop=scroll;
+    if(focused){const retained=rows.findIndex(row=>`${row.type}:${row.entity.id}`===focused.cleanupKey),index=retained>=0?retained:Math.min(Number(focused.cleanupIndex),rows.length-1);(index>=0?list.querySelector(`[data-cleanup-index="${index}"]`):details.querySelector("summary"))?.focus({preventScroll:true});}
+  }
+  for(const button of list.querySelectorAll("[data-cleanup-index]"))button.disabled=false;
+  list.setAttribute("aria-disabled","false");
   list.onclick=event=>{const button=event.target.closest("[data-cleanup-index]");if(!button)return;
-    if(scene!==Scene||scope!==sceneEnvironmentScope()||version!==Number(Scene.version||0)||sceneEnvironmentBlocked()){toast(sceneEnvironmentCopy("stale"));renderSceneCleanupTools();return false;}
+    if(scene!==Scene||scope!==sceneEnvironmentScope()||version!==Number(Scene.version||0)||sceneEnvironmentBlocked({notify:false})){toast(sceneEnvironmentCopy("stale"));renderSceneCleanupTools();return false;}
     const target=rows[Number(button.dataset.cleanupIndex)];if(!target)return false;
     const result=removeSceneEnvironment(target);if(result)openSceneEnvironmentList();return result;
   };
   return true;
 }
 function cancelSceneCleanup(hostId){
-  const host=$(hostId);if(!host)return;delete host.cleanupDraft;host.hidden=true;host.innerHTML="";
+  const host=$(hostId);if(!host)return;const draft=host.cleanupDraft,restoreFocus=host.contains?.(document.activeElement);delete host.cleanupDraft;host.hidden=true;host.innerHTML="";
+  if(restoreFocus&&draft?.origin?.isConnected&&!draft.origin.disabled&&draft.origin.getClientRects().length)draft.origin.focus({preventScroll:true});
 }
 function sceneCleanupConfirmation(hostId,message,apply,{allowPending=false,confirmKey="confirm"}={}){
   if(sceneEnvironmentBlocked({allowPending}))return false;
   const host=$(hostId);if(!host)return false;
   // One active confirmation in the current controls, never a new window.
   for(const id of ["scene-layer-clear-confirmation","scene-field-clear-confirmation","scene-reset-confirmation","scene-history-confirmation"])cancelSceneCleanup(id);
-  const draft={scene:Scene,scope:sceneEnvironmentScope(),version:Number(Scene.version||0),busy:false};host.cleanupDraft=draft;host.hidden=false;
-  const valid=()=>host.cleanupDraft===draft&&draft.scene===Scene&&draft.scope===sceneEnvironmentScope()&&draft.version===Number(Scene.version||0)&&!sceneEnvironmentBlocked({allowPending});
+  const draft={scene:Scene,scope:sceneEnvironmentScope(),version:Number(Scene.version||0),allowPending,origin:document.activeElement,busy:false};host.cleanupDraft=draft;host.hidden=false;
+  const valid=()=>host.cleanupDraft===draft&&draft.scene===Scene&&draft.scope===sceneEnvironmentScope()&&draft.version===Number(Scene.version||0)&&!sceneEnvironmentBlocked({allowPending,notify:false});
   host.innerHTML=`<p>${esc(message)}</p><div class="scene-cleanup-confirm-actions"><button type="button" data-cleanup-confirm>${esc(sceneEnvironmentCopy(confirmKey))}</button><button type="button" data-cleanup-cancel>${esc(sceneEnvironmentCopy("cancel"))}</button></div>`;
   host.onclick=async event=>{
     if(event.target.closest("[data-cleanup-cancel]")){cancelSceneCleanup(hostId);return false;}
@@ -203,10 +222,12 @@ function sceneCleanupConfirmation(hostId,message,apply,{allowPending=false,confi
 }
 function renderSceneCleanupTools(){
   const scope=sceneEnvironmentScope(),version=Number(Scene.version||0);
-  for(const id of ["scene-layer-clear-confirmation","scene-field-clear-confirmation","scene-reset-confirmation","scene-history-confirmation"]){const draft=$(id)?.cleanupDraft;if(draft&&(draft.scene!==Scene||draft.scope!==scope||draft.version!==version||activeSceneView()!=="gm"))cancelSceneCleanup(id);}
+  for(const id of ["scene-layer-clear-confirmation","scene-field-clear-confirmation","scene-reset-confirmation","scene-history-confirmation"]){const draft=$(id)?.cleanupDraft;if(draft&&(draft.scene!==Scene||draft.scope!==scope||draft.version!==version||sceneEnvironmentBlocked({allowPending:draft.allowPending,notify:false})))cancelSceneCleanup(id);}
   const details=$("scene-environment-objects"),list=$("scene-environment-list");
   if(activeSceneView()!=="gm"||typeof Sync==="object"&&Sync?.state?.()?.sceneId&&!Sync.state().canNarrate){if(details)details.open=false;if(list)list.innerHTML="";return;}
-  if(details?.open&&!sceneEnvironmentBlocked())openSceneEnvironmentList();
+  const blocked=sceneEnvironmentBlocked({notify:false});
+  if(list){list.setAttribute("aria-disabled",String(blocked));for(const button of list.querySelectorAll("[data-cleanup-index]"))button.disabled=blocked;}
+  if(details?.open&&!blocked)openSceneEnvironmentList({notify:false});
 }
 function previewSceneWall(point){
   sceneWallPreviewPoint={...point,space:Scene.activeSpace};
@@ -346,6 +367,8 @@ function fodderMoveBatchEditorHtml(prompt){
   return`<div class="fodder-batch-editor"><div class="fodder-batch-tools"><button type="button" data-fodder-move-preset="advance">К ближайшим противникам</button><button type="button" data-fodder-move-preset="hold">Оставить всех</button><small>Каждую строку можно поправить вручную перед подтверждением.</small></div><div class="fodder-batch-rows">${rows}</div><div class="fodder-batch-footer"><output>${crowds.length} зон · пути проверяются повторно</output><button type="button" class="primary" data-fodder-move-submit>Переместить пакет</button></div></div>`;
 }
 function renderSceneFlow(){
+  if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene)){const root=$("scene-flow");if(root){root.hidden=true;if(root.innerHTML)root.innerHTML="";}return;}
+  $("scene-flow").hidden=false;
   const root=$("scene-flow"),active=Scene.actors.find(actor=>actor.id===Scene.activeActorId),prompt=Scene.pendingPrompt,pending=Scene.pendingAction,pendingStatus=SceneEngine.pendingActionStatus(Scene,D),triggerQueue=SceneEngine.triggerQueueStatus(Scene),roundStatus=SceneEngine.roundEndStatus(Scene),roundStarted=Scene.actors.some(actor=>actor.acted),readyActors=Scene.actors.filter(actor=>!actor.knockedOut&&!actor.acted),heroes=Scene.actors.filter(actor=>actor.team==="hero"&&actor.kind!=="token"),enemies=Scene.actors.filter(actor=>actor.team==="enemy"&&actor.kind!=="token"),heroesDown=heroes.length>0&&heroes.every(actor=>actor.knockedOut),enemiesDown=enemies.length>0&&enemies.every(actor=>actor.knockedOut),battleOutcome=heroes.length&&enemies.length?(heroesDown&&enemiesDown?"draw":enemiesDown?"victory":heroesDown?"defeat":null):null,gm=activeSceneView()==="gm",compactLandscape=matchMedia("(max-width:950px) and (max-height:500px) and (orientation:landscape)").matches;let phase="turn",title="Ход не начат",hint=gm?(roundStarted?(roundStatus.available?"Все обязательные Ходы завершены — можно начать новый Раунд.":roundStatus.reason):"Выберите участника в ленте ходов."):"Нарратор ещё не начал Ход.",steps=sceneFlowSteps(["Начать Ход","Выбрать действие"],0),actions="";
   if(!Scene.actors.length){phase="setup";title="Подготовьте столкновение";hint=gm?"Добавьте героев и противников, расставьте токены и начните Ход любого участника.":"Нарратор готовит участников и поле.";steps=sceneFlowSteps(["Участники","Расстановка","Первый Ход"],0);actions=gm?`<button type="button" class="primary" data-open-scene-panel="add">Добавить участников</button>`:""}
   else if(roundStatus.available){phase="round";title=`Раунд ${Scene.round} завершён`;hint="Все обязательные Ходы сыграны. Новый Раунд повысит Напряжение и восстановит ОД.";steps=sceneFlowSteps(["Все Ходы","Конец Раунда","Новый Раунд"],1);actions=gm?`<button type="button" class="primary" data-scene-flow-round>Начать Раунд ${Scene.round+1}</button>`:""}

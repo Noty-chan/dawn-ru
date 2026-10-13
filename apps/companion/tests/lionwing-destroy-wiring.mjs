@@ -195,6 +195,6 @@ assert.deepEqual([large.x, large.y], [0, 0], "the large body receives a determin
 for (const selector of ["data-scene-remove-actor", "scene-remove-npcs", "data-crowd-remove-defeated", "data-crowd-remove-group", "data-manage-space-remove", "data-lw-entity-destroy", "data-scene-remove-object", "data-scene-remove-marker", "data-scene-remove-wall"]) {
   assert.match(placementSource, new RegExp(selector.replace(/[\[\]-]/g, "\\$&")), `the LionWing capture wiring includes ${selector}`);
 }
-assert.match(placementSource, /sceneTool===\"erase\"[^\n]+commitLionwingDestroy/, "board erase routes LionWing removals through the plan");
+assert.match(placementSource, /sceneTool===\"erase\"[^\n]+eraseSceneEnvironment/, "board erase uses the guarded environment-only controller");
 
 console.log("LionWing destroy wiring: production validator, commitScene single writer, stale/cancel/adapter guards, returned-scene transfers, and large-body placement passed");

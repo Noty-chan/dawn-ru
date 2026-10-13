@@ -356,7 +356,7 @@ vm.runInContext(sceneUi.slice(sceneUi.indexOf("function sceneSheetPanel("), scen
 const playUi = read("play-ui.js");
 vm.runInContext(playUi.slice(playUi.indexOf("function renderSceneHeroSheet("), playUi.indexOf("function renderPlay(")), context);
 for(const name of ["sceneDisplayName","sceneSpaceDisplayName"])vm.runInContext(sceneUi.split(/\r?\n/).find(line=>line.startsWith(`function ${name}(`)),context);
-vm.runInContext(sceneUi.slice(sceneUi.indexOf("function renderScene(){"), sceneUi.indexOf("function activeSceneView(){")), context);
+vm.runInContext(sceneUi.slice(sceneUi.indexOf("function renderSceneLog("), sceneUi.indexOf("function activeSceneView(){")), context);
 const baseCommit = context.commitSceneEvents;
 context.commitSceneEvents = (label, events) => { const result = baseCommit(label, events);context.renderScene();return result; };
 const freshSheetScene = () => { context.Scene = fixture();context.Scene.name="Player sheet";context.Scene.undo=[];context.Scene.view="player";context.Scene.actors[0].heroId="hero";context.renderScene(); };

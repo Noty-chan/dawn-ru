@@ -1,0 +1,39 @@
+LionWing pure queries: baseline equivalence, immutable inputs/outputs, journal/privacy/reservations, current edits and aura distances passed
+{
+  "baselineRef": "a7221e6",
+  "workload": "Production information panel and inventory panel calls: 8 item rows with spend/gain quotes; bounded mechanical journals, 100KB art, 20 undo and 10 turn snapshots",
+  "rows": [
+    {
+      "label": "baseline",
+      "board": "7x7",
+      "actors": 2,
+      "samples": 3,
+      "medianMs": 2274.02,
+      "maxMs": 2367.75
+    },
+    {
+      "label": "changed",
+      "board": "7x7",
+      "actors": 2,
+      "samples": 3,
+      "medianMs": 3.16,
+      "maxMs": 3.92
+    },
+    {
+      "label": "baseline",
+      "board": "12x12",
+      "actors": 24,
+      "samples": 3,
+      "medianMs": 2390.88,
+      "maxMs": 2672.26
+    },
+    {
+      "label": "changed",
+      "board": "12x12",
+      "actors": 24,
+      "samples": 3,
+      "medianMs": 8.34,
+      "maxMs": 9.49
+    }
+  ]
+}

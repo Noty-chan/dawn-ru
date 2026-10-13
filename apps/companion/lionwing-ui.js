@@ -8,8 +8,8 @@ let lwDestination = null, lwGeometryPreview = null, lwDetectiveTeleport = null, 
 const lwTechniqueText = (key, fallback) => window.DAWN_I18N?.t?.(`lionwing.technique.controls.${key}`, {}, { fallback }) || fallback;
 const lwCockpitText = (key, fallback, params = {}) => window.DAWN_I18N?.t?.(`lionwing.cockpit.${key}`, params, { fallback }) || fallback.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? ""));
 const lwTechniqueEnabled = (a, id) => Number((a.knownTechniques ?? a.techniques)?.[id.replace(/\.\d+$/, "")] || 0) >= Number(id.match(/\.(\d+)$/)?.[1]) && a.lionwing?.automation?.[id] === true;
-function lwActionControlRequest(root, button) {
-  const control=selector=>[...(root?.querySelectorAll?.(selector)||[])].find(input=>input.closest("[data-lw-root]")===root);
+function lwActionControlRequest(root, button, readControl = null) {
+  const control=readControl|| (selector=>[...(root?.querySelectorAll?.(selector)||[])].find(input=>input.closest("[data-lw-root]")===root));
   const actionId=button.dataset.lwAction||button.dataset.coreAction;
   const attack=[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId);
   const attribute=button.dataset.lwMasterMode||button.dataset.lwMasterFinisher!==undefined?"talent":control("[data-lw-attribute]")?.value;
@@ -26,14 +26,23 @@ function lwActionControlRequest(root, button) {
 }
 function lwRefreshCunningActions(root) {
   if(!root)return;
-  const checked=[...root.querySelectorAll("[data-lw-cunning-plan]")].find(input=>input.closest("[data-lw-root]")===root)?.checked===true;
+  // Only this refresh owns the lookup; restored form values and later input
+  // events always start a fresh pass, including nested Technique controls.
+  const controls=new Map(),control=selector=>{
+    if(!controls.has(selector))controls.set(selector,[...root.querySelectorAll(selector)].find(input=>input.closest("[data-lw-root]")===root));
+    return controls.get(selector);
+  };
+  const checked=control("[data-lw-cunning-plan]")?.checked===true;
+  const pendingReasons=new Map(),ownership=new Map();
   for(const button of root.querySelectorAll("[data-lw-action]")){
     if(button.closest("[data-lw-root]")!==root)continue;
     const actionId=button.dataset.lwAction, attack=[SceneEngine.ACTION_IDS.spell,SceneEngine.ACTION_IDS.skirmish,SceneEngine.ACTION_IDS.finish].includes(actionId);
-    const actorId=button.dataset.lwActor||root.dataset.lwActor,request=lwActionControlRequest(root,button);
+    const actorId=button.dataset.lwActor||root.dataset.lwActor,request=lwActionControlRequest(root,button,control);
     const presentation=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.actionPresentation?.(Scene,actorId,request);
-    const pendingReason=lwPendingCommandReason(actorId),status=presentation?.gate||LionwingEngine.actionGate(Scene,actorId,request),reason=!lwOwns(actorId)?lwCockpitText("cannotControl","Этим участником управляет другой игрок"):pendingReason||presentation?.reason||status.reason||"";
-    button.disabled=Boolean(pendingReason)||!status.available||!lwOwns(actorId);button.title=reason;
+    if(!pendingReasons.has(actorId))pendingReasons.set(actorId,lwPendingCommandReason(actorId));
+    if(!ownership.has(actorId))ownership.set(actorId,lwOwns(actorId));
+    const pendingReason=pendingReasons.get(actorId),owns=ownership.get(actorId),status=presentation?.gate||LionwingEngine.actionGate(Scene,actorId,request),reason=!owns?lwCockpitText("cannotControl","Этим участником управляет другой игрок"):pendingReason||presentation?.reason||status.reason||"";
+    button.disabled=Boolean(pendingReason)||!status.available||!owns;button.title=reason;
     const note=button.querySelector("small");
     const price=presentation?.costLabel||(Number.isFinite(status.cost)?`${status.cost} ${status.resource==="ap"?lwTechniqueText("ap","ОД"):lwTechniqueText("influenceLabel","Влияния")}`:lwCockpitText("unknownPrice","Цена уточнится в предпросмотре"));
     if(note)note.textContent=(checked&&!attack?`${lwTechniqueText("cunningLabel","Хитрый план")} · `:"")+price+(reason?` · ${reason}`:"");
@@ -166,11 +175,17 @@ function lwDestinationCellStatus(destination) {
 }
 function lwApplyRestoredAreaHighlights(board, space) {
   const gas=(Scene.areas||[]).filter(area=>area.ruleId==="disruptor.chemist.1"&&area.space===space.id&&sceneEnvironmentVisible(area));
+  if(!gas.length)return;
+  const areasByCell=new Map(),owners=new Map(Scene.actors.map(actor=>[actor.id,actor.name]));
+  for(const area of gas)for(const key of new Set(area.cells||[])){
+    if(!areasByCell.has(key))areasByCell.set(key,[]);
+    areasByCell.get(key).push(area);
+  }
   for(const element of board.querySelectorAll("[data-scene-cell]")){
-    const areas=gas.filter(area=>area.cells?.includes(element.dataset.sceneCell));
-    if(!areas.length)continue;
+    const areas=areasByCell.get(element.dataset.sceneCell);
+    if(!areas)continue;
     element.classList.add("has-gas");
-    element.title=[element.title,...areas.map(area=>`${area.label||lwTechniqueText("gas","Газ")} · ${Scene.actors.find(a=>a.id===area.ownerActorId)?.name||""}`)].filter(Boolean).join(" · ");
+    element.title=[element.title,...areas.map(area=>`${area.label||lwTechniqueText("gas","Газ")} · ${owners.get(area.ownerActorId)||""}`)].filter(Boolean).join(" · ");
     for(const token of element.querySelectorAll(".scene-token"))token.classList.add("inside-gas");
   }
 }
@@ -180,13 +195,14 @@ function lwApplyDestinationHighlights(board, space) {
   if (lwTechniqueDraft) {
     const draft=lwTechniqueDraft, source=Scene.actors.find(a=>a.id===draft.actorId);
     if(!lwTechniqueDraftValid(draft)){lwTechniqueDraft=null;return;}
+    const selectedCells=new Set((draft.cells||[]).filter(point=>point.space===space.id&&Number.isInteger(point.x)&&Number.isInteger(point.y)).map(point=>`${point.x},${point.y}`));
     for(const element of ["nails","idol"].includes(draft.mode)?board.querySelectorAll("[data-scene-cell]"):[]){
-      const [x,y]=element.dataset.sceneCell.split(",").map(Number), selected=draft.cells.some(p=>p.space===space.id&&p.x===x&&p.y===y);
+      const [x,y]=element.dataset.sceneCell.split(",").map(Number), selected=selectedCells.has(element.dataset.sceneCell);
       const available=lwTechniqueCellStatus(draft,{x,y,space:space.id}).available;
       element.classList.toggle("movement-valid",available);element.classList.toggle("preview",selected);
       element.title=selected?lwTechniqueText("selectedCell","Выбранная клетка формы"):available?lwTechniqueText("chooseCell","Добавить клетку формы"):lwTechniqueText("outside","Клетка вне области выбора");
     }
-    if(!["nails","idol"].includes(draft.mode)&&draft.cells?.length)for(const element of board.querySelectorAll("[data-scene-cell]")){const[x,y]=element.dataset.sceneCell.split(",").map(Number);if(draft.cells.some(point=>point.space===space.id&&point.x===x&&point.y===y))element.classList.add("preview");}
+    if(!["nails","idol"].includes(draft.mode)&&selectedCells.size)for(const element of board.querySelectorAll("[data-scene-cell]"))if(selectedCells.has(element.dataset.sceneCell))element.classList.add("preview");
   }
   if (!lwDestination) return;
   for (const cell of board.querySelectorAll("[data-scene-cell]")) {
@@ -589,7 +605,7 @@ function lwDraftKey(input) {
   const scope=root.closest("[data-lw-technique-group]")?.dataset.lwTechniqueGroup||root.className||"panel";
   return JSON.stringify([lwCockpitUiScope(root.dataset.lwActor),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input)]);
 }
-function lwRestoreFormDrafts(root) {
+function lwRestoreFormDrafts(root, {refreshActions=true} = {}) {
   if(!root)return;
   for(const input of root.querySelectorAll("[data-lw-root] input,[data-lw-root] select,[data-lw-root] textarea")){
     const key=lwDraftKey(input);if(!key||!lwFormDraft.has(key)||input.disabled||input.readOnly||input.type==="file")continue;
@@ -597,7 +613,9 @@ function lwRestoreFormDrafts(root) {
     if(input.type==="checkbox"||input.type==="radio")input.checked=value;
     else if(input.tagName!=="SELECT"||[...(input.options||[])].some(option=>option.value===value))input.value=value;
   }
-  for(const actionRoot of root.querySelectorAll("[data-lw-root]"))lwRefreshCunningActions(actionRoot);
+  if(refreshActions)for(const actionRoot of root.querySelectorAll("[data-lw-root]"))lwRefreshCunningActions(actionRoot);
+  // Lock submitted buttons before restoring focus as well as after restored
+  // action gates; focus must never return to an action awaiting acknowledgment.
   lwRefreshPendingControls(root);
 }
 let lwDraftEnabled=false,lwDraftBatch=null;
@@ -849,7 +867,8 @@ function lwPendingCommandReason(actorId) {
 }
 function lwRefreshPendingControls(root) {
   const selector="[data-lw-action], [data-lw-technique-confirm], [data-lw-choice], [data-lw-reaction], [data-lw-operation], [data-lw-correct], [data-lw-custom], [data-lw-modifier], [data-lw-general-submit], [data-lw-inventory], [data-lw-dice-create], [data-lw-dice-op], [data-lw-geometry-confirm], [data-lw-geometry-add], [data-lw-detective-confirm]";
-  for(const button of root?.querySelectorAll?.(selector)||[]){const actorId=button.dataset.lwActor||button.closest?.("[data-lw-root]")?.dataset.lwActor,reason=lwPendingCommandReason(actorId);if(reason){button.disabled=true;button.title=reason;}}
+  const reasons=new Map();
+  for(const button of root?.querySelectorAll?.(selector)||[]){const actorId=button.dataset.lwActor||button.closest?.("[data-lw-root]")?.dataset.lwActor;if(!reasons.has(actorId))reasons.set(actorId,lwPendingCommandReason(actorId));const reason=reasons.get(actorId);if(reason){button.disabled=true;button.title=reason;}}
 }
 
 function lwDiceHtml(a) {
@@ -1158,6 +1177,16 @@ const lwOldActionPanel = sceneActionPanel;
 sceneActionPanel = function(actorOverride = null) { return lwActive() ? lwActionsHtml(actorOverride || currentHeroActor()) : lwOldActionPanel(actorOverride); };
 const lwOldDirector = renderSceneDirector;
 renderSceneDirector = function() {
+  // The manual workspace owns its reader and counters. Constructing the
+  // hidden automatic cockpit would still quote every action and inventory
+  // row, then discard it behind the manual policy's closed panels.
+  if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene)){
+    const root=$("scene-director"),previousPaint=lwPaintingDirector;
+    lwPaintingDirector=true;
+    try{if(root){if(root.innerHTML)root.innerHTML="";root.dataset.lwCockpitScope="";}lwFormDraft.clear();}
+    finally{lwPaintingDirector=previousPaint;}
+    return;
+  }
   const previousRoot=$("scene-director"),source=lwActive()?lwActor():null;
   const scope=source&&lwCanNarrate()&&(typeof activeSceneView!=="function"||activeSceneView()==="gm")?lwCockpitUiScope(source.id):null;
   if(previousRoot?.dataset.lwCockpitScope&&previousRoot.dataset.lwCockpitScope!==scope)lwFormDraft.clear();
@@ -1180,7 +1209,7 @@ renderSceneDirector = function() {
   consoleNode.querySelector(".lw-operation")?.insertAdjacentHTML("beforeend",lwEffectSourcesHtml((Scene.targetIds.length?Scene.targetIds:[a.id]).map(id=>Scene.actors.find(actor=>actor.id===id)).filter(Boolean)));
   if(turnPane&&manualPane){turnPane.prepend(actions);manualPane.prepend(consoleNode);}
   else root.prepend(consoleNode);
-  lwRestoreFormDrafts(root);
+  lwRestoreFormDrafts(root,{refreshActions:false});
   root.dataset.lwCockpitScope=scope||"";
   lwRestoreDirectorUi(root,state);
   for(const actionRoot of root.querySelectorAll("[data-lw-root]"))lwRefreshCunningActions(actionRoot);

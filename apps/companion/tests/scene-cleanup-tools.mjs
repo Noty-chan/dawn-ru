@@ -45,11 +45,12 @@ const atomic=base();rejectedWithoutMutation(atomic,()=>engine.dispatchMany(atomi
 let role='gm',accept=true,saveRecovery=async()=>true,room=null,localPending=false,serial=0,writes=0,notices=[],renders=0;
 const nodes=new Map();
 class Node{
- constructor(){this.open=false;this.hidden=true;this.innerHTML='';this.dataset={};this.value='all';this.handlers={};this.classList={contains:()=>false};}
- setAttribute(){} addEventListener(type,fn){this.handlers[type]=fn;} showModal(){throw new Error("No deletion dialogs");} close(){throw new Error("No deletion dialogs");} querySelectorAll(){return [];} querySelector(){return {focus(){},disabled:false,textContent:""};} remove(){}
+ constructor(){this.open=false;this.hidden=true;this.innerHTML='';this.dataset={};this.attrs={};this.value='all';this.handlers={};this.classList={contains:()=>false};this.summary={focus(){document.activeElement=this;}};this.confirm={disabled:false,textContent:'',focus(){document.activeElement=this;}};}
+ set innerHTML(value){this.markup=value;this.buttons=[...value.matchAll(/data-cleanup-index="(\d+)" data-cleanup-key="([^"]+)"/g)].map(match=>({dataset:{cleanupIndex:match[1],cleanupKey:match[2]},disabled:false,focus(){document.activeElement=this;}}));}get innerHTML(){return this.markup;}
+ contains(node){return this.buttons.includes(node)||node===this.confirm;}setAttribute(key,value){this.attrs[key]=value;} addEventListener(type,fn){this.handlers[type]=fn;} showModal(){throw new Error("No deletion dialogs");} close(){throw new Error("No deletion dialogs");} querySelectorAll(selector){return selector==='[data-cleanup-index]'?this.buttons:[];} querySelector(selector){return selector==='summary'?this.summary:selector.startsWith('[data-cleanup-index=')?this.buttons.find(button=>selector===`[data-cleanup-index="${button.dataset.cleanupIndex}"]`):this.confirm;} remove(){}
 }
 const document={documentElement:{},getElementById:id=>nodes.get(id)||null,createElement:()=>new Node(),body:{append:node=>nodes.set(node.id,node)},querySelectorAll:()=>[],querySelector:()=>null};
-for(const id of ['scene-reset-table','scene-clear-field','scene-clear-layer','scene-erase-layer','scene-environment-objects','scene-environment-list','scene-layer-clear-confirmation','scene-field-clear-confirmation','scene-reset-confirmation','scene-history-confirmation'])nodes.set(id,new Node());
+for(const id of ['scene-reset-table','scene-remove-npcs','scene-clear-field','scene-clear-layer','scene-erase-layer','scene-environment-objects','scene-environment-list','scene-layer-clear-confirmation','scene-field-clear-confirmation','scene-reset-confirmation','scene-history-confirmation'])nodes.set(id,new Node());
 Object.assign(context,{structuredClone,document,performance:{now:()=>1000},APP_SCHEMA:14,contentPreferences:{edition:'lionwing'},uid:()=>`cleanup-test-${++serial}`,clamp:(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0)),
  cleanArray:v=>Array.isArray(v)?v.filter(x=>typeof x==='string'):[],SceneEngine:engine,Sync:{state:()=>({sceneId:room,canNarrate:role==='gm'})},$:id=>nodes.get(id)||null,
  activeSceneView:()=>role,activeSceneSpace:()=>context.Scene.spaces.find(s=>s.id===context.Scene.activeSpace),sceneHasLocalPendingSelection:()=>localPending,
@@ -68,6 +69,8 @@ context.captureSceneFxContext=()=>({});
 vm.runInContext(ui.slice(ui.indexOf('function commitSceneEvents('),ui.indexOf('function redoScene(')),context);
 const effects=read('scene-effects.js');vm.runInContext(effects.slice(effects.indexOf('function sceneEnvironmentTarget('),effects.indexOf('function previewSceneWall(')),context);
 const events=read('app-scene-events.js');vm.runInContext(events.slice(events.indexOf('$("scene-reset-table").onclick='),events.indexOf('$("scene-clear-log").onclick')),context);
+vm.runInContext(events.slice(events.indexOf('function handleLionwingDestroyClick('),events.indexOf('// Narrator cleanup must remain available')),context);
+vm.runInContext(events.slice(events.indexOf('$("scene-remove-npcs").onclick='),events.indexOf('function updateTableRecoveryStatus(')),context);
 const reset=()=>{context.Scene=context.normalizeScene(base());context.Scene.undo=[];context.Scene.redo=[];context.Scene.turnUndo=[];role='gm';accept=true;room=null;localPending=false;notices=[];saveRecovery=async()=>true;};
 const confirmEvent={target:{closest:selector=>selector==='[data-cleanup-confirm]'?{}:null}},cancelEvent={target:{closest:selector=>selector==='[data-cleanup-cancel]'?{}:null}};
 async function applyClear(layer='all',options={}){const saved=JSON.stringify(context.Scene),armed=context.clearSceneEnvironment(layer,options);if(!armed)return armed;assert.equal(JSON.stringify(context.Scene),saved,'First step only opens inline confirmation');return nodes.get(options.hostId||'scene-layer-clear-confirmation').onclick(confirmEvent);}
@@ -99,6 +102,7 @@ for(const change of [()=>context.Scene.version++,()=>context.Scene.tablePolicy.e
 }
 reset();assert.ok(context.clearSceneEnvironment('all',{hostId:'scene-field-clear-confirmation'}));assert.equal(nodes.get('scene-field-clear-confirmation').hidden,false);assert.ok(context.clearSceneEnvironment('terrain'));assert.equal(nodes.get('scene-field-clear-confirmation').hidden,true,'A second inline action cancels the first draft');await nodes.get('scene-layer-clear-confirmation').onclick(cancelEvent);
 reset();context.clearSceneEnvironment('terrain');nodes.get('scene-layer-clear-confirmation').onkeydown({key:'Escape',preventDefault(){},stopPropagation(){}});assert.equal(nodes.get('scene-layer-clear-confirmation').hidden,true);assert.equal(context.Scene.undo.length,0);
+reset();const origin={isConnected:true,disabled:false,getClientRects:()=>[{}],focus(){document.activeElement=this;}};document.activeElement=origin;context.clearSceneEnvironment('all');assert.equal(document.activeElement,nodes.get('scene-layer-clear-confirmation').confirm);await nodes.get('scene-layer-clear-confirmation').onclick(cancelEvent);assert.equal(document.activeElement,origin,'Cancel returns keyboard focus to the existing cleanup trigger');document.activeElement=null;
 // Reset confirmation also rechecks the version before even starting recovery.
 reset();let recoveries=0;saveRecovery=async()=>{recoveries++;return true;};nodes.get('scene-reset-table').onclick();context.Scene.version++;assert.equal(await nodes.get('scene-reset-confirmation').onclick(confirmEvent),false);assert.equal(recoveries,0);assert.equal(context.Scene.actors.length,2);
 // Cancel while recovery is running, and repeated confirmation, are safe.
@@ -118,6 +122,21 @@ reset();await applyClear('all');role='player';assert.equal(context.undoScene(),f
 
 // Coordinates and appearance stay human-readable in the compact list.
 reset();context.openSceneEnvironmentList();assert.ok(nodes.get('scene-environment-list').innerHTML.includes('C3'));assert.ok(nodes.get('scene-environment-list').innerHTML.includes(context.t('scene.cleanup.appearance.terrain')));assert.equal(nodes.get('scene-environment-list').innerHTML.includes('2,2'),false);
+
+// Passive refresh during another workflow is quiet, disables deletion and expires drafts.
+reset();context.openSceneEnvironmentList();context.clearSceneEnvironment('all');localPending=true;
+const pendingNotices=notices.length;context.renderSceneCleanupTools();context.renderSceneCleanupTools();assert.equal(notices.length,pendingNotices);assert.ok(dialog.buttons.every(button=>button.disabled));assert.equal(dialog.attrs['aria-disabled'],'true');assert.equal(nodes.get('scene-layer-clear-confirmation').hidden,true);
+localPending=false;context.renderSceneCleanupTools();assert.ok(dialog.buttons.every(button=>!button.disabled));assert.equal(dialog.attrs['aria-disabled'],'false');
+// Structural history is intentionally usable during pending work, including a render.
+reset();await applyClear('all');context.undoScene();localPending=true;context.renderSceneCleanupTools();assert.equal(nodes.get('scene-history-confirmation').hidden,false);assert.ok(await nodes.get('scene-history-confirmation').onclick(confirmEvent));localPending=false;
+// Keyboard deletion stays at the next row, then returns to the existing summary.
+reset();nodes.get('scene-erase-layer').value='markers';context.openSceneEnvironmentList();dialog.buttons[0].focus();dialog.onclick(choose(0));assert.equal(document.activeElement,nodes.get('scene-environment-objects').summary);
+reset();nodes.get('scene-erase-layer').value='areas';context.openSceneEnvironmentList();dialog.scrollTop=37;dialog.buttons[1].focus();dialog.onclick(choose(1));assert.equal(document.activeElement,dialog.buttons[1]);assert.equal(dialog.scrollTop,37);assert.equal(document.activeElement.dataset.cleanupIndex,'1');nodes.get('scene-erase-layer').value='all';document.activeElement=null;
+reset();context.openSceneEnvironmentList();dialog.buttons[1].focus();const focusedKey=document.activeElement.dataset.cleanupKey;context.Scene.objects.unshift({...context.Scene.objects[0],id:'inserted',label:'Inserted'});context.Scene.version++;context.renderSceneCleanupTools();assert.equal(document.activeElement.dataset.cleanupKey,focusedKey,'A passive insertion keeps focus on the same entity, even when its row moves');assert.equal(document.activeElement.dataset.cleanupIndex,'2');document.activeElement=null;
+// Mixed layers and a topology-only clear are structural history changes too.
+for(const configure of [()=>{context.Scene.objects=context.Scene.objects.filter(row=>row.space!=='main');context.Scene.topology.cuts=context.Scene.topology.cuts.filter(row=>row.space!=='main');},()=>{context.Scene.objects=context.Scene.objects.filter(row=>row.space!=='main');context.Scene.walls=context.Scene.walls.filter(row=>row.space!=='main');context.Scene.markers=context.Scene.markers.filter(row=>row.space!=='main');}]){
+ reset();configure();await applyClear('all');const snapshot=JSON.stringify(context.Scene);assert.ok(context.undoScene());assert.equal(JSON.stringify(context.Scene),snapshot);assert.equal(nodes.get('scene-history-confirmation').hidden,false);assert.ok(await nodes.get('scene-history-confirmation').onclick(confirmEvent));
+}
 
 // A reset is a new empty table, but cannot forget already accepted event identities.
 reset();const prior={id:'prior-health',type:'table.command',actorId:'hero',payload:{kind:'resource',values:{hp:25}}};context.commitSceneEvents('Prior health', [prior]);await applyReset();
@@ -154,6 +173,22 @@ reset();context.Scene.tablePolicy.mode='rules';context.Scene.lionwing.entities={
 context.window.DAWN_LIONWING_DESTROY_PLAN={prepare:actual.prepare,apply:(...args)=>{const result=actual.apply(...args);result.scene.actors=result.scene.actors.slice(1);return result;}};
 const tokenProtected=JSON.stringify(context.Scene);assert.equal(context.eraseSceneEnvironment({x:2,y:2}),null);assert.equal(JSON.stringify(context.Scene),tokenProtected);assert.equal(context.Scene.undo.length,0);
 assert.equal(await applyClear('all'),false);assert.equal(JSON.stringify(context.Scene),tokenProtected);context.window.DAWN_LIONWING_DESTROY_PLAN=actual;
+
+// The actual NPC capture and bubble controllers share one inline, atomic path.
+for(const locale of ['ru','en'])for(const mode of ['manual','rules']){
+ reset();context.window.DAWN_I18N.setLocale(locale);context.Scene.tablePolicy.mode=mode;context.Scene.lionwing.entities={};context.Scene=context.normalizeScene(context.Scene);
+ context.Scene.actors.push({...clone(context.Scene.actors[0]),id:'owned-token',kind:'token',heroId:null,ownerId:'player'});
+ const before=JSON.stringify(context.Scene),heroes=clone(context.Scene.actors.filter(actor=>actor.id!=='enemy'));
+ assert.equal(context.handleLionwingDestroyClick({target:{closest:selector=>selector==='#scene-remove-npcs'?{}:null},preventDefault(){},stopImmediatePropagation(){}}),true);
+ assert.equal(JSON.stringify(context.Scene),before,'Capture opens only existing controls');assert.equal(nodes.get('scene-field-clear-confirmation').hidden,false);
+ await nodes.get('scene-field-clear-confirmation').onclick(cancelEvent);assert.equal(JSON.stringify(context.Scene),before);
+ assert.ok(nodes.get('scene-remove-npcs').onclick());assert.ok(await nodes.get('scene-field-clear-confirmation').onclick(confirmEvent));
+ assert.deepEqual(context.Scene.actors.map(actor=>actor.id),heroes.map(actor=>actor.id));assert.equal(context.Scene.undo.length,1);assert.ok(context.undoScene());assert.ok(await nodes.get('scene-history-confirmation').onclick(confirmEvent));assert.equal(context.Scene.actors.length,3);
+}
+reset();nodes.get('scene-remove-npcs').onclick();context.Scene.version++;const staleNpc=JSON.stringify(context.Scene);assert.equal(await nodes.get('scene-field-clear-confirmation').onclick(confirmEvent),false);assert.equal(JSON.stringify(context.Scene),staleNpc);
+reset();context.Scene.tablePolicy.mode='rules';context.Scene.lionwing.entities={};context.Scene=context.normalizeScene(context.Scene);
+context.window.DAWN_LIONWING_DESTROY_PLAN={prepare:actual.prepare,apply:(...args)=>{const result=actual.apply(...args);result.scene.actors=result.scene.actors.filter(actor=>actor.id!=='hero');return result;}};
+const heroProtected=JSON.stringify(context.Scene);nodes.get('scene-remove-npcs').onclick();assert.equal(await nodes.get('scene-field-clear-confirmation').onclick(confirmEvent),null);assert.equal(JSON.stringify(context.Scene),heroProtected);assert.equal(context.Scene.undo.length,0);assert.ok(notices.includes(context.t('scene.cleanup.protectedActors')));context.window.DAWN_LIONWING_DESTROY_PLAN=actual;
 
 console.log('Cleanup PASS: real manual/rules writers, field/layer isolation, overlap chooser, erase under token, cancel/rights/pending/async races, atomic failure, receipts replay/reload, reset undo and hostile history snapshots; DOM/transport mocked.');
 

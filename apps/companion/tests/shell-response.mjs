@@ -126,6 +126,6 @@ assert.equal((app.match(/setMode\(store.mode\|\|"build",\{render:false\}\)/g)||[
 // active-turn header must apply the same visibility rule as the board tokens.
 const headerStart=scene.indexOf('const active=Scene.actors.find(actor=>actor.id===Scene.activeActorId&&(view==='),headerEnd=scene.indexOf('$("scene-space-tabs")',headerStart);
 assert.ok(headerStart>=0&&headerEnd>headerStart);
-const renderHeader=view=>{const label={textContent:""},header=vm.createContext({view,Scene:{activeActorId:"hidden",actors:[{id:"hidden",name:"SECRET NPC",hidden:true}]},$:()=>label});evaluate(scene.slice(headerStart,headerEnd),header);return label.textContent};
+const renderHeader=view=>{const label={textContent:""},header=vm.createContext({view,Scene:{activeActorId:"hidden",actors:[{id:"hidden",name:"SECRET NPC",hidden:true}]},$:()=>label});evaluate(scene.split("\n").find(row=>row.trimStart().startsWith("const writeText="))+"\n"+scene.slice(headerStart,headerEnd),header);return label.textContent};
 assert.doesNotMatch(renderHeader("player"),/SECRET NPC/);assert.match(renderHeader("gm"),/SECRET NPC/);
 console.log(`Shell response: latest drafts, one preview per frame, safe asynchronous media edits, passive camera, one detached library traversal, status resolutions ${currentResolutions*3} → ${currentResolutions} with identical markup, and single-render navigation passed`);

@@ -93,17 +93,24 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     if (!adapter || !footer) return;
     const state = model(adapter), actor = state.selected;
     const oldHp=footer.querySelector('[data-manual-hp]');
+    if(oldHp&&oldHp.dataset.manualValue!==String(actor?.hp??0)&&!oldHp.manualSubmission?.pending){delete oldHp.manualSubmitted;delete oldHp.manualSubmission;}
     const editingHp=oldHp&&document.activeElement===oldHp&&oldHp.dataset.manualActor===actor?.id&&footerScope===scope&&state.control;
     const hpDraft=editingHp&&oldHp.value!==oldHp.dataset.manualValue?oldHp.value:null;
     const hpSubmitted=editingHp?oldHp.manualSubmitted:undefined;
     const hpSubmission=editingHp?oldHp.manualSubmission:undefined;
-    footerScope=scope;
+    const sameFooterScope=footerScope===scope;footerScope=scope;
     initiative.setAttribute('aria-label',text('participants','Участники'));
     reader.setAttribute('aria-label',text('abilities','Способности участника'));
     footer.hidden = initiative.hidden = !state.manual;
     if (!state.manual) { reading = false; paintReader(state); return state; }
     const footerMarkup = `<div class="scene-manual-selected"><strong>${escape(actor?.name || text("select", "Выберите участника"))}</strong>${actor ? `<label><span>${escape(text("hp", "ЗД"))}</span><input type="text" inputmode="text" maxlength="6" data-manual-hp data-manual-actor="${escape(actor.id)}" data-manual-value="${escape(actor.hp ?? 0)}" aria-label="${escape(text("exactHp", "Записать здоровье"))}" value="${escape(actor.hp ?? 0)}" title="${escape(text("healthHelp", "Число — задать ЗД; -5 / +5 — изменить. Enter или выход применяет, Escape отменяет."))}" ${!state.control || !(adapter.editResource || adapter.commit) ? "disabled" : ""}><small>/ ${escape(actor.maxHp ?? "—")}</small></label>` : ""}</div><nav aria-label="${escape(text("commands", "Команды ручного стола"))}">${button("read", text("read", "Читать"), "sheet", !actor, `aria-expanded="${reading}"`)}${button("dice", text("dice", "Кубы"), "dice", !adapter.roll)}${button("clocks", text("clocks", "Часы"), "history", !adapter.openClocks)}${state.narrator ? button("point", text("point", "Сейчас играет"), "tokens", !actor || !(adapter.setCurrent || adapter.commit)) : ""}</nav><span class="scene-manual-round">${escape(text("round", "Раунд"))} ${state.round}${state.narrator ? button("round", text("nextRound", "+1"), "add", !(adapter.setRound || adapter.commit), `title="${escape(text("nextRoundHint", "Следующий раунд: +1 Напряжение"))}"`) : ""}</span><output class="scene-manual-message" aria-live="polite"></output>`;
-    if(footer.manualRenderedMarkup!==footerMarkup||editingHp){paintingFooter=true;window.DAWN_MANUAL_SURFACE_PAINTING=true;try{footer.innerHTML=footerMarkup;footer.manualRenderedMarkup=footerMarkup;}finally{paintingFooter=false;window.DAWN_MANUAL_SURFACE_PAINTING=false;}}
+    const footerStructure=footerMarkup.replace(/(?:data-manual-value|value)="[^"]*"/g,"");
+    paintingFooter=true;window.DAWN_MANUAL_SURFACE_PAINTING=true;
+    try{
+      if(!sameFooterScope||footer.manualRenderedStructure!==footerStructure){footer.innerHTML=footerMarkup;footer.manualRenderedStructure=footerStructure;}
+      else if(oldHp){oldHp.dataset.manualValue=String(actor.hp??0);if(!editingHp||hpDraft===null)oldHp.value=oldHp.dataset.manualValue;}
+      footer.manualRenderedMarkup=footerMarkup;
+    }finally{paintingFooter=false;window.DAWN_MANUAL_SURFACE_PAINTING=false;}
     adapter.afterFooterRender?.();
     initiative.innerHTML = `<span class="scene-manual-initiative-label">${escape(text("participants", "Участники"))}</span>${state.initiativeActors.map(item => {const image=item.tokenImage || item.portraitImage || item.portraitUrl;return `<button type="button" data-manual-action="select" data-actor-id="${escape(item.id)}" class="${item.id === actor?.id ? "selected" : ""} ${item.id === state.current?.id ? "current" : ""}" title="${escape(item.name)}" aria-label="${escape(item.name)}" ${!state.actors.some(actor=>actor.id===item.id)?"disabled":""} ${item.id === state.current?.id ? 'aria-current="step"' : ""}>${image ? `<img src="${escape(image)}" alt="">` : `<span aria-hidden="true">${escape(item.name?.slice(0,2) || "?")}</span>`}<small>${escape(item.name)}</small></button>`;}).join("")}`;
     paintReader(state);
@@ -182,11 +189,11 @@ window.DAWN_MANUAL_WORKSPACE = (() => {
     }
   }
   function reconcileNumber(command,events=[]){
-    const rejected=command?.status==='rejected',intentId=command?.payload?.clientIntentId||command?.clientIntentId;
+    const settled=command?.status==='rejected'||command?.status==='applied',intentId=command?.payload?.clientIntentId||command?.clientIntentId;
     const ids=new Set(events.map(event=>event.id));
     for(const node of [...(footer?.querySelectorAll('[data-manual-hp]')||[]),...(reader?.querySelectorAll('[data-manual-counter]')||[])]){
       const receipt=node.manualSubmission;
-      if(receipt&&((rejected&&intentId&&receipt.clientIntentId===intentId)||(receipt.manualEventIds||[]).some(id=>ids.has(id)))){delete node.manualSubmitted;delete node.manualSubmission;}
+      if(receipt&&((settled&&intentId&&receipt.clientIntentId===intentId)||(receipt.manualEventIds||[]).some(id=>ids.has(id)))){delete node.manualSubmitted;delete node.manualSubmission;}
     }
   }
   function init(mount) {

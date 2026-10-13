@@ -576,16 +576,21 @@ function renderManualTable(){
     toggleTechnique:(actor,entry,on)=>commitSceneEvents(manualTableCopy("Пометка Техники","Technique note"),[{type:"table.command",actorId:actor.id,payload:{kind:"technique",key:entry.id,enabled:on}}]),
     afterFooterRender:renderManualTokenCounters
   });
-  renderManualTokenCounters();
+  if(!window.DAWN_MANUAL_WORKSPACE?.render)renderManualTokenCounters();
 }
 function renderManualTokenCounters(){
-  const footer=$("scene-manual-footer"),actor=Scene.actors.find(a=>a.id===Scene.selectedActor);
+  const footer=$("scene-manual-footer"),footerActor=footer?.querySelector("[data-manual-hp]"),actor=Scene.actors.find(a=>a.id===(footerActor?.dataset.manualActor||Scene.selectedActor));
   if(!footer||!manualTableActive()||!actor)return;
   const fields=[["ap","ОД","AP"],["focus","Фокус","Focus"],["wounds","Раны","Wounds"]],visible=store.sceneUi?.tokenCounters?.[actor.id]||fields.map(([key])=>key),allowed=canControlSceneActor(actor);
-  const panel=document.createElement("div");panel.className="manual-token-counters";
-  panel.innerHTML=fields.filter(([key])=>visible.includes(key)).map(([key,ru,en])=>`<label><span>${manualTableCopy(ru,en)}</span><div><button type="button" data-token-count="${key}" data-token-delta="-1" aria-label="${manualTableCopy(ru,en)} −1" ${!allowed?"disabled":""}>−</button><input type="number" min="0" max="${window.DAWN_TABLE_POLICY.resourceMaximum(actor,key)}" data-token-count-input="${key}" aria-label="${manualTableCopy(ru,en)}" value="${Number(actor[key])||0}" ${!allowed?"disabled":""}><button type="button" data-token-count="${key}" data-token-delta="1" aria-label="${manualTableCopy(ru,en)} +1" ${!allowed?"disabled":""}>+</button></div></label>`).join("")+`<details><summary title="${manualTableCopy("Настроить счётчики токена","Configure token counters")}">⚙</summary><div>${fields.map(([key,ru,en])=>`<label><input type="checkbox" data-token-count-visible="${key}" ${visible.includes(key)?"checked":""}>${manualTableCopy(ru,en)}</label>`).join("")}</div></details>`;
-  const previous=footer.querySelector('.manual-token-counters');if(previous?.dataset.actorId===actor.id&&previous.manualCountersMarkup===panel.innerHTML)return;panel.manualCountersMarkup=panel.innerHTML;panel.dataset.actorId=actor.id;if(previous?.dataset.actorId===actor.id&&previous.querySelector('details')?.open)panel.querySelector('details').open=true;
-  const write=(key,value)=>{const current=Scene.actors.find(a=>a.id===actor.id);if(!current||!canControlSceneActor(current)||!Number.isSafeInteger(value)||value<0||value>window.DAWN_TABLE_POLICY.resourceMaximum(current,key))return;if(value!==Number(current[key]||0))commitSceneEvents(manualTableCopy("Счётчик участника","Participant counter"),[{type:"table.command",actorId:current.id,payload:{kind:"resource",values:{[key]:value}}}]);};
+  const markup=fields.filter(([key])=>visible.includes(key)).map(([key,ru,en])=>`<label><span>${manualTableCopy(ru,en)}</span><div><button type="button" data-token-count="${key}" data-token-delta="-1" aria-label="${manualTableCopy(ru,en)} −1" ${!allowed?"disabled":""}>−</button><input type="number" min="0" max="${window.DAWN_TABLE_POLICY.resourceMaximum(actor,key)}" data-token-count-input="${key}" aria-label="${manualTableCopy(ru,en)}" data-manual-value="${Number(actor[key])||0}" value="${Number(actor[key])||0}" ${!allowed?"disabled":""}><button type="button" data-token-count="${key}" data-token-delta="1" aria-label="${manualTableCopy(ru,en)} +1" ${!allowed?"disabled":""}>+</button></div></label>`).join("")+`<details><summary title="${manualTableCopy("Настроить счётчики токена","Configure token counters")}">⚙</summary><div>${fields.map(([key,ru,en])=>`<label><input type="checkbox" data-token-count-visible="${key}" ${visible.includes(key)?"checked":""}>${manualTableCopy(ru,en)}</label>`).join("")}</div></details>`;
+  const counterScope=manualTensionScope(),structure=markup.replace(/(?:data-manual-value|value)="[^"]*"/g,""),previous=footer.querySelector('.manual-token-counters');
+  if(previous?.dataset.actorId===actor.id&&previous.manualCounterScope===counterScope&&previous.manualCountersStructure===structure){
+    for(const input of previous.querySelectorAll('[data-token-count-input]')){const value=String(Number(actor[input.dataset.tokenCountInput])||0),dirty=document.activeElement===input&&input.value!==input.dataset.manualValue;input.dataset.manualValue=value;if(!dirty&&!input.manualSubmission)input.value=value;}
+    previous.manualCountersMarkup=markup;return;
+  }
+  const panel=document.createElement("div");panel.className="manual-token-counters";panel.innerHTML=markup;
+  panel.manualCountersMarkup=panel.innerHTML;panel.manualCountersStructure=structure;panel.manualCounterScope=counterScope;panel.dataset.actorId=actor.id;if(previous?.dataset.actorId===actor.id&&previous.querySelector('details')?.open)panel.querySelector('details').open=true;
+  const write=(key,value)=>{const current=Scene.actors.find(a=>a.id===actor.id);if(!manualTableActive()||counterScope!==manualTensionScope()||(footer.querySelector("[data-manual-hp]")?.dataset.manualActor||Scene.selectedActor)!==actor.id||!footer.contains(panel)||!current||!canControlSceneActor(current)||!Number.isSafeInteger(value)||value<0||value>window.DAWN_TABLE_POLICY.resourceMaximum(current,key))return;if(value!==Number(current[key]||0))commitSceneEvents(manualTableCopy("Счётчик участника","Participant counter"),[{type:"table.command",actorId:current.id,payload:{kind:"resource",values:{[key]:value}}}]);};
   panel.addEventListener("click",event=>{const button=event.target.closest('[data-token-count]'),current=Scene.actors.find(a=>a.id===actor.id);if(button&&current)write(button.dataset.tokenCount,Number(current[button.dataset.tokenCount]||0)+Number(button.dataset.tokenDelta));});
   panel.addEventListener("change",event=>{if(window.DAWN_MANUAL_SURFACE_PAINTING)return;const key=event.target.dataset.tokenCountInput;if(key&&event.target.value.trim())write(key,Number(event.target.value));const visibility=event.target.dataset.tokenCountVisible;if(visibility){store.sceneUi||={};store.sceneUi.tokenCounters||={};store.sceneUi.tokenCounters[actor.id]=Array.from(panel.querySelectorAll('[data-token-count-visible]:checked'),node=>node.dataset.tokenCountVisible);persist();renderScene();}});
   window.DAWN_MANUAL_SURFACE_PAINTING=true;try{footer.querySelector('.manual-token-counters')?.remove();footer.append(panel);}finally{window.DAWN_MANUAL_SURFACE_PAINTING=false;}
@@ -673,7 +678,11 @@ function manualEventText(scene,event,{english=false,entries=()=>[],effects=[]}={
 function renderManualJournal(){
   const log=$("scene-log");if(!log||!manualTableActive())return;
   const scene=activeSceneView()==="gm"?Scene:SceneEngine.projectScene(Scene,{role:"player",actorIds:Scene.actors.filter(canControlSceneActor).map(a=>a.id)});
-  log.innerHTML=(scene.log||[]).map(row=>{const date=new Date(row.at),at=Number.isNaN(date.getTime())?row.at||"":date.toLocaleTimeString(isEnglishPreview()?"en-GB":"ru-RU",{hour:"2-digit",minute:"2-digit"});return `<li><time>${esc(at)}</time>${esc(row.text||eventText(row))}</li>`;}).join("")||`<li class="autosave">${manualTableCopy("Здесь появятся ручные изменения стола.","Manual table changes will appear here.")}</li>`;
+  const locale=isEnglishPreview()?"en-GB":"ru-RU",formatters=renderManualJournal.timeFormatters||(renderManualJournal.timeFormatters=new Map());
+  if(!formatters.has(locale))formatters.set(locale,new Intl.DateTimeFormat(locale,{hour:"2-digit",minute:"2-digit"}));
+  const formatter=formatters.get(locale);
+  const markup=(scene.log||[]).map(row=>{const date=new Date(row.at),at=Number.isNaN(date.getTime())?row.at||"":formatter.format(date);return `<li><time>${esc(at)}</time>${esc(row.text||eventText(row))}</li>`;}).join("")||`<li class="autosave">${manualTableCopy("Здесь появятся ручные изменения стола.","Manual table changes will appear here.")}</li>`;
+  if(log.innerHTML!==markup)log.innerHTML=markup;
 }
 const sceneEventTextWithRules=eventText;
 eventText=function(event){

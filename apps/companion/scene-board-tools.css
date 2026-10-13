@@ -79,7 +79,8 @@ body.scene-mode:not(.scene-interface-next) [data-presentation-mode]{min-height:4
 @media(prefers-reduced-motion:reduce){.scene-environment-objects>summary::before{transition:none}}
 
 /* Match the compact field palette; keep deletion visually distinct. */
-body.scene-mode.scene-interface-next #scene-erase-controls{width:min(260px,calc(100vw - 125px));gap:.65rem;padding:.8rem}
+body.scene-mode.scene-interface-next #scene-erase-controls{gap:.65rem;padding:.8rem}
+@media(min-width:721px){body.scene-mode.scene-interface-next #scene-erase-controls{width:min(260px,calc(100vw - 125px))}}
 #scene-erase-controls>small{color:var(--muted);font-size:.7rem;line-height:1.5}
 .scene-environment-objects{padding-top:.45rem}
 .scene-environment-list-rows article{padding:.5rem 0;background:transparent;border-bottom:1px solid var(--line);border-radius:0}

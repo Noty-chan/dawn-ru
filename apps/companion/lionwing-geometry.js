@@ -66,7 +66,10 @@
     const space = point.space || base.space;
     const battlefield=spaceById(scene,space);
     if(!battlefield||Number(point.x)<0||Number(point.y)<0||Number(point.x)+width>battlefield.width||Number(point.y)+height>battlefield.height)return {available:false,reason:"Фигура целиком не помещается на поле.",cells:[]};
-    const body = { ...clone(base), space, x: Number(point.x), y: Number(point.y), occupiedWidth: width, occupiedHeight: height };
+    // Occupancy reads effects and identity but does not mutate the body.
+    // Moving its anchor must not serialize actor portraits or private ledgers
+    // for every candidate cell.
+    const body = { ...base, space, x: Number(point.x), y: Number(point.y), occupiedWidth: width, occupiedHeight: height };
     const cells = footprintCells(body, width, height).map(cell => ({ ...cell, space }));
     const occupancy = runtime.effectCellOccupancyStatus(scene, base.id || null, { actor: body, space, x: body.x, y: body.y });
     const removed = runtime.removedCellKeys(scene, space);
