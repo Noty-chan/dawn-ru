@@ -162,7 +162,7 @@ assert.match(appSource, /activeSceneView\(\)==="gm"&&button\.dataset\.coreActor\
 assert.match(appSource, /querySelector\("article:last-child"\)/, "Roll animation must target the newest bottom card");
 assert.match(appSource, /if\(performance\.now\(\)<sceneSuppressBoardClickUntil\)/, "A synthetic click after dropping a token must not move the previously selected actor");
 assert.match(appSource, /actorId=event\.dataTransfer\.getData\("text\/plain"\)\|\|sceneDragActorId/, "A dropped token must be resolved from its drag payload, not Scene selection");
-assert.match(appSource, /requestAnimationFrame\(\(\)=>\{const actor=Scene\.actors\.find\(item=>item\.id===actorId\)/, "Token movement must wait until the native drop animation has completed");
+assert.match(appSource, /requestAnimationFrame\(\(\)=>\{[^\n]*const actor=Scene\.actors\.find\(item=>item\.id===actorId\)/, "Token movement must wait until the native drop animation has completed");
 assert.doesNotMatch(appSource, /queueScene\?\.\(sceneSnapshot\(\),"tools\.clocks\.migrate"\)/, "Opening shared clocks must not race an event batch with a stale snapshot migration");
 assert.match(appSource, /clock-add-progress/);
 assert.match(appSource, /clock-add-danger/);

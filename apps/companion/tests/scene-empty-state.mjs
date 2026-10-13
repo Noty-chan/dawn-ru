@@ -24,3 +24,5 @@ assert.match(note({isEnglishPreview:()=>true}),/Participants off the field/);
 assert.match(note({isEnglishPreview:()=>true}),/start the Turn and choose an arrival space/);
 assert.match(note({isEnglishPreview:()=>true,Scene:{actors:[],tool:'select'}}),/Add participant/);
 assert.doesNotMatch(note({isEnglishPreview:()=>true,activeSceneView:()=> 'player'}),/data-open-scene-panel/);
+
+assert.match(note({Scene:{actors:[{...participant,hidden:true}],tool:'select'},activeSceneView:()=> 'player'}),/Сцена ждёт героев/,'Hidden off-field participants never reveal their existence in Player view');

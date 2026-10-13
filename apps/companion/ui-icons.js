@@ -28,6 +28,7 @@ window.DAWN_UI_ICONS=Object.freeze({html(name){
     network:'<path d="M3 7h18m-4-4 4 4-4 4M21 17H3m4-4-4 4 4 4"/>',
     log:'<path d="M4 5h16M4 12h16M4 19h16"/>',
     clear:'<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6m-6 0 6-6"/>',
+    erase:'<path d="m15 3 6 6a2 2 0 0 1 0 3l-8 8H7l-4-4a2 2 0 0 1 0-3l9-10a2 2 0 0 1 3 0Z"/><path d="m7 9 8 8M13 20h8"/>',
     traces:'<path d="M2 9c3-10 5 10 8 0s5 10 8 0m0 7 4 4m-4 0 4-4"/>'
   };
   return `<svg class="dawn-control-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${shapes[name]||shapes.effects}</svg>`;

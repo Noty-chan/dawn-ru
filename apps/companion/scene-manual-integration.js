@@ -639,12 +639,16 @@ function submitManualNumber(actor,payload,label){
 }
 window.DAWN_TABLE_POLICY?.install();
 document.addEventListener("keydown",event=>{
-  if(event.key!=="Escape"||!manualTableActive()||!document.body.classList.contains("scene-mode")||!["area","wall","marker","erase"].includes(activeSceneTool())||event.target.closest?.("input,select,textarea,dialog,[contenteditable]")||window.DAWN_TABLE_POLICY.pendingWork(Scene)||sceneHasLocalPendingSelection())return;
+  if(event.key!=="Escape"||!document.body.classList.contains("scene-mode")||!["area","wall","marker","erase"].includes(activeSceneTool())||event.target.closest?.("input,select,textarea,dialog,[contenteditable]")||window.DAWN_TABLE_POLICY.pendingWork(Scene)||sceneHasLocalPendingSelection())return;
   event.preventDefault();event.stopImmediatePropagation();scenePreviewCells.clear();sceneWallPreviewPoint=null;
   document.querySelectorAll(".scene-cell.preview,.scene-erase-preview").forEach(node=>node.classList.remove("preview","scene-erase-preview"));
   document.querySelectorAll(".scene-wall-preview,.scene-erase-label").forEach(node=>node.remove());
+  if(typeof invalidateSceneCellHighlights==="function")invalidateSceneCellHighlights();
+  for(const id of ["scene-layer-clear-confirmation","scene-field-clear-confirmation","scene-reset-confirmation","scene-history-confirmation"])cancelSceneCleanup(id);
+  Scene.tool="select";persist();renderScene();
 },true);
 function manualEventText(scene,event,{english=false,entries=()=>[],effects=[]}={}){
+  if(event.payload?.kind==="environment/clear")return window.DAWN_I18N.t("scene.cleanup.cleared",{space:scene.spaces.find(row=>row.id===event.payload.space)?.name||event.payload.space,layer:window.DAWN_I18N.t(`scene.cleanup.layer.${event.payload.layer}`)});
   if(event.payload?.kind==="start-rules")return window.DAWN_I18N?.t?.("scene.rulesStart.started",{actor:scene.actors.find(actor=>actor.id===event.payload.firstActorId)?.name||event.payload.firstActorId})||"start-rules";
   const copy=(ru,en)=>english?en:ru,p=event.payload||{},actor=scene.actors.find(a=>a.id===event.actorId),name=actor?.name||copy("Стол","Table");
   const entry=actor&&entries(actor).find(row=>row.id===p.key),ability=entry?.name||copy("Приём","Ability");
@@ -677,7 +681,7 @@ eventText=function(event){
   return sceneEventTextWithRules(event);
 };
 const renderSceneWithRules=renderScene;
-renderScene=function(){if(manualTableActive()&&["director","sheet","utility","entities"].includes(activeScenePanel))closeAllScenePanels();const result=renderSceneWithRules.apply(this,arguments);renderManualTable();return result};
+renderScene=function(){if(manualTableActive()&&["director","sheet","utility","entities"].includes(activeScenePanel))closeAllScenePanels();const result=renderSceneWithRules.apply(this,arguments);renderManualTable();if(typeof renderSceneCleanupTools==="function")renderSceneCleanupTools();return result};
 const numericCorrectionWithRules=setNarratorActorValue;
 setNarratorActorValue=function(actor,key,value,label=""){
   if(!manualTableActive())return numericCorrectionWithRules.apply(this,arguments);

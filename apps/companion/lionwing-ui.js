@@ -165,7 +165,7 @@ function lwDestinationCellStatus(destination) {
   return LionwingEngine.destinationStatus(Scene, { ...lwDestination, destination });
 }
 function lwApplyRestoredAreaHighlights(board, space) {
-  const gas=(Scene.areas||[]).filter(area=>area.ruleId==="disruptor.chemist.1"&&area.space===space.id);
+  const gas=(Scene.areas||[]).filter(area=>area.ruleId==="disruptor.chemist.1"&&area.space===space.id&&sceneEnvironmentVisible(area));
   for(const element of board.querySelectorAll("[data-scene-cell]")){
     const areas=gas.filter(area=>area.cells?.includes(element.dataset.sceneCell));
     if(!areas.length)continue;
@@ -627,6 +627,7 @@ function lwApplyGeometryPreviewCells(){
   scenePreviewCells.clear();
   const route=lwGeometryPreview?.event?.payload?.geometryPlan?.route;
   for(const key of lwGeometryRouteKeys(route))scenePreviewCells.add(key);
+  if(typeof renderSceneCellHighlights==="function"){renderSceneCellHighlights("preview",scenePreviewCells);return;}
   if(typeof $$!=="function")return;
   const cells=$$('[data-scene-cell]');
   for(const cell of cells)cell.classList.toggle("preview",scenePreviewCells.has(cell.dataset.sceneCell));

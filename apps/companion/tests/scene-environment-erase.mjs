@@ -4,7 +4,7 @@ import vm from 'node:vm';
 const src=fs.readFileSync(new URL('../scene-effects.js',import.meta.url),'utf8');
 let role='gm',submitted=[],local=[];
 const scene={rulesEdition:'lionwing',activeSpace:'main',actors:[{id:'hero',x:2,y:2,hp:14,ap:3}],objects:[{id:'old',space:'main',cells:['2,2'],label:'Old'},{id:'new',space:'main',cells:['2,2'],label:'New'}],markers:[{id:'mark',space:'main',x:2,y:2,label:'Mark'}],walls:[{id:'wall',space:'main',a:'2,2',b:'3,2',label:'Wall'}]};
-const context=vm.createContext({Scene:scene,activeSceneView:()=>role,sceneHasLocalPendingSelection:()=>false,isEnglishPreview:()=>false,toast:()=>{},commitLionwingDestroy:(target)=>{submitted.push(target);return true;},commitScene:(label,fn)=>{local.push(label);fn(scene);return true;}});
+const context=vm.createContext({window:{},t:(key)=>key,Scene:scene,activeSceneView:()=>role,sceneHasLocalPendingSelection:()=>false,isEnglishPreview:()=>false,toast:()=>{},commitLionwingDestroy:(target)=>{submitted.push(target);return true;},commitScene:(label,fn)=>{local.push(label);fn(scene);return true;}});
 vm.runInContext(src.slice(src.indexOf('function sceneEnvironmentTarget('),src.indexOf('function previewSceneEnvironmentErase(')),context);
 const run=code=>vm.runInContext(code,context),actors=JSON.stringify(scene.actors);
 run('eraseSceneEnvironment({x:2,y:2})');assert.equal(submitted[0].backing.id,'new','overlap chooses the topmost area, never the token');

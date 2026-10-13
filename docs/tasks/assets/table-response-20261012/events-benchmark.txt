@@ -1,0 +1,22 @@
+scene event response: actual reducers, bounded undo, exact replay, rejection, turn/round history and queued authority passed
+{
+  "workload": "Production local commit + reducer + normalization; one 100KB art, 20 undo, 10 turn snapshots; mocked rendering/storage",
+  "rows": [
+    {
+      "label": "baseline",
+      "samples": 16,
+      "historySnapshotsDispatched": 481,
+      "historySnapshotsNormalized": 481,
+      "p50Ms": 15.49,
+      "p95Ms": 27.84
+    },
+    {
+      "label": "changed",
+      "samples": 16,
+      "historySnapshotsDispatched": 0,
+      "historySnapshotsNormalized": 0,
+      "p50Ms": 0.79,
+      "p95Ms": 1.37
+    }
+  ]
+}
