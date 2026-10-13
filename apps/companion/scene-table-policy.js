@@ -81,20 +81,21 @@
       else detachReferences(item, ids);
     }
   }
-  function removeStoredObject(scene, collection, id) {
-    if (!(scene[collection] || []).some(row => row.id === id)) fail("Удаляемый объект отсутствует.");
+  function removeStoredObjects(scene,targets) {
     if (pendingWork(scene)) fail("Сначала завершите ожидающее действие.", "TABLE_PENDING_WORK");
-    const ids = new Set([id]);
+    // Validate the complete selection before touching its storage projection.
+    for(const [collection,id]of targets)if(!(scene[collection]||[]).some(row=>row.id===id))fail("Удаляемый объект отсутствует.");
+    const ids = new Set(targets.map(([,id])=>id));
     const registry = scene.lionwing?.entities;
     const rows = Array.isArray(registry) ? registry.map((row, index) => [index, row]) : Object.entries(registry || {});
     for (const [key, row] of rows) {
-      if (Object.entries(row?.backing || {}).some(([ref, value]) => REF_KEYS.has(ref) && value === id)) {
+      if (Object.entries(row?.backing || {}).some(([ref, value]) => REF_KEYS.has(ref) && ids.has(value))) {
         ids.add(row.id || key);
         if (!Array.isArray(registry)) delete registry[key];
       }
     }
     if (Array.isArray(registry)) scene.lionwing.entities = registry.filter(row => !ids.has(row.id));
-    scene[collection] = scene[collection].filter(row => row.id !== id);
+    for(const collection of new Set(targets.map(([key])=>key))){const selected=new Set(targets.filter(([key])=>key===collection).map(([,id])=>id));scene[collection]=scene[collection].filter(row=>!selected.has(row.id));}
     // Do not rewrite receipts or historical records: their original payload is
     // essential for duplicate detection and undo handled by the caller.
     for (const key of ["actors", "objects", "markers", "walls", "reminders", "sessionClocks"]) detachReferences(scene[key], ids);
@@ -102,6 +103,7 @@
       if (!["receipts", "history", "journal", "entityReceipts", "specialJournal", "boundaryReceipts", "afterEventReceipts"].includes(key)) detachReferences(value, ids);
     }
   }
+  function removeStoredObject(scene,collection,id){removeStoredObjects(scene,[[collection,id]]);}
   const LAYOUT_ACTOR_FIELDS = ["id","kind","team","profileId","rulesEdition","name","tier","space","x","y","gmRole","notes","tokenSymbol","tokenColor","tokenImage","portraitImage","hidden","manualInitiativeVisible",...RESOURCE_FIELDS,"attrs","skills","gifts","techniques","knownTechniques","ability","taintedAbility","manualStatuses","manualTechniqueState","manualTechniqueCounters"];
   function replaceLayout(scene,event){
     const p=event.payload;exactKeys(p,["kind","layout","expectedVersion","policyEpoch"]);
@@ -172,6 +174,23 @@
     if(!actor(scene,scene.selectedActor))scene.selectedActor=null;
     scene.targetIds=(scene.targetIds||[]).filter(id=>actor(scene,id));scene.targetCells=[];
   }
+  // Bulk annotation cleanup is storage-only: it never resolves source effects.
+  function clearEnvironment(scene,event){
+    const p=event.payload;exactKeys(p,["kind","space","layer","expectedVersion","policyEpoch"]);
+    if(event.actorId)fail("Очисткой поля управляет Нарратор.","TABLE_NARRATOR_REQUIRED");
+    if(p.expectedVersion!==Number(scene.version||0))fail("Стол изменился после предпросмотра.","SCENE_VERSION_CONFLICT");
+    if(p.policyEpoch!==normalizePolicy(scene.tablePolicy).epoch)fail("Ведение стола изменилось.","TABLE_POLICY_CONFLICT");
+    if(pendingWork(scene))fail("Сначала завершите ожидающее действие.","TABLE_PENDING_WORK");
+    safeId(p.space);if(!(scene.spaces||[]).some(row=>row.id===p.space))fail("Пространство отсутствует.");
+    if(!["all","terrain","areas","walls","markers"].includes(p.layer))fail("Неизвестный слой окружения.");
+    const terrain=row=>row.type==="manual-area"?["terrain","difficult","high","low"].includes(row.appearance):["terrain","difficult","high","low"].includes(row.type);
+    const targets=[];
+    for(const [collection,layer]of [["objects","areas"],["walls","walls"],["markers","markers"]]){
+      for(const row of scene[collection]||[])if(row.space===p.space&&(p.layer==="all"||p.layer===layer||collection==="objects"&&p.layer==="terrain"&&terrain(row)))targets.push([collection,row.id]);
+    }
+    removeStoredObjects(scene,targets);
+    if(p.layer==="all"&&scene.topology)scene.topology.cuts=(scene.topology.cuts||[]).filter(row=>row.space!==p.space);
+  }
   function reduce(scene, event) {
     const p = event.payload;
     if (p.kind === "policy") {
@@ -203,6 +222,7 @@
       return;
     }
     if(p.kind === "tension"){exactKeys(p,["kind","value"]);if(!Number.isSafeInteger(p.value)||p.value<0||p.value>999)fail("Некорректное Напряжение.");scene.tension=p.value;}
+    else if(p.kind === "environment/clear")clearEnvironment(scene,event);
     else if(p.kind === "layout/replace")replaceLayout(scene,event);
     else if (p.kind === "move") {
       exactKeys(p, ["kind", "space", "x", "y"]);
@@ -365,7 +385,7 @@
       if(["technique","technique-counter"].includes(event.payload.kind))event.visibility="owner";
       if(privateTarget)event.visibility="gm";
       if (actor(next, event.actorId)?.hidden || event.payload?.kind === "marker/create" && (event.payload.marker?.hidden||event.payload.marker?.kind==="hidden") || event.payload?.kind === "area/create" && event.payload.area?.hidden || event.payload.kind==="wall/create"&&event.payload.wall?.hidden) event.visibility = "gm";
-      if(event.payload.kind==="layout/replace")event.visibility="gm";
+      if(["layout/replace","environment/clear"].includes(event.payload.kind))event.visibility="gm";
       reduce(next, event);
       next.version = Number(next.version || 0) + 1;
       next.log ||= []; next.log.unshift(event); next.log = next.log.slice(0, 200);
@@ -391,7 +411,8 @@
     if(!history&&!same(before.log,after.log)&&!auditAppend)fail("Снимок не может менять журнал событий.","TABLE_SNAPSHOT_RUNTIME");
     const runtime=scene=>{const value=copy(scene.lionwing||{});delete value.receipts;return value;};
     if(!history&&!same(runtime(before),runtime(after)))fail("Снимок не может менять замороженную механику LionWing.","TABLE_SNAPSHOT_RUNTIME");
-    for(const key of ["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","topology","movementTraces","challengeRequest","opposedRoll"]){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
+    const frozenKeys=["round","turnSerial","tension","activeActorId","pendingAction","pendingPrompt","pendingActionPlan","triggerQueue","results","topology","movementTraces","challengeRequest","opposedRoll"];
+    if(!history)for(const key of frozenKeys){if(!same(before[key],after[key]))fail("Снимок не может выполнять боевые изменения.","TABLE_SNAPSHOT_RUNTIME");}
     if(!history)for(const key of ["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"]){if(!same(before[key],after[key]))fail("Используйте явные команды ручного стола.","TABLE_SNAPSHOT_RUNTIME");}
     const editable=new Set(["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","manualInitiativeVisible","ownerId"]);
     if(history)for(const key of [...RESOURCE_FIELDS,"space","x","y","manualMovementTrace","manualStatuses","manualTechniqueState","manualTechniqueCounters"])editable.add(key);
@@ -400,7 +421,7 @@
       // History is a restoration of a saved step, not a second mutation API.
       // In particular, backing entities and detached references must come from
       // that step; comparing deletion projections would erase their contents.
-      const keys=["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders"];
+      const keys=["manualTable","sessionClocks","objects","walls","markers","rollFeed","reminders",...frozenKeys,"spaces","artworks","backgroundArt","featuredArt","backgroundView","ruleHandouts","tools"];
       const historyActor=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!["name","tokenSymbol","tokenColor","tokenImage","portraitImage","portraitUrl","hidden","manualInitiativeVisible","ownerId"].includes(key)));
       const anchor=[...(options.historyAnchor&&approvedHistoryAnchors.has(JSON.stringify(options.historyAnchor))?[{state:options.historyAnchor}]:[]),...(before.undo||[]),...(before.redo||[]),...(before.turnUndo||[])].map(step=>step.state).find(state=>state&&same(normalizePolicy(state.tablePolicy),normalizePolicy(after.tablePolicy))&&same(runtime(state),runtime(after))&&keys.every(key=>same(state[key],after[key]))&&same((state.actors||[]).map(historyActor),(after.actors||[]).map(historyActor)));
       if(!anchor)fail("Отмена должна восстанавливать сохранённый шаг истории.","TABLE_SNAPSHOT_HISTORY");

@@ -18,7 +18,7 @@
     "test:enemy-base-attacks": "node tests/lionwing-enemy-base-attacks.mjs && node tests/lionwing-enemy-reaction-ui.mjs",
     "test:enemy-audit": "node tests/lionwing-enemy-inventory.mjs && node tests/lionwing-enemy-ranger-adversarial.mjs && node tests/lionwing-enemy-simple-actions.mjs && node tests/lionwing-enemy-turn-passives.mjs && node tests/lionwing-enemy-simple-wave.mjs && node tests/lionwing-enemy-fodder-creators.mjs && node tests/lionwing-swarm-bodyguards.mjs",
     "test:hero-sheet-view": "node tests/lionwing-hero-sheet-view.mjs && node tests/lionwing-sheet-manual.mjs && node tests/lionwing-hero-bridge-persistence.mjs && node tests/lionwing-ui-localization-l09.mjs",
-    "pretest": "npm run test:workspace && npm run test:verification && node tests/lionwing-cockpit-routes.mjs && node tests/lionwing-cockpit-preview.mjs && node tests/lionwing-cockpit-retention.mjs && npm run test:core-contracts && npm run test:families && npm run test:foundation-bridge && npm run test:typed-targets && npm run test:prompt-queue && npm run test:entities-removal && npm run test:derived-actions && npm run test:enemy-base-attacks && npm run test:enemy-audit && node tests/lionwing-recovery-stress.mjs && node tests/lionwing-recovery-r10.mjs",
+    "pretest": "npm run test:response && npm run test:workspace && npm run test:verification && node tests/lionwing-cockpit-routes.mjs && node tests/lionwing-cockpit-preview.mjs && node tests/lionwing-cockpit-retention.mjs && npm run test:core-contracts && npm run test:families && npm run test:foundation-bridge && npm run test:typed-targets && npm run test:prompt-queue && npm run test:entities-removal && npm run test:derived-actions && npm run test:enemy-base-attacks && npm run test:enemy-audit && node tests/lionwing-recovery-stress.mjs && node tests/lionwing-recovery-r10.mjs",
     "data": "python build_data.py",
     "docs:rules": "node build_rule_reference_docs.mjs",
     "edition": "python ../../tools/content/build_lionwing_companion.py",
@@ -35,7 +35,8 @@
     "test:action-lifecycle": "node tests/lionwing-action-lifecycle.mjs && node tests/lionwing-action-identity.mjs",
     "test:composition-properties": "node tests/lionwing-composition-properties.mjs",
     "test:workspace": "node tests/mobile-header.mjs && node tests/app-workspace.mjs && node tests/app-navigation.mjs && node tests/scene-reference-pagination.mjs && node tests/scene-viewport.mjs && node tests/scene-workspace-next.mjs && node tests/scene-turn-strip.mjs && node tests/scene-empty-state.mjs && node tests/table-rules-start.mjs && node tests/scene-pointer-routing.mjs && node tests/scene-token-hud.mjs && node tests/mobile-scene-sheet.mjs && node tests/tools-workspace.mjs && node tests/tools-support-workspace.mjs && node tests/scene-board-tools.mjs && node tests/scene-board-wheel.mjs && node tests/scene-presentation-transport.mjs && node tests/scene-measurement.mjs && node tests/scene-environment-erase.mjs && node tests/scene-action-tray.mjs",
-    "test:hero-gadgets": "node tests/hero-gadgets.mjs"
+    "test:hero-gadgets": "node tests/hero-gadgets.mjs",
+    "test:response": "node tests/shell-response.mjs && node tests/scene-board-response.mjs && node tests/scene-event-response.mjs && node tests/lionwing-query-response.mjs && node tests/scene-cleanup-tools.mjs && node tests/lionwing-pure-query-response.mjs && node tests/scene-render-response.mjs && node tests/manual-counter-pointer.mjs && node tests/manual-render-response.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8"

@@ -8,7 +8,7 @@ const end=source.indexOf('function submitManualNumber(',begin);
 assert.ok(begin>=0&&end>begin);
 // Model the synchronous native change delivered when a dirty input is removed.
 // These are production functions/handlers with a fake DOM, not browser proof.
-let currentPanel=null,dirtyCounter=null,dirtyTension=null,role='gm',control=true;
+let currentPanel=null,dirtyCounter=null,dirtyTension=null,role='gm',control=true,maximum=99;
 let removalChanges=0,statusChanges=0;
 const documentHandlers=new Map(),commands=[];
 const counterTarget=(key,value)=>({dataset:{tokenCountInput:key},value:String(value)});
@@ -16,6 +16,7 @@ const tensionTarget=value=>({dataset:{},value:String(value),matches:s=>s==='[dat
 const documentChange=target=>documentHandlers.get('change')({target});
 const footer={
   querySelector:()=>currentPanel,
+  contains:panel=>panel===currentPanel,
   append:panel=>{currentPanel=panel;},
 };
 let tensionInput=null;
@@ -23,7 +24,7 @@ const status={dataset:{},contains:node=>node===tensionInput,querySelector:select
  set innerHTML(value){this.markup=value;if(dirtyTension){statusChanges++;documentChange(dirtyTension);dirtyTension=null;}tensionInput=tensionTarget('');tensionInput.setAttribute=()=>{};}};
 const actor={id:'hero',ap:3,focus:2,wounds:0};
 const context={
-  window:{DAWN_TABLE_POLICY:{resourceMaximum:()=>99}},
+  window:{DAWN_TABLE_POLICY:{resourceMaximum:()=>maximum}},
   Scene:{actors:[actor],selectedActor:'hero',name:'QA',tension:4},
   store:{sceneUi:{}},status,space:{name:'Board'},current:null,
   $:id=>id==='scene-manual-footer'?footer:id==='scene-manual-context'?status:null,
@@ -62,7 +63,8 @@ currentPanel.querySelector('details').open=true;
 const originalPanel=currentPanel;render();
 assert.equal(currentPanel,originalPanel,'opening preferences does not invalidate stable markup');
 dirtyCounter=counterTarget('ap',17);
-actor.focus=5; // An unrelated update changes markup and forces replacement.
+actor.focus=5;render();assert.equal(currentPanel,originalPanel,'resource changes retain the pressed buttons and unfinished drafts');
+maximum=100; // A changed input contract still needs safe replacement.
 render();
 assert.equal(currentPanel.querySelector('details').open,true,'resource repaint retains preferences menu');
 assert.equal(removalChanges,1,'the fake native removal event must actually fire');

@@ -27,11 +27,21 @@
   }
 
   function footprintDistance(left, right) {
-    const leftCells = bodyCells(left), rightCells = bodyCells(right);
-    if (!leftCells.length || !rightCells.length || leftCells[0].space !== rightCells[0].space) return Infinity;
-    let best = Infinity;
-    for (const a of leftCells) for (const b of rightCells) best = Math.min(best, Math.abs(a.x - b.x) + Math.abs(a.y - b.y));
-    return best;
+    if (!left || !right || left.space !== right.space) return Infinity;
+    const axisDistance = (a, b, sizeA, sizeB) => {
+      if (!Number.isFinite(Number(a)) || !Number.isFinite(Number(b))) return Infinity;
+      const widthA = Math.max(1, Number.isSafeInteger(Number(sizeA)) ? Number(sizeA) : 1);
+      const widthB = Math.max(1, Number.isSafeInteger(Number(sizeB)) ? Number(sizeB) : 1);
+      const delta = Number(b) - Number(a);
+      if (delta < -(widthB - 1)) return -delta - (widthB - 1);
+      if (delta > widthA - 1) return delta - (widthA - 1);
+      // Coordinates may be fractional on unnormalized snapshots. Preserve
+      // the distance between discrete occupied cells even for overlapping
+      // rectangles on different fractional offsets.
+      return Math.abs(delta - Math.round(delta));
+    };
+    return axisDistance(left.x, right.x, left.occupiedWidth, right.occupiedWidth)
+      + axisDistance(left.y, right.y, left.occupiedHeight, right.occupiedHeight);
   }
 
   function coverage(scene, aura, target) {

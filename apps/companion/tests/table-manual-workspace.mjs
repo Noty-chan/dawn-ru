@@ -198,20 +198,21 @@ reader.contains=node=>node?.dataset?.manualCounter!==undefined;
 const nextHp={dataset:{manualActor:'hero',manualValue:'7'},disabled:false,value:'7',focus(){context.document.activeElement=this;}};
 let footerInput=dirtyHp;footer.querySelector=selector=>selector==='[data-manual-hp]'?footerInput:null;
 Object.defineProperty(footer,'innerHTML',{get:()=>footerHtml,set:value=>{footer.events.change({target:dirtyHp});footerHtml=value;footerInput=nextHp;}});
-context.document.activeElement=dirtyHp;const countBeforePaint=calls.length;ui.render(options);
+context.document.activeElement=dirtyHp;const countBeforePaint=calls.length;scene.actors[0].name+=' revised';ui.render(options);
 assert.equal(calls.length,countBeforePaint,'replacing a dirty HP control never submits its browser-generated change');
 assert.equal(nextHp.value,'5');assert.equal(context.document.activeElement,nextHp,'same-actor repaint restores the draft and focus');
+nextHp.matches=()=>true;footer.events.focusout({target:nextHp});assert.equal(calls.length,countBeforePaint+1,'leaving the HP field submits its draft before focusing another input');
 let readerHtml=reader.innerHTML;const dirtyCounter={dataset:{manualCounter:'0'},value:'9',matches:()=>true,getAttribute:()=> '2',closest:()=>null};
 Object.defineProperty(reader,'innerHTML',{get:()=>readerHtml,set:value=>{reader.events.change({target:dirtyCounter});readerHtml=value;}});
 context.document.activeElement=dirtyCounter;ui.render(options);
-assert.equal(calls.length,countBeforePaint,'Reader repaint cannot silently commit a counter draft');
+assert.equal(calls.length,countBeforePaint+1,'Reader repaint cannot silently commit a counter draft');
 console.log('Manual inputs: actual reentrant change handlers are suppressed during HP/Reader repaint; HP focus/draft retained without a command.');
 const blurBefore=calls.length;
 nextHp.matches=()=>true;
 footer.events.focusout({target:nextHp});
-assert.equal(calls.length,blurBefore+1,'restored HP draft commits when leaving the field');
+assert.equal(calls.length,blurBefore,'the HP draft was already submitted while focus moved to the reader');
 reader.events.focusout({target:dirtyCounter});
-assert.equal(calls.length,blurBefore+2,'restored counter draft commits when leaving the field');
+assert.equal(calls.length,blurBefore+1,'restored counter draft commits when leaving the field');
 assert.equal(calls.at(-1).change.value,9);
 const pendingCount=calls.length;
 footer.events.focusout({target:nextHp});reader.events.focusout({target:dirtyCounter});
@@ -223,14 +224,14 @@ reader.events.keydown({key:'Escape',target:dirtyCounter,preventDefault(){},stopP
 assert.equal(dirtyCounter.value,'2','Escape resets the dirty counter before closing');
 assert.equal(calls.length,changedCount,'Escape does not commit the counter draft');
 
-// Unlike the fixture above, real innerHTML creates a fresh input each repaint.
+// A structural footer change still creates a fresh input and preserves its draft.
 ui.render(options);ui.open('hero');
 const freshHp=()=>({dataset:{manualActor:'hero',manualValue:'7'},value:'7',disabled:false,matches:()=>true,focus(){context.document.activeElement=this;}});
 let hpNode=freshHp();footer.querySelector=()=>hpNode;
 Object.defineProperty(footer,'innerHTML',{configurable:true,get:()=>footerHtml,set:value=>{footerHtml=value;hpNode=freshHp();}});
 hpNode.value='5';context.document.activeElement=hpNode;footer.events.change({target:hpNode});
 const hpSends=calls.length,oldHpNode=hpNode;
-ui.render(options);assert.notEqual(hpNode,oldHpNode);assert.equal(hpNode.value,'5');
+scene.actors[0].name+=' revised';ui.render(options);assert.notEqual(hpNode,oldHpNode);assert.equal(hpNode.value,'5');
 footer.events.focusout({target:hpNode});
 assert.equal(calls.length,hpSends,'fresh HP control retains pending submission through repaint');
 

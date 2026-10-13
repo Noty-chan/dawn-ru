@@ -297,11 +297,9 @@
   }
   const journalSnapshot = value => {
     if (!value || typeof value !== "object") return value;
-    const result = clone(value);
-    result.journal = [];
-    return result;
+    return clone({ ...value, journal: [] });
   };
-  const journalSnapshots = (scene, actorIds) => Object.fromEntries(Object.entries(snapshotActors(scene, actorIds)).map(([id, value]) => [id, journalSnapshot(value)]));
+  const journalSnapshots = (scene, actorIds) => Object.fromEntries([...new Set(actorIds.filter(Boolean))].map(id => [id, journalSnapshot(actorById(scene, id)?.lionwing?.inventory || null)]));
   function restoreActors(scene, snapshot, legacySnapshot = null) {
     for (const [id, saved] of Object.entries(snapshot || {})) {
       const actor = actorById(scene, id);
@@ -599,8 +597,24 @@
     return removed;
   }
 
+  // Inventory normalization touches only the inventory registry and its
+  // numeric compatibility map. Copy those fields, retaining scene references
+  // solely for read-only source checks. Journals are cloned when projected,
+  // never as input to a balance query.
+  function queryScene(scene) {
+    return {
+      lionwing: scene?.lionwing,
+      actors: (scene?.actors || []).map(actor => {
+        const raw = actor.lionwing?.inventory;
+        const inventory = raw && typeof raw === "object" && !Array.isArray(raw)
+          ? { ...clone({ ...raw, journal: [] }), journal: raw.journal } : raw;
+        return { id: actor.id, inventory: { ...actor.inventory }, lionwing: { inventory } };
+      }),
+    };
+  }
+
   function status(scene, actorId, payload = {}) {
-    scene = clone(scene);
+    scene = queryScene(scene);
     normalizeScene(scene);
     const actor = actorById(scene, actorId), id = payload.id || payload.itemId || payload.definitionId;
     if (!actor || !id) return { available: false, reason: "Запись инвентаря не выбрана" };
@@ -696,7 +710,7 @@
   }
 
   function project(scene, viewer = {}) {
-    const normalizedScene = clone(scene);
+    const normalizedScene = queryScene(scene);
     normalizeScene(normalizedScene);
     const narrator = ["narrator", "gm"].includes(viewer.role);
     const ownActors = new Set(Array.isArray(viewer.actorIds) ? viewer.actorIds : viewer.actorId ? [viewer.actorId] : []);

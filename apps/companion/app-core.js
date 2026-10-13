@@ -495,7 +495,9 @@ let mediaReferenceSignature=null;
 const heroMediaKey=(heroId,kind)=>`hero:${heroId}:${kind}`;
 const sceneArtworkKey=artId=>`scene:art:${artId}`;
 const presetArtworkKey=(encounterId,artId)=>`preset:${encounterId}:art:${artId}`;
-const mediaSignature=value=>`${String(value||"").length}:${String(value||"").slice(0,48)}:${String(value||"").slice(-48)}`;
+// Keep the immutable string itself: equal length and identical image headers /
+// tails do not prove that a replacement image has reached IndexedDB.
+const mediaSignature=value=>String(value||"");
 function heroMediaEntries(heroes){
   const entries=[];
   for(const hero of heroes||[])for(const kind of ["portrait","token"]){const value=hero?.media?.[kind];if(value)entries.push({key:heroMediaKey(hero.id,kind),value})}
@@ -681,8 +683,10 @@ function persistHeroStore(heroes=persistableHeroes()){
   }
 }
 function persistNow(){
-  store.heroes[store.current]=S;store.scene=Scene;store.gmLibrary=normalizeGmLibrary(store.gmLibrary);store.sceneUi={tokenCounters:store.sceneUi?.tokenCounters||{},zoom:sceneZoom,zoomMode:sceneZoomMode,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,leftPanelsEnabled:sceneLeftPanelsEnabled,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
+  store.heroes[store.current]=S;store.scene=Scene;store.sceneUi={tokenCounters:store.sceneUi?.tokenCounters||{},zoom:sceneZoom,zoomMode:sceneZoomMode,controlMode:sceneControlMode,interfaceVersion:sceneInterfaceVersion,interfaceRolloutVersion:SCENE_INTERFACE_ROLLOUT_VERSION,leftPanelsEnabled:sceneLeftPanelsEnabled,panelLayout:scenePanelLayoutMode,panelSides:scenePanelSides,panelWidths:scenePanelWidths,turnStripVisible:sceneTurnStripVisible,density:sceneInterfaceDensity,layoutVersion:2,fitVersion:9,viewport:sceneViewportMode};scheduleHeroMediaPersistence();
   const heroes=persistableHeroes();persistHeroStore(heroes);
+  // Normalize a detached library once. Stripping persisted artwork from this
+  // copy must never remove the in-memory images used by encounter previews.
   try{localStorage.setItem(STORAGE_KEY,JSON.stringify(persistableStore(heroes)))}
   catch(error){console.warn("DAWN local state persistence failed",error);if(Date.now()-lastStorageWarningAt>5000){lastStorageWarningAt=Date.now();toast(heroMediaStorageReady?"Не удалось сохранить локально; удалите лишний арт Сцены":"Переношу изображения из тесного хранилища браузера…")}}
 }
@@ -736,7 +740,7 @@ function techniqueVerificationMarkup(techniqueId,level){
   const label=t(`builder.techniques.verification${key}`,{surfaces});
   return`<small class="technique-verification" data-technique-verification="${esc(verified.fullPath?"full":verified.state)}">${esc(label)}</small>`;
 }
-function techniqueStatusSummaryMarkup(technique,levels=technique?.levels||[]){const counts=new Map();for(const level of levels){const status=techniqueLevelAutomation(technique.id,level.n);counts.set(status,(counts.get(status)||0)+1)}const label=t("builder.techniques.statusSummary"),items=["full","decision","partial","manual"].filter(status=>counts.has(status)).map(status=>`<span class="technique-status-count technique-status-${status}"><b>${counts.get(status)}</b> ${esc(techniqueAutomationStatusLabel(status,{short:true}))}</span>`);return`<span class="technique-status-summary" aria-label="${esc(label)}"><span class="technique-status-summary-label">${esc(label)}:</span> ${items.join(" · ")}</span>`}
+function techniqueStatusSummaryMarkup(technique,levels=technique?.levels||[],statusRows=null){const counts=new Map();for(const [index,level] of levels.entries()){const status=statusRows?.[index]?.automation??techniqueLevelAutomation(technique.id,level.n);counts.set(status,(counts.get(status)||0)+1)}const label=t("builder.techniques.statusSummary"),items=["full","decision","partial","manual"].filter(status=>counts.has(status)).map(status=>`<span class="technique-status-count technique-status-${status}"><b>${counts.get(status)}</b> ${esc(techniqueAutomationStatusLabel(status,{short:true}))}</span>`);return`<span class="technique-status-summary" aria-label="${esc(label)}"><span class="technique-status-summary-label">${esc(label)}:</span> ${items.join(" · ")}</span>`}
 function enemyProfileAutomation(profile){if(["lionwing.modifier.isolation","lionwing.modifier.artillery","lionwing.modifier.haven","lionwing.modifier.contagion","lionwing.modifier.earthquake","lionwing.modifier.vip","lionwing.modifier.collateral","lionwing.modifier.legion","lionwing.modifier.vortex","lionwing.modifier.blaze","lionwing.modifier.giant","lionwing.modifier.gargantuan"].includes(profile?.id))return"partial";const statuses=(profile?.rules||[]).map(rule=>SceneEngine?.enemyRuleAutomation?.(rule.id)||"assisted"),automated=statuses.filter(status=>status!=="assisted").length;return automated===statuses.length&&automated?"full":automated?"partial":"assisted"}
 const wordById=(id,ability=null)=>{const known=Object.values(activeAbilityWords()).flat().find(w=>w.id===id)||Object.values(D.abilityWords).flat().find(w=>w.id===id);if(known)return known;if(typeof id==="string"&&id.startsWith("custom:")){const [,group,...parts]=id.split(":"),stored=ability?.customWordCosts?.[id],variable=stored==="X",cost=variable?null:Number.isFinite(Number(stored))?clamp(stored,-1,4):0;return{id,name:decodeURIComponent(parts.join(":")),cost,costLabel:variable?"X":String(cost),marks:variable?"☾":"",group}}};
 function attrValueFor(hero,key,includeConversion=true){return hero.attrs[key]+hero.attrBonus[key]+(includeConversion&&hero.conversionAttr===key?hero.techConversions:0)}

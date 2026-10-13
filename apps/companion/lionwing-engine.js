@@ -27,6 +27,13 @@
   ]);
   let preparedSerial = 0;
   const copy = value => JSON.parse(JSON.stringify(value));
+  // Local undo snapshots never participate in rule queries. A destination
+  // highlight queries every cell, so including artwork in every history entry
+  // would multiply this copy by both the history length and the board size.
+  const copyForQuery = scene => {
+    const { undo, redo, turnUndo, ...snapshot } = scene;
+    return copy(snapshot);
+  };
   const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
   const ids = legacy.ACTION_IDS;
   const actor = (scene, id) => (scene.actors || []).find(item => item.id === id);
@@ -357,7 +364,7 @@
     if (!before || !after || before.kind !== after.kind || before.compoundId !== after.compoundId || !sameJson(before.actorIds || [], after.actorIds || []) || !sameJson((before.actors || []).map(item => item.id).sort(), (after.actors || []).map(item => item.id).sort())) fail("Снимки специальной операции относятся к разным участникам");
   };
   function compoundStatus(scene, ref) {
-    const snapshot = copy(scene), s = state(snapshot);
+    const snapshot = copyForQuery(scene), s = state(snapshot);
     const requested = typeof ref === "string" ? ref : ref?.id || ref?.compoundId;
     const target = actor(snapshot, requested) || snapshot.actors.find(item => item.compoundId === requested);
     const id = target?.compoundId || (requested && s.compounds?.[requested] ? requested : null);
@@ -556,7 +563,7 @@
     }
     defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
   }
-  const currentTurnInstance = scene => state(copy(scene)).activeTurnInstanceId || null;
+  const currentTurnInstance = scene => state(copyForQuery(scene)).activeTurnInstanceId || null;
   const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
     marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
   const firstSpiritFinisherThisTurn = (scene, a, currentActionInstanceId = null) => {
@@ -940,7 +947,7 @@
   function effectInstanceStatus(scene, actorId, effect) { return activeState(scene,actorId,effect); }
 
   function turnStartStatus(scene, id) {
-    const a = actor(scene, id), s = state(copy(scene));
+    const a = actor(scene, id), s = state(copyForQuery(scene));
     if (!live(a) || a.kind === "crowd" || String(a.profileId || "").includes(".modifier.")) return unavailable("Этот участник не может совершать Ход");
     if (scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.pausedChains?.length) return unavailable("Сначала завершите действие и ожидающие решения");
     if (scene.activeActorId) return unavailable("Сначала завершите текущий Ход");
@@ -954,7 +961,7 @@
   }
 
   function roundEndStatus(scene) {
-    const s = state(copy(scene));
+    const s = state(copyForQuery(scene));
     if (scene.activeActorId || scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.grantedTurns?.length || s.pausedChains?.length) return unavailable("Сначала завершите Ход и ожидающие решения");
     const heroes = scene.actors.filter(a => live(a) && isPlayer(a));
     if (heroes.some(a => !a.acted)) return unavailable("Не все герои совершили Ход");
@@ -1034,7 +1041,7 @@
   function actionStatus(scene, a, def, request = {}) {
     if (!live(a)) return unavailable("Участник выведен из боя");
     if (a.deploymentProxy) return unavailable("Этот НПС не находится на Поле и не может использовать базовые Действия");
-    if (scene.pendingAction || scene.pendingPrompt || state(copy(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
+    if (scene.pendingAction || scene.pendingPrompt || state(copyForQuery(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
     const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
     if (denial) return unavailable(denial.reason || "Действие запрещено активным правилом");
@@ -1159,12 +1166,12 @@
   }
 
   function historyStatus(scene, query) {
-    const history = state(copy(scene)).history;
+    const history = state(copyForQuery(scene)).history;
     return { count: foundations.historyCount(history, query), facts: copy(history.filter(item => foundations.inScope(item, query))) };
   }
 
   function turnIdentity(scene, actorId) {
-    const snapshot = copy(scene), s = state(snapshot), target = actor(snapshot, actorId);
+    const snapshot = copyForQuery(scene), s = state(snapshot), target = actor(snapshot, actorId);
     if (!target) return null;
     const serialValue = ownTurnSerial(target);
     const active = snapshot.activeActorId === target.id;
@@ -1188,7 +1195,7 @@
   // hook above; this helper only gives callers one stable vocabulary for
   // Turn/Round/Scene windows and receipt keys.
   function lifecycleContext(scene, query = {}) {
-    const snapshot = copy(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || snapshot.activeActorId), boundaryAliases = { sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }, boundary = boundaryAliases[query.boundary] || query.boundary || "ownTurnStart", ownerSerial = owner ? ownTurnSerial(owner) : Number(query.ownerTurnSerial || 0), ownerKey = owner ? ownerTurnKey(s.sceneSerial, owner, ownerSerial) : null, turnInstanceId = query.turnInstanceId || (snapshot.activeActorId === owner?.id ? s.activeTurnInstanceId || null : owner?.lionwing?.turnInstanceId || owner?.lionwing?.lastTurnInstanceId || null);
+    const snapshot = copyForQuery(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || snapshot.activeActorId), boundaryAliases = { sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }, boundary = boundaryAliases[query.boundary] || query.boundary || "ownTurnStart", ownerSerial = owner ? ownTurnSerial(owner) : Number(query.ownerTurnSerial || 0), ownerKey = owner ? ownerTurnKey(s.sceneSerial, owner, ownerSerial) : null, turnInstanceId = query.turnInstanceId || (snapshot.activeActorId === owner?.id ? s.activeTurnInstanceId || null : owner?.lionwing?.turnInstanceId || owner?.lionwing?.lastTurnInstanceId || null);
     if (!["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"].includes(boundary)) fail("Неизвестная граница жизненного цикла");
     const periodKey = ["sceneStart", "sceneEnd"].includes(boundary) ? `${s.sceneSerial}:${boundary}` : ["roundStart", "roundEnd"].includes(boundary) ? `${s.sceneSerial}:${snapshot.round}:${boundary}` : ["ownTurnStart", "ownTurnEnd"].includes(boundary) ? `${ownerKey}:${boundary}` : `${s.sceneSerial}:${s.activeTurnInstanceId || `scene-turn:${snapshot.turnSerial}`}:${boundary}`;
     const historyQuery = query.history && typeof query.history === "object" ? { ...query.history, sceneSerial: query.history.sceneSerial ?? s.sceneSerial, ownerActorId: query.history.ownerActorId ?? owner?.id, ownerTurnSerial: query.history.ownerTurnSerial ?? ownerSerial, ownerTurnInstanceId: query.history.ownerTurnInstanceId ?? turnInstanceId } : null;
@@ -1196,7 +1203,7 @@
   }
 
   function lifetimeExpired(scene, lifetime, query = {}) {
-    const snapshot = copy(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || lifetime?.ownerActorId);
+    const snapshot = copyForQuery(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || lifetime?.ownerActorId);
     const current = {
       ...query,
       sceneSerial: query.sceneSerial ?? s.sceneSerial,
@@ -4998,7 +5005,7 @@
    * Intermediate reappearance uses the same validator as action execution. */
   function destinationStatus(scene, request = {}) {
     try {
-      const snapshot = copy(scene), field = request.field || "destination", destination = request.destination;
+      const snapshot = copyForQuery(scene), field = request.field || "destination", destination = request.destination;
       if (!["destination", "reappearance", "areaCenter"].includes(field)) fail("Неизвестный выбор клетки");
       if (!destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y)) fail("Выберите клетку внутри поля");
       const board = snapshot.spaces?.find(space => space.id === (destination.space || actor(snapshot, request.actorId)?.space));
@@ -5030,7 +5037,7 @@
     } catch (error) { return { available: false, reason: error.message }; }
   }
   const followupStatus = (scene, id = null) => {
-    const rows = state(copy(scene)).followups || [];
+    const rows = state(copyForQuery(scene)).followups || [];
     const selected = id == null ? rows : rows.filter(item => item.id === id);
     return copy(selected.map(item => ({ ...item, completionOperations: undefined })));
   };
@@ -5059,7 +5066,7 @@
     return { ...actionStatus(scene, target, definition, typeof request === "object" ? request : {}), schema: 1, actorId: target.id, actionId: definition.id, authoritative: true, manualFallback: false };
   }
   function consequenceStatus(scene, actorId) {
-    const snapshot = copy(scene), target = actor(snapshot, actorId);
+    const snapshot = copyForQuery(scene), target = actor(snapshot, actorId);
     if (!target) return { schema: 1, actorId, available: false, reason: "Участник не найден.", categories: [], records: [], legacyNotes: [] };
     const l = ensureConsequenceState(target), used = new Set(l.usedConsequenceCategories || []);
     return {

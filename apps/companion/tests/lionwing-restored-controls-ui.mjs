@@ -79,6 +79,8 @@ const cancellationEvent={target:{closest:selector=>selector.includes("[data-lw-s
 for(const handler of [...surfaceClickHandlers,handlers[0]]){handler(cancellationEvent);if(cancellationStopped)break;}
 assert.equal(run('lwTechniqueDraft'),null,"the actual controller order routes shape cancellation to its owner");
 assert.equal(commands.length,paid,"integrated cancellation cannot pay for an action");
+let boardRole="gm";context.activeSceneView=()=>boardRole;
+vm.runInContext(read("scene-ui.js").split("\n").find(line=>line.startsWith("function sceneEnvironmentVisible(")),context);
 vm.runInContext(source.slice(source.indexOf("function lwApplyRestoredAreaHighlights"),source.indexOf("function lwApplyDestinationHighlights")),context);
 const classes=new Set(),tokenClasses=new Set(),gasCell={dataset:{sceneCell:"3,2"},title:"",classList:{add:value=>classes.add(value)},querySelectorAll:()=>[{classList:{add:value=>tokenClasses.add(value)}}]};
 scene.areas=[{ruleId:"disruptor.chemist.1",space:"main",cells:["3,2"],label:"Газ",ownerActorId:"hero"}];
@@ -87,6 +89,12 @@ run('lwApplyRestoredAreaHighlights(board,{id:"main"})');
 assert.ok(classes.has("has-gas"),"gas areas are visibly projected on board cells");
 assert.ok(tokenClasses.has("inside-gas"),"tokens show that they are inside Gas");
 assert.match(gasCell.title,/Газ/);
+boardRole="player";
+for(const hide of [()=>scene.areas[0].hidden=true,()=>{scene.areas[0].hidden=false;actor.hidden=true;}]){
+  classes.clear();tokenClasses.clear();gasCell.title="";hide();run('lwApplyRestoredAreaHighlights(board,{id:"main"})');
+  assert.equal(classes.size,0,'Player cannot see Gas from a hidden area or hidden owner');assert.equal(tokenClasses.size,0);assert.equal(gasCell.title,"");
+}
+actor.hidden=false;scene.areas[0].hidden=false;boardRole="gm";
 vm.runInContext('let lwGeometryPreview=null;'+source.slice(source.indexOf('function lwCancelDestination()'),source.indexOf('const lwRules =')),context);
 vm.runInContext(source.slice(source.lastIndexOf('document.addEventListener("keydown", event => {')),context);
 run('lwTechniqueDraft={actorId:"hero",mode:"idol",cells:[],payload:{},...lwTechniqueDraftContext("hero","ruiner.creation-ascetic.1")}');

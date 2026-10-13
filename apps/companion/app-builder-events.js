@@ -1,5 +1,20 @@
 "use strict";
 
+let builderPreviewFrame=null,builderPreviewHeroSelect=false,builderPreviewPlay=false;
+function cancelBuilderPreview(){if(builderPreviewFrame!==null)cancelAnimationFrame(builderPreviewFrame);builderPreviewFrame=null;builderPreviewHeroSelect=false;builderPreviewPlay=false}
+function scheduleBuilderPreview({heroSelect=false}={}){
+  builderPreviewHeroSelect=builderPreviewHeroSelect||heroSelect;
+  builderPreviewPlay=builderPreviewPlay||store.mode==="play";
+  if(builderPreviewFrame!==null)return;
+  builderPreviewFrame=requestAnimationFrame(()=>{
+    builderPreviewFrame=null;
+    const updateSelect=builderPreviewHeroSelect,updatePlay=builderPreviewPlay;builderPreviewHeroSelect=false;builderPreviewPlay=false;
+    if(updateSelect)renderHeroSelect();renderSheet();renderSidebar();if(updatePlay&&store.mode==="play")renderPlay();
+  });
+}
+const catalogRenderFrames=new Map();
+function scheduleCatalogRender(render){if(catalogRenderFrames.has(render))return;catalogRenderFrames.set(render,requestAnimationFrame(()=>{catalogRenderFrames.delete(render);render()}))}
+
 $$('[data-mode]').forEach(button=>button.addEventListener("click",()=>setMode(button.dataset.mode)));
 document.querySelector('.mode-page[data-page="build"]').addEventListener("click",event=>{
   const mode=event.target.closest("[data-hero-view-mode]"),status=event.target.closest("[data-hero-sheet-status]"),tools=event.target.closest("[data-hero-sheet-tools]"),table=event.target.closest("[data-hero-sheet-table]");
@@ -31,15 +46,30 @@ $("hero-play-sheet").addEventListener("change",event=>{
 $("rules-index").addEventListener("click",event=>{const link=event.target.closest('a[href^="#rules-"]');if(!link)return;const chapter=document.querySelector(link.getAttribute("href"));if(chapter?.matches(".rules-chapter"))chapter.open=true;});
 $("rules-chapters").addEventListener("click",event=>{const button=event.target.closest("[data-pin-rule]");if(!button)return;event.preventDefault();event.stopPropagation();togglePinnedRuleById(button.dataset.pinRule);});
 $("reference-list").addEventListener("click",event=>{const button=event.target.closest("[data-pin-rule]");if(!button)return;event.preventDefault();event.stopPropagation();togglePinnedRuleById(button.dataset.pinRule);});
-$("rules-search").addEventListener("input",renderRules);
+$("rules-search").addEventListener("input",()=>scheduleCatalogRender(renderRules));
 $("rules-filters").addEventListener("click",event=>{const button=event.target.closest("[data-rules-audience]");if(!button)return;rulesAudience=button.dataset.rulesAudience;renderRules();});
 $("rules-expand").onclick=()=>$$('#rules-chapters details').forEach(details=>details.open=true);
 $("rules-collapse").onclick=()=>$$('#rules-chapters details').forEach(details=>details.open=false);
 $("theme-toggle").onclick=()=>{store.theme=store.theme==="light"?"dark":"light";document.documentElement.classList.toggle("light",store.theme==="light");persist();};
-for(const key of ["name","player","concept"])$("f-"+key).addEventListener("input",event=>{S[key]=event.target.value;renderHeroSelect();renderSheet();renderSidebar();persist();});
-$("hero-portrait-upload").addEventListener("change",async event=>{try{S.media.portrait=await imageFromFile(event.target.files?.[0],{maxSide:720,maxLength:520000});S.media.portraitStored=false;persist();renderProfile();renderSheet();toast(t("builder.notice.portraitSaved"))}catch(error){toast(error.message||t("builder.notice.portraitFailed"))}event.target.value=""});
-$("hero-token-upload").addEventListener("change",async event=>{try{S.media.token=await tokenImageFromFile(event.target.files?.[0]);S.media.tokenStored=false;persist();renderProfile();toast(t("builder.notice.tokenSaved"))}catch(error){toast(error.message||t("builder.notice.tokenFailed"))}event.target.value=""});
-$("hero-portrait-clear").onclick=()=>{S.media.portrait="";S.media.portraitStored=false;persist();renderProfile();renderSheet()};$("hero-token-clear").onclick=()=>{S.media.token="";S.media.tokenStored=false;persist();renderProfile()};
+for(const key of ["name","player","concept"])$("f-"+key).addEventListener("input",event=>{S[key]=event.target.value;scheduleBuilderPreview({heroSelect:key==="name"});persist();});
+const heroMediaEditGenerations=new Map();
+function nextHeroMediaEdit(heroId,kind){const key=`${heroId}:${kind}`,generation=(heroMediaEditGenerations.get(key)||0)+1;heroMediaEditGenerations.set(key,generation);return{key,generation}}
+async function uploadHeroMedia(event,kind){
+  const heroId=S.id,edit=nextHeroMediaEdit(heroId,kind),input=event.target,file=input.files?.[0];
+  input.value="";
+  try{
+    const image=kind==="portrait"?await imageFromFile(file,{maxSide:720,maxLength:520000}):await tokenImageFromFile(file);
+    if(heroMediaEditGenerations.get(edit.key)!==edit.generation)return;
+    // Navigation normalizes a fresh hero object, so resolve the original id
+    // again instead of assigning to whichever hero is now selected.
+    const hero=S.id===heroId?S:store.heroes.find(item=>item.id===heroId);if(!hero)return;
+    hero.media[kind]=image;hero.media[`${kind}Stored`]=false;persist();
+    if(S.id===heroId){renderProfile();if(kind==="portrait")renderSheet();toast(t(`builder.notice.${kind}Saved`))}
+  }catch(error){if(S.id===heroId&&heroMediaEditGenerations.get(edit.key)===edit.generation)toast(error.message||t(`builder.notice.${kind}Failed`))}
+}
+$("hero-portrait-upload").addEventListener("change",event=>uploadHeroMedia(event,"portrait"));
+$("hero-token-upload").addEventListener("change",event=>uploadHeroMedia(event,"token"));
+$("hero-portrait-clear").onclick=()=>{nextHeroMediaEdit(S.id,"portrait");S.media.portrait="";S.media.portraitStored=false;persist();renderProfile();renderSheet()};$("hero-token-clear").onclick=()=>{nextHeroMediaEdit(S.id,"token");S.media.token="";S.media.tokenStored=false;persist();renderProfile()};
 $("f-tier").onchange=event=>{S.tier=+event.target.value;S.techConversions=Math.min(S.techConversions,S.tier-1);S.attrBonus=Logic.normalizeAttributeGrowth(S.attrBonus,S.tier,ATTRS.map(([key])=>key));renderAll();};
 $("attrs").addEventListener("click",event=>{const button=event.target.closest("[data-attr-base-btn]");if(!button)return;S.attrs=Logic.swapAttributeBase(S.attrs,button.dataset.attrBaseBtn,+button.dataset.value,ATTRS.map(([key])=>key));renderAttrs();renderSheet();renderSidebar();persist();});
 $("attrs").addEventListener("change",event=>{const key=event.target.dataset.attrBonus;if(key){const next=+event.target.value;const spent=Object.values(S.attrBonus).reduce((sum,value)=>sum+value,0)-S.attrBonus[key]+next,pool=(activeBuilderRules()?.attributes.growthPerTier||2)*(S.tier-1);if(spent>pool){toast(t("builder.notice.attributeLimit",{tier:S.tier,pool}));return renderAttrs()}S.attrBonus[key]=next}renderAttrs();renderSheet();renderSidebar();persist();});
@@ -47,7 +77,7 @@ $("tech-conversions").onchange=e=>{S.techConversions=+e.target.value;renderAll()
 $("outlooks").addEventListener("click",event=>{const b=event.target.closest("[data-outlook]");if(!b)return;const id=b.dataset.outlook;if(!S.outlooks.includes(id)){const rules=activeBuilderRules()?.outlooks,maximum=Math.min(rules?.maximum||3,(rules?.starting||1)+S.tier-1);if(S.outlooks.length>=maximum){if(S.tier===1){S.outlooks=[id];S.primaryOutlook=id;S.gifts=[];}else return toast(t("builder.notice.outlookLimit",{tier:S.tier,maximum}));}else{S.outlooks.push(id);if(!S.primaryOutlook)S.primaryOutlook=id;}}else if(S.primaryOutlook!==id){S.primaryOutlook=id;}else{S.outlooks=S.outlooks.filter(x=>x!==id);S.primaryOutlook=S.outlooks[0]||null;const allowed=new Set(activeOutlooks().filter(o=>S.outlooks.includes(o.id)).flatMap(o=>o.gifts.map(g=>g.id)));S.gifts=S.gifts.filter(g=>allowed.has(g));}renderAll();});
 $("gifts").addEventListener("click",event=>{const b=event.target.closest("[data-gift]");if(!b)return;const id=b.dataset.gift,adding=!S.gifts.includes(id);if(adding&&((id==="mentor.past-your-prime"&&S.gifts.includes("student.amazing-potential"))||(id==="student.amazing-potential"&&S.gifts.includes("mentor.past-your-prime"))))return toast(t("builder.notice.incompatibleBoons"));S.gifts=adding?S.gifts.concat(id):S.gifts.filter(x=>x!==id);renderAll();});
 $("skill-add").onclick=()=>{S.skills.push({id:uid(),name:"",definitionId:null,rank:1});renderSkillsAbility();renderSidebar();persist();};
-$("skills").addEventListener("input",event=>{const id=event.target.dataset.skillName;if(id){const skill=S.skills.find(s=>s.id===id);if(skill){const definition=canonicalSkillByName(event.target.value);skill.name=definition?.name||event.target.value;skill.definitionId=definition?.id||null}renderSheet();renderSidebar();persist();}});
+$("skills").addEventListener("input",event=>{const id=event.target.dataset.skillName;if(id){const skill=S.skills.find(s=>s.id===id);if(skill){const definition=canonicalSkillByName(event.target.value);skill.name=definition?.name||event.target.value;skill.definitionId=definition?.id||null}scheduleBuilderPreview();persist();}});
 $("skills").addEventListener("change",event=>{const id=event.target.dataset.skillRank;if(id){const skill=S.skills.find(s=>s.id===id);if(skill)skill.rank=+event.target.value;renderSheet();renderSidebar();persist();}});
 $("skills").addEventListener("click",event=>{const id=event.target.dataset.skillRemove;if(id){S.skills=S.skills.filter(s=>s.id!==id);if(S.mods.performanceSkill===id)S.mods.performanceSkill=null;renderAll();}});
 $("ability-enabled").onchange=e=>{S.ability.enabled=e.target.checked;renderAll();};
@@ -57,17 +87,17 @@ function addAbilityWord(key,group,id){const ability=abilityByKey(key);if(id&&!ab
 function setCustomWordCost(ability,id,value){if(!id?.startsWith("custom:"))return false;ability.customWordCosts||={};ability.customWordCosts[id]=value==="X"?"X":clamp(value,-1,4);return true}
 function setAbilitySpecialization(target){const id=target.dataset.wordSpecialization;if(!id)return false;const ability=abilityByKey(target.dataset.abilityKey),value=target.value.slice(0,120);if(value.trim())ability.specializations[id]=value;else delete ability.specializations[id];return true}
 $("ranks-panel").addEventListener("click",event=>{const add=event.target.closest("[data-word-add]"),custom=event.target.closest("[data-custom-word-add]"),remove=event.target.closest("[data-word-remove]");if(add){const key=add.dataset.abilityKey||"ability",group=add.dataset.wordAdd,select=$(`${abilityPrefix(key)}-word-${group}`);addAbilityWord(key,group,select?.value);return}if(custom){const key=custom.dataset.abilityKey||"ability",group=custom.dataset.customWordAdd,prefix=abilityPrefix(key),input=$(`${prefix}-custom-${group}`),price=$(`${prefix}-custom-cost-${group}`),name=input?.value.trim();if(name){const id=`custom:${group}:${encodeURIComponent(name)}`;setCustomWordCost(abilityByKey(key),id,price?.value??1);addAbilityWord(key,group,id)}return}if(remove){const key=remove.dataset.abilityKey||"ability",ability=abilityByKey(key),group=remove.dataset.wordGroup,id=remove.dataset.wordRemove;ability.words[group]=ability.words[group].filter(wordId=>wordId!==id);delete ability.specializations[id];delete ability.customWordCosts[id];renderAll()}});
-$("ranks-panel").addEventListener("input",event=>{const key=event.target.dataset.abilityKey;if(!key)return;const ability=abilityByKey(key),field=event.target.dataset.abilityField;if(field==="name"||field==="desc")ability[field]=event.target.value;if(setAbilitySpecialization(event.target)){const editor=event.target.closest(".ability-grid"),total=editor?.querySelector('input[disabled]');if(total)total.value=abilityCost(ability)}renderSheet();renderSidebar();if(store.mode==="play")renderPlay();persist();});
+$("ranks-panel").addEventListener("input",event=>{const key=event.target.dataset.abilityKey,field=event.target.dataset.abilityField;if(!key||!(["name","desc"].includes(field)||event.target.dataset.wordSpecialization))return;const ability=abilityByKey(key);if(field==="name"||field==="desc")ability[field]=event.target.value;if(setAbilitySpecialization(event.target)){const editor=event.target.closest(".ability-grid"),total=editor?.querySelector('input[disabled]');if(total)total.value=abilityCost(ability)}scheduleBuilderPreview();persist();});
 $("ranks-panel").addEventListener("change",event=>{const key=event.target.dataset.abilityKey;if(!key)return;const ability=abilityByKey(key),group=event.target.dataset.wordSelect,customCost=event.target.dataset.customWordCost;if(group&&event.target.value){addAbilityWord(key,group,event.target.value);return}if(customCost&&setCustomWordCost(ability,customCost,event.target.value)){renderAll();return}if(setAbilitySpecialization(event.target)){renderAll();return}const field=event.target.dataset.abilityField;if(field==="rank")ability.rank=+event.target.value;if(field==="xNoun")ability.xNoun=event.target.value||null;renderAll();});
 wireHeroGadgets();
 $("rank-modifiers").addEventListener("change",event=>{if(event.target.id==="tainted-toggle"){S.mods.taintedBody=event.target.checked;S.taintedAbility.enabled=event.target.checked}if(event.target.id==="gadget-spent")S.mods.gadgetSpent=clamp(event.target.value,0,99);if(event.target.id==="performance-skill")S.mods.performanceSkill=event.target.value||null;renderAll();});
-$("arch-tabs").addEventListener("click",event=>{const b=event.target.closest("[data-arch]");if(b){activeArch=b.dataset.arch;renderTechniques();}});$("tech-search").addEventListener("input",renderTechniques);
+$("arch-tabs").addEventListener("click",event=>{const b=event.target.closest("[data-arch]");if(b){activeArch=b.dataset.arch;renderTechniques();}});$("tech-search").addEventListener("input",()=>scheduleCatalogRender(renderTechniques));
 $("tech-tag-filters").addEventListener("change",event=>{if(!event.target.matches("[data-tech-tag-select]"))return;techTag=event.target.value;renderTechniques();});
 $("tech-status-filter").addEventListener("change",event=>{if(!event.target.matches("[data-tech-status-select]"))return;techStatus=event.target.value;renderTechniques();});
 $("tech-sort").addEventListener("change",event=>{techSort=event.target.value;renderTechniques();});
 // Catalogue events live with the builder events so legacy table controls cannot
 // prevent the standalone English demo from wiring its filters.
-$("ref-search").addEventListener("input",renderReference);
+$("ref-search").addEventListener("input",()=>scheduleCatalogRender(renderReference));
 $("ref-filters").addEventListener("click",event=>{const button=event.target.closest("[data-ref-kind]");if(!button)return;refKind=button.dataset.refKind;refTag="all";renderReference();});
 $("ref-tag-filters").addEventListener("change",event=>{if(!event.target.matches("[data-ref-tag-select]"))return;refTag=event.target.value;renderReference();});
 $("ref-sort").addEventListener("change",event=>{refSort=event.target.value;renderReference();});

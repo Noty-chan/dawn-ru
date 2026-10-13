@@ -1,0 +1,21 @@
+LionWing query response: canonical equivalence, immutable snapshots, no undo serialization, current resources and geometry passed
+{
+  "baselineRef": "9c48a36",
+  "workload": "Production canonical Jump queries for every cell on 7x7, one 100KB art, 20 undo and 10 turn snapshots; no DOM or network",
+  "rows": [
+    {
+      "label": "baseline",
+      "samples": 4,
+      "cellsPerSample": 49,
+      "medianMs": 539.38,
+      "maxMs": 574.48
+    },
+    {
+      "label": "changed",
+      "samples": 4,
+      "cellsPerSample": 49,
+      "medianMs": 37.9,
+      "maxMs": 38.26
+    }
+  ]
+}
