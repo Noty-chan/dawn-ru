@@ -26,4 +26,4 @@ Chunked destination calculation and worker prototypes remain local QA experiment
 
 Isolated native browser prototype: synchronous 144-cell calculation completed in 149 ms with a 159 ms timer gap; 6 ms chunks completed in 289 ms with a 23 ms timer gap and 7.7 ms largest chunk. Both matched all 144 canonical answers. This demonstrates an input-scheduling tradeoff; the slower completion is why the prototype is not shipped in this pass.
 
-Final verification status is recorded in the commit/PR after the full suite completes.
+Final verification: full `npm test` completed with exit 0 on the frozen production changes; `git diff --check` passed. S00 inventory was regenerated after the final source and loader changes. Local log: `%TEMP%/dawn-automatic-workflows-20261014.log`. Native chunks remain outside the shipped sources.
