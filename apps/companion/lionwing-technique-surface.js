@@ -369,11 +369,23 @@
   }
 
   function actionPresentation(scene, actorId, request = {}) {
-    const engine = global.DAWN_LIONWING_ENGINE, actor = actorById(scene, actorId);
+    const engine = global.DAWN_LIONWING_ENGINE;
     const gate = engine?.actionGate?.(scene, actorId, request) || { available: false, reason: cockpitText("engineUnavailable", "Проверка действия недоступна") };
     const needsDestination = [global.DAWN_SCENE_ENGINE?.ACTION_IDS?.jump, global.DAWN_SCENE_ENGINE?.ACTION_IDS?.shove, global.DAWN_SCENE_ENGINE?.ACTION_IDS?.improvise].includes(request.actionId) && !request.destination && !request.effect && !request.removeObstacleId;
     let prepared = null;
     if (gate.available && !needsDestination) prepared = engine?.prepare?.(scene, { ...request, kind: "action", actorId }, { random: () => 0 });
+    return actionPresentationFromPreview(scene, actorId, request, { gate, prepared });
+  }
+
+  // Presentation-only composition for a renderer that already computed the
+  // current gate and validated the complete scene/request value of its preview.
+  // No cache or execution authority is accepted here; dispatch still performs
+  // its own canonical recheck, and ordinary callers use actionPresentation().
+  function actionPresentationFromPreview(scene, actorId, request = {}, { gate, prepared = null } = {}) {
+    const engine = global.DAWN_LIONWING_ENGINE, actor = actorById(scene, actorId);
+    gate ||= { available: false, reason: cockpitText("engineUnavailable", "Проверка действия недоступна") };
+    if (!gate.available) prepared = null;
+    const needsDestination = [global.DAWN_SCENE_ENGINE?.ACTION_IDS?.jump, global.DAWN_SCENE_ENGINE?.ACTION_IDS?.shove, global.DAWN_SCENE_ENGINE?.ACTION_IDS?.improvise].includes(request.actionId) && !request.destination && !request.effect && !request.removeObstacleId;
     const confirmed = previewCosts(scene, prepared, actorId);
     const quoted = Number.isFinite(gate.cost) && gate.resource ? engine?.resourceQuote?.(scene, actorId, { resource: gate.resource, amount: gate.cost, operation: "spend" }) : null;
     const baseResource = quoted?.resolvedResource || gate.resource;
@@ -901,6 +913,7 @@
     operationCosts,
     previewCosts,
     actionPresentation,
+    actionPresentationFromPreview,
     actionTargets,
     resourceCostLabel,
     dispatchOnce,

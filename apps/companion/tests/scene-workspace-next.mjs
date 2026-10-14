@@ -48,3 +48,37 @@ const css=fs.readFileSync(new URL('../scene-workspace-next.css',import.meta.url)
 assert.ok(!css.includes('var(--scene-header-height'),'mobile shell has a single measured header owner');
 assert.ok(css.includes('height:calc(100dvh - var(--mobile-header-height,101px) - 12px)'),'mobile header changes update the full shell immediately');
 console.log('Mobile shell: live header measurement, no stale second header height');
+
+// Production refresh and its actual click listener must use the same current,
+// visible participant. No canonical state may be changed by presentation.
+const attrs=()=>({values:new Map(),getAttribute(key){return this.values.get(key)??null},setAttribute(key,value){this.values.set(key,String(value))}});
+const selection={textContent:''},action={disabled:false},details={open:false},close=attrs(),title={textContent:''};
+let phone=false,view='gm',compoundCalls=0,styleWrites=0,clicked=null,opened=null;
+const toolbar={},turnsNode={querySelector:()=>null},left={prepend(node){node.parentElement=this;node.previousSibling=null}},palette={classList:{toggle(){}},append(node){node.parentElement=this;node.previousSibling=null},querySelector:selector=>selector==='h2'?title:close};
+const toolbarAnchor={after(node){node.previousSibling=this}},turnAnchor={after(node){node.previousSibling=this}};
+toolbar.previousSibling=toolbarAnchor;turnsNode.previousSibling=turnAnchor;
+const reserved=new Map(),workbench={style:{getPropertyValue:key=>reserved.get(key)||'',setProperty(key,value){styleWrites++;reserved.set(key,value)}}};
+const mobileBar={getBoundingClientRect:()=>({height:72}),querySelector:selector=>selector==='.scene-mobile-selection'?selection:selector==='details'?details:action,addEventListener(type,handler){clicked=handler}};
+const scene={selectedActor:'secret',activeSpace:'one',activeActorId:null,actors:[{id:'secret',name:'Private NPC',hp:19,maxHp:20,hidden:true,space:'one'},{id:'hero',name:'Hero',hp:9,maxHp:10,heroId:'own',space:'one'}]};
+const refreshContext=vm.createContext({Scene:scene,S:{id:'own'},SceneEngine:{compoundEnemyStatus(scene,id){compoundCalls++;assert.notEqual(view==='player'&&id==='secret'&&scene.actors[0].hidden,true,'hidden actor is never queried');return id==='secret'?{active:true,hp:99,maxHp:100}:{active:false}}},
+ document:{body:{classList:{toggle(){},contains:()=>false}},querySelector:()=>toolbar},window:{},bar:mobileBar,more:{querySelectorAll:()=>[]},palettePanel:palette,toolbarHome:toolbarAnchor,turnHome:turnAnchor,dockHomes:new Map(),dockIcons:{},turnLayout:null,turnActorId:null,
+ activeScenePanels:{left:null,right:null},activeScenePanel:null,usingNextSceneInterface:()=>true,narrow:()=>phone,init:()=>true,activeSceneView:()=>view,copy:ru=>ru,isScenePanelOpen:()=>false,openSceneActorCockpit:id=>{opened=id},setScenePanel:panel=>{opened=panel},
+ $:id=>({'scene-turn-strip':turnsNode,'scene-rail-left':left,'scene-workbench':workbench}[id])});
+const visibleStart=source.indexOf('  function selectedVisibleActor()'),visibleEnd=source.indexOf('  function init()',visibleStart);
+vm.runInContext(source.slice(visibleStart,visibleEnd)+source.slice(turnStart,source.indexOf('  function setVersion(')),refreshContext);
+const clickStart=source.indexOf("    bar.addEventListener('click'"),clickEnd=source.indexOf("    if(typeof ResizeObserver",clickStart);
+vm.runInContext(source.slice(clickStart,clickEnd),refreshContext);
+const originalScene=JSON.stringify(scene);
+for(let index=0;index<20;index++)refreshContext.refresh();
+assert.equal(compoundCalls,0,'hidden desktop mobile bar does no compound calculation');
+assert.equal(styleWrites,1,'unchanged dock geometry is not written on every redraw');
+assert.equal(JSON.stringify(scene),originalScene);
+phone=true;refreshContext.refresh();assert.equal(compoundCalls,1);assert.match(selection.textContent,/99 \/ 100/);
+view='player';refreshContext.refresh();assert.equal(compoundCalls,1);assert.equal(selection.textContent.includes('Private NPC'),false);assert.equal(action.disabled,true);
+clicked({target:{closest:selector=>selector==='[data-mobile-actor-action]'?{}:null}});assert.equal(opened,null,'role flip cannot open a selected hidden participant');
+clicked({target:{closest:selector=>selector==='[data-mobile-actor-info]'?{}:null}});assert.equal(opened,'media');
+scene.actors[0].hidden=false;refreshContext.refresh();assert.equal(compoundCalls,2);assert.match(selection.textContent,/Private NPC/);assert.equal(action.disabled,true,'foreign visible participant is readable but its action remains disabled');
+scene.actors[0].space='elsewhere';refreshContext.refresh();assert.equal(compoundCalls,2);assert.equal(selection.textContent.includes('Private NPC'),false);
+scene.selectedActor='hero';refreshContext.refresh();assert.equal(action.disabled,false);assert.match(selection.textContent,/9 \/ 10/);
+phone=false;const desktopCalls=compoundCalls;refreshContext.refresh();assert.equal(compoundCalls,desktopCalls);assert.equal(reserved.get('--scene-mobile-controls-height'),'0px');
+console.log('Production mobile workspace: hidden desktop queries skipped; current phone compound values, role/visibility/space transitions, click privacy and unchanged geometry writes passed. DOM fixture, not native layout timing.');

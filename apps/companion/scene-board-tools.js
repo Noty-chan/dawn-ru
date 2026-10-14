@@ -38,6 +38,15 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", home.label);
   }
   const categories = new Map(), panels = new Map(), toolGroups = new Map();
+  const watchedSelector = groups.flatMap(group => [...group.selectors, ...(group.controls || []).map(id => `#${id}`)]).concat('#scene-zoom-fit').join(',');
+  let mountObserver = null, enhancedLocale = null;
+  const localeKey = () => [copy('scene.boardTools.categoriesLabel','Категории инструментов поля'), ...groups.map(labelFor)].join('\u0000');
+  function needsEnhancement(records) {
+    if (!records) return true;
+    if (enhancedLocale !== localeKey()) return true;
+    const candidate = node => Boolean(node && (homes.has(node) || node.matches?.(watchedSelector) || node.querySelector?.(watchedSelector)));
+    return records.some(record => toolGroups.has(record.target) || [...(record.addedNodes || []), ...(record.removedNodes || [])].some(candidate));
+  }
   let lastActiveTool = null;
   const player = () => document.body.classList.contains("scene-player-view");
   function select(id) {
@@ -46,8 +55,8 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     const changed = selected !== id;
     selected = id;
     if(changed)toolbar.dispatchEvent(new CustomEvent("scene-board-category-change",{detail:{id}}));
-    for (const [key, button] of categories) button.setAttribute("aria-pressed", String(key === selected));
-    for (const [key, panel] of panels) panel.hidden = key !== selected;
+    for (const [key, button] of categories) { const pressed=String(key===selected);if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed); }
+    for (const [key, panel] of panels) { const hidden=key!==selected;if(panel.hidden!==hidden)panel.hidden=hidden; }
     return true;
   }
   function refresh() {
@@ -58,7 +67,7 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
   function reflectTool() {
     if (!enabled) return;
     const active = [...toolGroups.keys()].find(button => button.getAttribute("aria-pressed") === "true");
-    for (const [id, button] of categories) button.setAttribute("data-active-tool", String(Boolean(active && toolGroups.get(active) === id)));
+    for (const [id, button] of categories) { const current=String(Boolean(active&&toolGroups.get(active)===id));if(button.getAttribute('data-active-tool')!==current)button.setAttribute('data-active-tool',current); }
     // A genuine tool change, including a keyboard shortcut, reveals its group.
     // Simply browsing categories or rerendering the same tool does not jump back.
     if (active && active !== lastActiveTool) select(toolGroups.get(active));
@@ -110,6 +119,10 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     select(selected);
     refresh();
     reflectTool();
+    enhancedLocale = localeKey();
+    // Enhancement has already converged after relocating/decorating its own
+    // controls. Do not schedule another global scan for those mutations.
+    mountObserver?.takeRecords?.();
   }
   function init() {
     if (toolbar) return refresh();
@@ -132,7 +145,8 @@ window.DAWN_SCENE_BOARD_TOOLS = (() => {
     select("tokens");
     reflectTool();
     if (typeof MutationObserver === "function") {
-      new MutationObserver(enhance).observe(document.body, { childList: true, subtree: true });
+      mountObserver = new MutationObserver(records => { if (enabled && needsEnhancement(records)) enhance(); });
+      mountObserver.observe(document.body, { childList: true, subtree: true });
       new MutationObserver(refresh).observe(document.body, { attributes: true, attributeFilter: ["class"] });
       new MutationObserver(reflectTool).observe(toolbar, { subtree: true, attributes: true, attributeFilter: ["aria-pressed"] });
     }
