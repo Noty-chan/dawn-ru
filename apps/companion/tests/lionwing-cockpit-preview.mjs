@@ -348,7 +348,7 @@ for (const name of ["reconcileLocalSceneFlow","renderSceneLayoutSettings","rende
 context.document.body = { classList: { toggle: noop }, dataset: {} };
 vm.runInContext("let lwDetectiveTeleport=null;", context);
 vm.runInContext(source.slice(source.indexOf("const lwFormDraft ="), source.indexOf("let lwDraftEnabled=")), context);
-vm.runInContext(source.slice(source.indexOf("function lwPendingHtml()"), source.indexOf("function lwAutomationHtml")), context);
+vm.runInContext(source.slice(source.indexOf("function lwPendingWindowHtml("), source.indexOf("function lwAutomationHtml")), context);
 vm.runInContext(source.slice(source.indexOf("function lwAutomationHtml("), source.indexOf("function lwInventoryHtml(")), context);
 vm.runInContext(source.slice(source.indexOf("function lwActionsHtml("), source.indexOf("function lwEffectSourcesHtml(")), context);
 context.sceneActionPanel = actor => context.lwActionsHtml(actor);

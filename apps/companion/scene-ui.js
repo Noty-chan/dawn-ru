@@ -306,7 +306,9 @@ function commitSceneEvents(label,events){
   const {undo=[],redo,turnUndo=[],...eventScene}=Scene;
   let result;
   try{result=SceneEngine.dispatchMany(eventScene,events,{expectedVersion})}catch(error){lastSceneEventSubmission={fingerprint:"",at:0};return toast(error.message||"Не удалось применить события Сцены")}
-  if(!result.events.length)return result;
+  // Accepted native commands can change choices, receipts or rule state
+  // without emitting visual effects. Only a replay retains the version.
+  if(!result.events.length&&Number(result.scene.version||0)===expectedVersion)return result;
   const turnHistoryCleared=Object.prototype.hasOwnProperty.call(result.scene,"turnUndo");
   Scene=normalizeScene(result.scene);
   if(!turnHistoryCleared)Scene.turnUndo=turnUndo.slice(0,30);
@@ -338,6 +340,7 @@ function restoreSceneHistory(step,source,target,prefix){
       if(!queueNetworkV2Snapshot(sceneSnapshot(),label,{history:true,historyAnchor:step.state}))throw new Error("Общий стол недоступен; отмена не отправлена");
     }
   }catch(error){Scene=previous;toast(error.message||"Не удалось отменить изменение Сцены");return null}
+  if(typeof resetSceneMediaEdits==="function")resetSceneMediaEdits();
   syncHeroFromScene();persist();
   if(store.mode==="play"){
     renderPlay();

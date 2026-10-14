@@ -358,6 +358,7 @@ function installUndoHarness(context, scene) {
     this.commitScene=commitScene;this.undoScene=undoScene;this.redoScene=redoScene;`, context, { filename: "scene-ui.history.js" });
   const eventsSource = fs.readFileSync(new URL("../app-scene-events.js", import.meta.url), "utf8");
   const restoreStart = eventsSource.indexOf("function applyTableBackup(");
+  vm.runInContext(eventsSource.slice(eventsSource.indexOf("const sceneMediaEdits="),eventsSource.indexOf("function refreshSceneShortcutQuote(")),context,{filename:"app-scene-events.media-scope.js"});
   const restoreEnd = eventsSource.indexOf('$("scene-export-table")', restoreStart);
   context.setScenePanel = () => {};
   // This persistence fixture has no board DOM; measurement cleanup is covered in scene-measurement.

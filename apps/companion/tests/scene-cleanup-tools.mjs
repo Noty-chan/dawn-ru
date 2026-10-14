@@ -68,7 +68,8 @@ vm.runInContext(ui.slice(ui.indexOf('function commitLionwingDestroy('),ui.indexO
 context.captureSceneFxContext=()=>({});
 vm.runInContext(ui.slice(ui.indexOf('function commitSceneEvents('),ui.indexOf('function redoScene(')),context);
 const effects=read('scene-effects.js');vm.runInContext(effects.slice(effects.indexOf('function sceneEnvironmentTarget('),effects.indexOf('function previewSceneWall(')),context);
-const events=read('app-scene-events.js');vm.runInContext(events.slice(events.indexOf('$("scene-reset-table").onclick='),events.indexOf('$("scene-clear-log").onclick')),context);
+const events=read('app-scene-events.js');vm.runInContext(events.slice(events.indexOf('const sceneMediaEdits='),events.indexOf('function refreshSceneShortcutQuote(')),context);
+vm.runInContext(events.slice(events.indexOf('$("scene-reset-table").onclick='),events.indexOf('$("scene-clear-log").onclick')),context);
 vm.runInContext(events.slice(events.indexOf('function handleLionwingDestroyClick('),events.indexOf('// Narrator cleanup must remain available')),context);
 vm.runInContext(events.slice(events.indexOf('$("scene-remove-npcs").onclick='),events.indexOf('function updateTableRecoveryStatus(')),context);
 const reset=()=>{context.Scene=context.normalizeScene(base());context.Scene.undo=[];context.Scene.redo=[];context.Scene.turnUndo=[];role='gm';accept=true;room=null;localPending=false;notices=[];saveRecovery=async()=>true;};

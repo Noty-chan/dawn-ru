@@ -453,9 +453,18 @@
     && Number(snapshot.trackValue) === Number(actor[snapshot.track] || 0)
     && Boolean(snapshot.vulnerable) === Boolean(astate(actor).vulnerable);
   const readOwnTurnSerial = a => {
-    const rawValues = [a?.lionwing?.ownerTurnSerial, a?.lionwing?.ownTurnSerial, a?.lionwing?.turnCount, a?.lionwing?.turnsStarted, a?.lionwing?.turns]
-      .map(value => Number(value)).filter(value => Number.isSafeInteger(value) && value >= 0);
-    return rawValues.length ? Math.max(...rawValues) : 0;
+    // Preserve the old read/coercion order without allocating three arrays.
+    // Accessors are read before any Number conversion; invalid aliases still
+    // cannot hide a later conversion error, and Math.max retains signed zero.
+    const rawOwner = a?.lionwing?.ownerTurnSerial, rawOwn = a?.lionwing?.ownTurnSerial,
+      rawCount = a?.lionwing?.turnCount, rawStarted = a?.lionwing?.turnsStarted, rawTurns = a?.lionwing?.turns;
+    const owner = Number(rawOwner), own = Number(rawOwn), count = Number(rawCount), started = Number(rawStarted), turns = Number(rawTurns);
+    const validOwner = Number.isSafeInteger(owner) && owner >= 0, validOwn = Number.isSafeInteger(own) && own >= 0,
+      validCount = Number.isSafeInteger(count) && count >= 0, validStarted = Number.isSafeInteger(started) && started >= 0,
+      validTurns = Number.isSafeInteger(turns) && turns >= 0;
+    return validOwner || validOwn || validCount || validStarted || validTurns
+      ? Math.max(validOwner ? owner : -Infinity, validOwn ? own : -Infinity, validCount ? count : -Infinity, validStarted ? started : -Infinity, validTurns ? turns : -Infinity)
+      : 0;
   };
   function normalizeTurnCounters(a, scene = null) {
     if (!a || typeof a !== "object") return 0;

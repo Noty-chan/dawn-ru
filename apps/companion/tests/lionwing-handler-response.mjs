@@ -29,7 +29,7 @@ vm.runInContext('function sceneSnapshot(){return sceneCore(Scene)}',context);
 vm.runInContext(writer.slice(writer.indexOf('let lastSceneEventSubmission='),writer.indexOf('function restoreSceneHistory(')),context);
 vm.runInContext(`const LionwingEngine=window.DAWN_LIONWING_ENGINE;let lwDestination=null,lwGeometryPreview=null,lwTechniqueDraft=null;\n${source.slice(source.indexOf('const lwTechniqueText'),source.indexOf('const lwRules ='))}`,context);
 vm.runInContext(source.slice(source.indexOf('function lwSubmit('),source.indexOf('function lwDiceHtml')),context);
-vm.runInContext(source.slice(source.indexOf('function lwPendingHtml()'),source.indexOf('function lwAutomationHtml')),context);
+vm.runInContext(source.slice((source.indexOf('function lwPendingWindowHtml(')>=0?source.indexOf('function lwPendingWindowHtml('):source.indexOf('function lwPendingHtml()')),source.indexOf('function lwAutomationHtml')),context);
 const actions=read('scene-actions-ui.js'),effects=read('scene-effects.js');
 vm.runInContext(actions.slice(actions.indexOf('function sceneActionPanel('),actions.indexOf('function coreActionRoll(')).replace('function sceneActionPanel(','function coreSheetPanel('),context);
 vm.runInContext(effects.slice(effects.indexOf('function sceneFlowSteps('),effects.indexOf('\nfunction ',effects.indexOf('function sceneFlowSteps(')+1)),context);

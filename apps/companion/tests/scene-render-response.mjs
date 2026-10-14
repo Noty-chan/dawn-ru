@@ -54,7 +54,8 @@ assert.equal(actions.context.lwActionControlRequest(actions.root,actions.buttons
 
 let pendingLookups=0,actionRefreshes=0,pendingReason='Submitted';
 const submittedButtons=Array.from({length:40},(_,i)=>({dataset:{lwActor:i%2?'hero':'ally'},disabled:false}));
-const pendingContext=vm.createContext({lwPendingCommandReason(){pendingLookups++;return pendingReason},lwRefreshCunningActions(){actionRefreshes++}});
+const pendingContext=vm.createContext({Scene:{lionwing:{choices:[]}},lwFormDraft:new Map(),lwPendingCommandReason(){pendingLookups++;return pendingReason},lwRefreshCunningActions(){actionRefreshes++}});
+vm.runInContext(section(ui,'function lwPendingWindowKey(','const lwTechniqueEnabled =')+section(ui,'function lwPrunePendingFormDrafts()','function lwCockpitElementKey('),pendingContext);
 vm.runInContext(section(ui,'function lwRefreshPendingControls(','function lwDiceHtml('),pendingContext);
 vm.runInContext(section(ui,'function lwRestoreFormDrafts(','let lwDraftEnabled='),pendingContext);
 const pendingRoot={querySelectorAll(selector){return selector==='[data-lw-root]'?[{}]:selector.includes('[data-lw-action]')?submittedButtons:[]}};

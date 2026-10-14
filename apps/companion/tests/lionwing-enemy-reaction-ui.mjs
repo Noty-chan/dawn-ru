@@ -30,7 +30,7 @@ const bootstrap = read("app-bootstrap.js"), sceneUi = read("scene-ui.js");
 vm.runInContext(bootstrap.slice(bootstrap.indexOf("function localizedLionwingCoreRules()"), bootstrap.indexOf("const activeCoreRules=")), context);
 vm.runInContext(sceneUi.slice(sceneUi.indexOf("function sceneActionDisplayName("), sceneUi.indexOf("function refreshSceneControlStates(")), context);
 vm.runInContext(actionUi.slice(actionUi.indexOf("function sceneActionPanel("), actionUi.indexOf("function coreActionRoll(")), context);
-vm.runInContext(`${uiTextHelpers}\n${pendingGuard}\nconst lwOldActionPanel=sceneActionPanel;\n${lwUi.slice(lwUi.indexOf("function lwPendingHtml()"), lwUi.indexOf("function lwAutomationHtml("))}\nwindow.renderEnemyPending=lwPendingHtml;`, context);
+vm.runInContext(`${uiTextHelpers}\n${pendingGuard}\nconst lwOldActionPanel=sceneActionPanel;\n${lwUi.slice(lwUi.indexOf("function lwPendingWindowHtml("), lwUi.indexOf("function lwAutomationHtml("))}\nwindow.renderEnemyPending=lwPendingHtml;`, context);
 
 context.Scene = fixture(actor("hero", "hero", 2));
 assert.equal(context.sceneActionDisplayName(engine.ACTION_IDS.finish, "Finish"), "Завершение", "native attack flow accepts an action ID and uses its Russian name");

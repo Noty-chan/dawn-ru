@@ -30,6 +30,7 @@ for(const method of ['create','transform','prepareDestroy','destroy','changeOwne
 assert.deepEqual(clone(entities.reload(JSON.stringify(before))),before,'manual reload is storage-only');
 // Real history controller; external DOM/storage/render are substituted.
 let role='gm',messages=[];Object.assign(context,{Scene:clone(before),Sync:{state:()=>({})},activeSceneView:()=>role,sceneCore:clone,sceneSnapshot:()=>clone(context.Scene),uid:()=> 'id',store:{mode:'build'},toast:message=>{messages.push(message);return null},sceneEvent:()=>{},syncHeroFromScene:()=>{},persist:()=>{},renderScene:()=>{}});
+const mediaSource=read('app-scene-events.js');vm.runInContext(mediaSource.slice(mediaSource.indexOf('const sceneMediaEdits='),mediaSource.indexOf('function refreshSceneShortcutQuote(')),context);
 const ui=read('scene-ui.js');vm.runInContext(ui.slice(ui.indexOf('function restoreSceneHistory('),ui.indexOf('function undoScene(')),context);
 const rules=clone(before);rules.tablePolicy.mode='rules';const step={id:'switch',label:'Policy change',state:rules};const saved=JSON.stringify(context.Scene);assert.equal(context.restoreSceneHistory(step,[step],[],'Undo'),null);assert.equal(JSON.stringify(context.Scene),saved,'policy undo is atomic and refuses a return to rules');
 const change={id:'hp-edit',type:'table.command',actorId:'h',payload:{kind:'resource',values:{hp:4}}};context.Scene=engine.dispatchMany(before,[change]).scene;context.Scene.undo=[{state:clone(before)}];
