@@ -134,6 +134,7 @@ function buildApp(storage, idb) {
   vm.runInContext(`${source.slice(mediaStart, mediaEnd)}\nthis.writeHeroMedia=writeHeroMedia;this.readHeroMedia=readHeroMedia;`, context, { filename: "app-core.media-storage.js" });
   vm.runInContext(`${source.slice(backupStart, backupEnd)}\nthis.tableBackupPayload=tableBackupPayload;this.normalizedTableBackup=normalizedTableBackup;`, context, { filename: "app-core.table-backup.js" });
   const eventsSource = fs.readFileSync(new URL("../app-scene-events.js", import.meta.url), "utf8");
+  vm.runInContext(eventsSource.slice(eventsSource.indexOf("const sceneMediaEdits="),eventsSource.indexOf("function refreshSceneShortcutQuote(")),context,{filename:"app-scene-events.media-scope.js"});
   const recoveryStart = eventsSource.indexOf("function updateTableRecoveryStatus");
   const recoveryEnd = eventsSource.indexOf('$("scene-export-table")', recoveryStart);
   context.toast = message => { context.lastToast = String(message); };

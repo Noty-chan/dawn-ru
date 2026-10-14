@@ -20,6 +20,8 @@ const context={activeSceneView:()=>"gm",window:{},
   renderPlay:()=>{rendered++},renderScene:()=>{rendered++},store:{mode:"play"},$:()=>null,
 };
 vm.createContext(context);
+const mediaSource=fs.readFileSync(new URL("../app-scene-events.js",import.meta.url),"utf8");
+vm.runInContext(mediaSource.slice(mediaSource.indexOf("const sceneMediaEdits="),mediaSource.indexOf("function refreshSceneShortcutQuote(")),context);
 vm.runInContext(`let Scene=structuredClone(initial);${source.slice(start,end)}this.commitScene=commitScene;Object.defineProperty(this,"Scene",{get:()=>Scene,set:value=>{Scene=value}});`,context);
 vm.runInContext(`${source.slice(historyStart,historyEnd)}this.restoreSceneHistory=restoreSceneHistory;`,context);
 const removeEnemy=scene=>{scene.actors=scene.actors.filter(actor=>actor.id!=="enemy")};

@@ -31,7 +31,7 @@ for (const choice of ["block", "dodge", "clash"]) {
 }
 
 // Render the production pending UI against the localized catalog.
-const ui = read("lionwing-ui.js"), pendingFunction = ui.slice(ui.indexOf("function lwPendingHtml()"), ui.indexOf("function lwAutomationHtml("));
+const ui = read("lionwing-ui.js"), pendingFunction = ui.slice(ui.indexOf("function lwPendingWindowHtml("), ui.indexOf("function lwAutomationHtml("));
 const uiTextHelpers = ui.slice(ui.indexOf("const lwTechniqueText ="), ui.indexOf("const lwTechniqueEnabled ="));
 const pendingGuard = ui.slice(ui.indexOf("function lwPendingCommandReason"), ui.indexOf("function lwRefreshPendingControls"));
 const canonical = context.window.DAWN_LIONWING_DATA.coreRules, translation = context.window.DAWN_LIONWING_RU.coreRules;

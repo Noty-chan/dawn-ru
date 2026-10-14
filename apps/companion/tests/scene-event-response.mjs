@@ -98,6 +98,23 @@ const resourceEvent = (id, value) => ({ id, type: 'table.command', actorId: 'her
   assert.equal(context.Scene.turnUndo.length, 0, 'round boundary retains its history reset');
 }
 {
+  const { context, calls } = controller();
+  context.Scene.tablePolicy={mode:'rules',processStatuses:false,epoch:0};
+  const original=clone(context.Scene),request={id:'decision-once',type:'lionwing.command',actorId:'hero',payload:{kind:'prompt',targetId:'hero',title:'Independent decision'}};
+  const result=context.commitSceneEvents('Decision',[request]);
+  assert.ok(result,context.lastToast);assert.equal(result.events.length,0,'A prompt has no visual consequence events');
+  assert.equal(context.Scene.version,original.version+1);
+  assert.equal(context.Scene.lionwing.choices[0].title,'Independent decision','Accepted metadata-only commands install their canonical scene');
+  assert.equal(context.Scene.undo[0].state.version,original.version);
+  assert.equal(calls.render,1);assert.equal(calls.save,1);
+  const committed=context.Scene,counters={...calls};
+  context.commitSceneEvents('Decision',[clone(request)]);
+  assert.equal(context.Scene,committed);assert.deepEqual(calls,counters,'Replaying the same prompt still performs no save or render');
+  const choice=committed.lionwing.choices[0];
+  assert.ok(context.commitSceneEvents('Record decision',[{id:'decision-record',type:'lionwing.command',actorId:'hero',payload:{kind:'choice',id:choice.id,choice:'record',note:'Resolved'}}]));
+  assert.equal(context.Scene.lionwing.choices.length,0,'The newly installed decision can be answered through the same writer');
+}
+{
   const { context, calls } = controller(), original = context.Scene;
   context.submitNetworkV2Events = () => ({ queued: true });
   assert.equal(context.commitSceneEvents('Queued', [resourceEvent('queued', 27)]).queued, true);

@@ -104,6 +104,7 @@ Object.assign(context, {
   lwDirectorHtml: () => "", lwBatchHtml: () => "", lwGeneralHtml: () => "", lwEffectSourcesHtml: () => "",
   lwRefreshCunningActions() {}, lwRefreshPendingControls() {},
 });
+vm.runInContext(source.slice(source.indexOf("function lwPendingWindowKey("), source.indexOf("const lwTechniqueEnabled =")), context);
 vm.runInContext(source.slice(source.indexOf("const lwFormDraft ="), source.indexOf("let lwDraftEnabled=")), context, { filename: "lionwing-ui.js:retention" });
 vm.runInContext(source.slice(source.indexOf("const lwOldDirector ="), source.indexOf("const lwOldEventText =")), context, { filename: "lionwing-ui.js:director" });
 const value = script => vm.runInContext(script, context);

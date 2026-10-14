@@ -7,6 +7,9 @@ const lwActive = () => LionwingEngine.isScene(Scene);
 let lwDestination = null, lwGeometryPreview = null, lwDetectiveTeleport = null, lwTechniqueDraft = null;
 const lwTechniqueText = (key, fallback) => window.DAWN_I18N?.t?.(`lionwing.technique.controls.${key}`, {}, { fallback }) || fallback;
 const lwCockpitText = (key, fallback, params = {}) => window.DAWN_I18N?.t?.(`lionwing.cockpit.${key}`, params, { fallback }) || fallback.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? ""));
+function lwPendingWindowKey(choice=Scene.lionwing?.choices?.[0]) {
+  return choice?JSON.stringify([choice.id,choice.actorId,choice.kind,choice.context?.duelId||null,choice.context?.actionPlanId||null]):null;
+}
 const lwTechniqueEnabled = (a, id) => Number((a.knownTechniques ?? a.techniques)?.[id.replace(/\.\d+$/, "")] || 0) >= Number(id.match(/\.(\d+)$/)?.[1]) && a.lionwing?.automation?.[id] === true;
 function lwActionControlRequest(root, button, readControl = null) {
   const control=readControl|| (selector=>[...(root?.querySelectorAll?.(selector)||[])].find(input=>input.closest("[data-lw-root]")===root));
@@ -569,15 +572,23 @@ function lwCockpitUiScope(actorId) {
     typeof manualTableDraftGeneration!=="undefined"?manualTableDraftGeneration:0,typeof activeSceneView==="function"?activeSceneView():null,
     sync.userId||null,sync.role||null,Boolean(sync.sceneId?sync.canNarrate:true),actorId||null,actor?.heroId||null,actor?.team||null,Boolean(actor?.hidden),typeof lwOwns==="function"&&lwOwns(actorId)]);
 }
+function lwPendingElementWindow(element) {return element.closest?.("[data-lw-pending-window]")?.dataset.lwPendingWindow||null;}
+function lwPrunePendingFormDrafts() {
+  const current=lwPendingWindowKey();
+  for(const key of lwFormDraft.keys()){
+    const pending=JSON.parse(key)[6];
+    if(pending&&pending!==current)lwFormDraft.delete(key);
+  }
+}
 function lwCockpitElementKey(element) {
   const owner=element.closest?.("[data-lw-root]"),group=element.closest?.("[data-lw-technique-group]"),level=element.closest?.("[data-lw-technique-level]"),pane=element.closest?.("[data-director-pane]"),roll=element.closest?.("[data-lw-roll]"),die=element.closest?.("[data-lw-die]");
   const attributes=[...(element.attributes||[])].filter(attr=>attr.name.startsWith("data-")).map(attr=>[attr.name,attr.value]);
-  return JSON.stringify([owner?.dataset.lwActor||"",owner?.className||"",group?.dataset.lwTechniqueGroup||"",level?.dataset.lwTechniqueLevel||"",pane?.dataset.directorPane||"",roll?.dataset.lwRoll||"",die?.dataset.lwDie||"",element.id||element.name||"",element.tagName||"",attributes]);
+  return JSON.stringify([owner?.dataset.lwActor||"",owner?.className||"",group?.dataset.lwTechniqueGroup||"",level?.dataset.lwTechniqueLevel||"",pane?.dataset.directorPane||"",roll?.dataset.lwRoll||"",die?.dataset.lwDie||"",element.id||element.name||"",element.tagName||"",attributes,lwPendingElementWindow(element)]);
 }
 function lwCockpitDetailKey(element) {
   // New sections use stable IDs; legacy disclosures retain their existing label.
   const semantic=element.dataset.lwCockpitSection||element.dataset.lwTechniqueGroup||element.dataset.lwActionSection||(element.hasAttribute?.("data-lw-technique-surface")?"techniques":element.hasAttribute?.("data-lw-dice-panel")?"dice":null);
-  return JSON.stringify([element.closest?.("[data-lw-root]")?.dataset.lwActor||"",element.closest?.("[data-director-pane]")?.dataset.directorPane||"",semantic||element.className||"",semantic?"":element.querySelector?.("summary")?.textContent||""]);
+  return JSON.stringify([element.closest?.("[data-lw-root]")?.dataset.lwActor||"",element.closest?.("[data-director-pane]")?.dataset.directorPane||"",semantic||element.className||"",semantic?"":element.querySelector?.("summary")?.textContent||"",lwPendingElementWindow(element)]);
 }
 function lwCockpitEntries(root,selector,keyFor) {
   const counts=new Map();return [...(root?.querySelectorAll?.(selector)||[])].map(element=>{const base=keyFor(element),index=counts.get(base)||0;counts.set(base,index+1);return{element,key:JSON.stringify([base,index])};});
@@ -622,10 +633,11 @@ function lwDraftKey(input) {
   if(!attr||!root)return null;
   const fields=[...root.querySelectorAll(`[${attr.name}]`)].filter(field=>field.closest("[data-lw-root]")===root);
   const scope=root.closest("[data-lw-technique-group]")?.dataset.lwTechniqueGroup||root.className||"panel";
-  return JSON.stringify([lwCockpitUiScope(root.dataset.lwActor),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input)]);
+  return JSON.stringify([lwCockpitUiScope(root.dataset.lwActor),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input),lwPendingElementWindow(input)]);
 }
 function lwRestoreFormDrafts(root, {refreshActions=true} = {}) {
   if(!root)return;
+  lwPrunePendingFormDrafts();
   for(const input of root.querySelectorAll("[data-lw-root] input,[data-lw-root] select,[data-lw-root] textarea")){
     const key=lwDraftKey(input);if(!key||!lwFormDraft.has(key)||input.disabled||input.readOnly||input.type==="file")continue;
     const value=lwFormDraft.get(key);
@@ -1076,25 +1088,31 @@ function lwConsequenceChoicePayload(choice, actor, category, targetIndex, note =
   return { kind: "choice", id: choice.id, choice: category, lossTarget: option.target, ...(note ? { note } : {}) };
 }
 
+function lwPendingWindowHtml(choice,html) {
+  return String(html||"").replace(/<section(?=[\s>])/,`<section data-lw-pending-window="${esc(lwPendingWindowKey(choice))}"`);
+}
 function lwPendingHtml() {
   const choice = Scene.lionwing?.choices?.[0];
   const techniqueSurface = window.DAWN_LIONWING_TECHNIQUE_SURFACE;
+  if(choice&&typeof activeSceneView==="function"&&activeSceneView()==="player"&&!lwTechniqueTargetVisible(choice.actorId))return "<section class=\"lw-pending lw-technique-offer-hidden\"><p>Ожидается решение другого участника.</p></section>";
   if (choice?.kind === "technique-trigger" && techniqueSurface?.pendingHtml) {
     if (!lwCanNarrate() && !lwOwns(choice.actorId)) return "<section class=\"lw-pending lw-technique-offer-hidden\"><p>Ожидается решение другого участника.</p></section>";
-    return techniqueSurface.pendingHtml(choice, { scene: Scene, viewer: lwEntityViewer(), canRespond: lwCanNarrate() || lwOwns(choice.actorId) });
+    return lwPendingWindowHtml(choice,techniqueSurface.pendingHtml(choice, { scene: Scene, viewer: lwEntityViewer(), canRespond: lwCanNarrate() || lwOwns(choice.actorId) }));
   }
-  if (choice?.kind === "consequence" && !(Array.isArray(choice.options) && choice.options.includes("record"))) return lwConsequencePendingHtml(choice, Scene.actors.find(actor => actor.id === choice.actorId));
+  if (choice?.kind === "consequence" && !(Array.isArray(choice.options) && choice.options.includes("record"))) return lwPendingWindowHtml(choice,lwConsequencePendingHtml(choice, Scene.actors.find(actor => actor.id === choice.actorId)));
   if (choice) {
     const owner = Scene.actors.find(a => a.id === choice.actorId), can = ["clash-tie","duel-outcome","duel-wounds"].includes(choice.kind)?lwCanNarrate():lwOwns(choice.actorId);
     const duel=choice.kind==="duel-outcome"?Scene.lionwing.duels.find(item=>item.id===choice.context.duelId):null;
     const duelControls=duel&&can?`<label>Напряжение Дуэли<input type="number" min="0" max="999" data-lw-duel-tension value="${duel.tension}"></label><button data-lw-set-duel-tension="${esc(duel.id)}" data-lw-actor="${esc(choice.actorId)}">Задать Напряжение Дуэли</button><p>Подходы и ресурсы разрешите до определения победителя. Используйте панель бросков и общие операции ресурсов; Напряжение исходного боя сохраняется.</p>`:"";
     const labels = { keep:"Применить Эффект", "bail":"Отступить — без ставки", "take-it":"Принять удар — вернуть Влияние", "double-down":"Удвоить ставку — переброс", "one-wound":"1 Рана (стр. 38)", "two-wounds":"2 Раны (стр. 62)", resist: "Сопротивляться", accept: choice.kind==="clash-loss"?"Принять Атаку":"Принять выведение", reroll:"5 урона → перебросить", win:choice.kind==="duel-outcome"?"Инициатор победил":"Защитник победил",lose:choice.kind==="duel-outcome"?"Инициатор проиграл":"Атакующий победил",record: "Записать решение", place: "Выбрать клетку", "call-help": "Подтянуть Испуганных врагов и нанести урон" };
-    return `<section class="lw-pending"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}"${choice.context?.actionPlanId?` data-lw-plan-id="${esc(choice.context.actionPlanId)}"`:""} data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.optionLabels?.[option] || choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
+    return `<section class="lw-pending" data-lw-pending-window="${esc(lwPendingWindowKey(choice))}"><strong>${esc(owner?.name || "Участник")}: ${esc(choice.kind==="duel-wounds"?"Продолжить сохранённую Дуэль: 1 Рана по уточнению автора":choice.title)}</strong>${duelControls}${choice.kind==="replacement"?`<p>${esc([...lwRules().effects.positive,...lwRules().effects.negative].find(e=>e.id===choice.context.effect)?.name||choice.context.effect)}. Исходный Эффект ещё не наложен.</p>`:""}${choice.context?.text ? `<p>${esc(choice.context.text)}</p>` : ""}${can ? `${choice.options.includes("record") ? '<input data-lw-choice-note placeholder="Принятое решение" aria-label="Принятое решение">' : ""}<div class="button-row">${(choice.kind==="duel-wounds"?["one-wound"]:choice.options).map(option => `<button data-lw-choice="${option}" data-lw-choice-id="${esc(choice.id)}"${choice.context?.actionPlanId?` data-lw-plan-id="${esc(choice.context.actionPlanId)}"`:""} data-lw-actor="${esc(choice.actorId)}">${esc(choice.context?.optionLabels?.[option] || choice.context?.labels?.[option] || labels[option] || option)}</button>`).join("")}</div>` : "<p>Ожидается решение владельца героя.</p>"}</section>`;
   }
   const followups = typeof LionwingEngine.pendingFollowups === "function" ? LionwingEngine.pendingFollowups(Scene).filter(item => ["offered", "active"].includes(item.status)) : [];
   if (followups.length && !Scene.pendingAction) {
-    const rows = followups.map(item => {
-      const participants = (item.participantIds || []).map(id => Scene.actors.find(actor => actor.id === id)?.name || id).join(", ");
+    const playerView=typeof activeSceneView==="function"&&activeSceneView()==="player",visible=playerView?followups.filter(item=>!(item.ownerActorId||item.actorId)||lwTechniqueTargetVisible(item.ownerActorId||item.actorId)):followups;
+    if(!visible.length)return "<section class=\"lw-pending lw-technique-offer-hidden\"><p>Ожидается решение другого участника.</p></section>";
+    const rows = visible.map(item => {
+      const participants = (item.participantIds || []).filter(id=>!playerView||lwTechniqueTargetVisible(id)).map(id => Scene.actors.find(actor => actor.id === id)?.name || id).join(", ");
       const deadline = item.endBoundary === "anyTurnStart" ? "до начала следующего Хода любого участника" : item.endBoundary === "anyTurnEnd" ? "до конца следующего Хода любого участника" : item.endBoundary || "до установленной границы";
       const owner=Scene.actors.find(actor=>actor.id===item.ownerActorId||actor.id===item.actorId),entry=window.DAWN_LIONWING_TECHNIQUE_SURFACE?.entries?.(owner)?.find(level=>level.id===item.ruleId);
       const label=entry?`${entry.displayTechniqueName} · ${entry.displayLevelName}`:lwCockpitText("followup","Продолжение Техники");
@@ -1638,6 +1656,7 @@ document.addEventListener("input",event=>{
   if (lwActive() && entitySearch) { lwEntityListQuery = String(entitySearch.value || ""); const caret = Number(entitySearch.selectionStart); renderLionwingEntities({ focusSearch: true, selectionStart: Number.isInteger(caret) ? caret : lwEntityListQuery.length }); return; }
   if(lwActive()&&event.target.closest("[data-lw-root]")){const key=lwDraftKey(event.target);if(key)lwFormDraft.set(key,event.target.type==="checkbox"?event.target.checked:event.target.value);}
   if(lwActive()&&event.target.closest("[data-lw-focus]"))lwRefreshCunningActions(event.target.closest("[data-lw-root]"));
+  if(!event.target.matches("[data-lw-amount]"))return;
   const root=event.target.closest(".lw-console");if(!root||!lwActive())return;
   const output=root.querySelector("[data-lw-preview]");if(!output)return;
   const amount=Number(root.querySelector("[data-lw-amount]")?.value||0),actorId=root.dataset.lwActor;

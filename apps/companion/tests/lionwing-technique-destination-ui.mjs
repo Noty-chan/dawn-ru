@@ -46,7 +46,7 @@ for (const file of ["localization.js", "locale-ru.js", "edition-lionwing-ru.js"]
 const source = read("lionwing-ui.js");
 vm.runInContext(`const LionwingEngine=window.DAWN_LIONWING_ENGINE;let lwDestination=null,lwGeometryPreview=null,lwTechniqueDraft=null;\n${source.slice(source.indexOf("const lwTechniqueText"), source.indexOf("const lwRules ="))}`, context);
 vm.runInContext(source.slice(source.indexOf("function lwSubmit("), source.indexOf("function lwDiceHtml")), context);
-vm.runInContext(source.slice(source.indexOf("function lwPendingHtml()"), source.indexOf("function lwAutomationHtml")), context);
+vm.runInContext(source.slice(source.indexOf("function lwPendingWindowHtml("), source.indexOf("function lwAutomationHtml")), context);
 // The production order installs the technique surface before the generic
 // LionWing click controller. Exercise that seam, rather than call a helper.
 vm.runInContext(read("lionwing-technique-surface.js"), context, { filename: "lionwing-technique-surface.js" });
