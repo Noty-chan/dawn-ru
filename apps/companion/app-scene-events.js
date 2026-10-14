@@ -1,9 +1,16 @@
 "use strict";
 
 const sceneMediaEdits=new Map();
-let sceneMediaEditSerial=0,sceneMediaEditScope="",sceneMediaScopeGeneration=0;
-function resetSceneMediaEdits(){sceneMediaScopeGeneration++;sceneMediaEdits.clear();sceneMediaEditScope="";}
-function reconcileSceneMediaEdits(){if(sceneMediaEditScope&&sceneMediaEditScope!==sceneMediaScope())resetSceneMediaEdits();}
+let sceneMediaEditSerial=0,sceneMediaEditScope="",sceneMediaScopeGeneration=0,sceneTableRestoreSerial=0,sceneTableRestoreJob=null;
+function resetSceneMediaEdits(){sceneMediaScopeGeneration++;sceneMediaEdits.clear();sceneMediaEditScope="";sceneTableRestoreJob=null;}
+function reconcileSceneMediaEdits(){const scope=sceneMediaScope();if(sceneMediaEditScope&&sceneMediaEditScope!==scope||sceneTableRestoreJob&&sceneTableRestoreJob.scope!==scope)resetSceneMediaEdits();}
+function beginSceneTableRestore(input=null){
+  if(activeSceneView()!=="gm")return null;
+  return sceneTableRestoreJob={generation:++sceneTableRestoreSerial,scope:sceneMediaScope(),checkpoint:JSON.stringify(sceneSnapshot()),input,file:input?.files?.[0],inputValue:input?.value};
+}
+function sceneTableRestoreCurrent(job){return job&&job===sceneTableRestoreJob&&job.scope===sceneMediaScope()&&activeSceneView()==="gm"&&(!job.checkpoint||job.checkpoint===JSON.stringify(sceneSnapshot()));}
+function checkpointSceneTableRestore(job){job.checkpoint=JSON.stringify(sceneSnapshot());}
+function finishSceneTableRestoreInput(job){if(job.generation===sceneTableRestoreSerial&&job.input?.files?.[0]===job.file&&job.input.value===job.inputValue)job.input.value="";}
 function sceneMediaScope(){
   const sync=Sync?.state?.()||{},spaces=(Scene.spaces||[]).map(space=>[space.id,space.width,space.height,space.mode]),actors=(Scene.actors||[]).map(actor=>actor.id).sort();
   return JSON.stringify([sceneMediaScopeGeneration,sync.sceneId||null,sync.campaignId||null,sync.userId||null,sync.role||null,Boolean(sync.canNarrate),activeSceneView(),Scene.id||Scene.sceneId||Scene.sceneIdentity||null,Scene.name,Scene.activeSpace,store.mode,Scene.rulesEdition,Scene.tablePolicy?.mode||"rules",Scene.tablePolicy?.epoch||0,Scene.lionwing?.sceneSerial||1,typeof manualTableDraftGeneration!=="undefined"?manualTableDraftGeneration:0,spaces,actors]);
@@ -190,10 +197,10 @@ window.addEventListener("mouseup",()=>{if(scenePanState?.moved)sceneSuppressBoar
 window.addEventListener("blur",resetScenePanGesture);
 window.addEventListener("pointercancel",resetScenePanGesture);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)resetScenePanGesture()});
-document.addEventListener("keydown",event=>{if(event.code==="Space"&&store.mode==="play"&&!event.target.matches("input,textarea,select,button")&&!event.target.closest?.("summary")){sceneSpaceHeld=true;$("scene-board-wrap").classList.add("can-pan");event.preventDefault()}});
+document.addEventListener("keydown",event=>{if(event.code==="Space"&&store.mode==="play"&&!event.target.matches("input,textarea,select,button")&&!event.target.closest?.("summary")&&!event.target.closest?.("[data-scene-cell]")){sceneSpaceHeld=true;$("scene-board-wrap").classList.add("can-pan");event.preventDefault()}});
 document.addEventListener("keyup",event=>{if(event.code==="Space")resetScenePanGesture()});
 document.addEventListener("keydown",event=>{if(event.key.toLowerCase()==="m"&&store.mode==="play"&&!document.querySelector("dialog[open]")&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.target.matches("input,textarea,select,button")){changeSceneTool("measure");event.preventDefault();}});
-document.addEventListener("keydown",event=>{if(event.key==="Escape"){if(event.defaultPrevented||store.mode!=="play"||document.querySelector("dialog[open]"))return;if(typeof sceneNeutralTool!=="undefined"&&sceneNeutralTool){clearSceneMeasurement();event.preventDefault();return;}hideSceneContextMenu();if(activeScenePanel)setScenePanel(null);if(pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingCoreAction||pendingCoreReaction||pendingZealotPlan||typeof lwDestination!=="undefined"&&lwDestination)cancelSceneFlow();else{scenePreviewCells.clear();sceneTopologyCells.clear();clearSceneMeasurement({render:false});if(store.mode==="play")renderScene()}}if(event.key.toLowerCase()==="r"&&(pendingTechniqueRule?.shape==="line"||pendingTechniqueRule?.form==="nails"||pendingZealotPlan?.phase==="lines")){const orientations=["horizontal","vertical","diagonal-down","diagonal-up"],index=orientations.indexOf(techniqueOrientation);techniqueOrientation=orientations[(index+1)%orientations.length];if(pendingZealotPlan)refreshZealotPlanPreview();toast(`Линия: ${techniqueOrientation}`)}if(store.mode==="play"&&!document.querySelector("dialog[open]")&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.target.matches("input,textarea,select,button")&&!pendingTechniqueRule&&!pendingEnemyRule&&!pendingEnemyStepActorId&&!pendingCoreAction&&!pendingCoreReaction&&!pendingZealotPlan){if(event.key.toLowerCase()==="t"&&hoveredSceneActorId){toggleSceneTarget(hoveredSceneActorId);event.preventDefault();return}const shortcut={v:"select",p:"place",t:"target",a:"area",k:"marker",delete:"erase"}[event.key.toLowerCase()];if(shortcut&&(activeSceneView()==="gm"||shortcut==="place"&&playerCanRepositionSceneActor()||!["place","area","marker","topology","erase"].includes(shortcut))){clearSceneMeasurement();if(activeSceneView()==="player")playerSceneTool=shortcut;else Scene.tool=shortcut;sceneTopologyCells.clear();persist();renderScene();event.preventDefault()}}});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"){if(event.defaultPrevented||store.mode!=="play"||document.querySelector("dialog[open]")||typeof lwTechniqueDraft!=="undefined"&&lwTechniqueDraft||typeof lwDestination!=="undefined"&&lwDestination)return;if(typeof sceneNeutralTool!=="undefined"&&sceneNeutralTool){clearSceneMeasurement();event.preventDefault();return;}hideSceneContextMenu();if(activeScenePanel)setScenePanel(null);if(pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingCoreAction||pendingCoreReaction||pendingZealotPlan||typeof lwDestination!=="undefined"&&lwDestination)cancelSceneFlow();else{scenePreviewCells.clear();sceneTopologyCells.clear();clearSceneMeasurement({render:false});if(store.mode==="play")renderScene()}}if(event.key.toLowerCase()==="r"&&(pendingTechniqueRule?.shape==="line"||pendingTechniqueRule?.form==="nails"||pendingZealotPlan?.phase==="lines")){const orientations=["horizontal","vertical","diagonal-down","diagonal-up"],index=orientations.indexOf(techniqueOrientation);techniqueOrientation=orientations[(index+1)%orientations.length];if(pendingZealotPlan)refreshZealotPlanPreview();toast(`Линия: ${techniqueOrientation}`)}if(store.mode==="play"&&!document.querySelector("dialog[open]")&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.target.matches("input,textarea,select,button")&&!pendingTechniqueRule&&!pendingEnemyRule&&!pendingEnemyStepActorId&&!pendingCoreAction&&!pendingCoreReaction&&!pendingZealotPlan){if(event.key.toLowerCase()==="t"&&hoveredSceneActorId){toggleSceneTarget(hoveredSceneActorId);event.preventDefault();return}const shortcut={v:"select",p:"place",t:"target",a:"area",k:"marker",delete:"erase"}[event.key.toLowerCase()];if(shortcut&&(activeSceneView()==="gm"||shortcut==="place"&&playerCanRepositionSceneActor()||!["place","area","marker","topology","erase"].includes(shortcut))){clearSceneMeasurement();if(activeSceneView()==="player")playerSceneTool=shortcut;else Scene.tool=shortcut;sceneTopologyCells.clear();persist();renderScene();event.preventDefault()}}});
 document.addEventListener("keydown",event=>{if(event.key.toLowerCase()!=="w"||store.mode!=="play"||document.querySelector("dialog[open]")||activeSceneView()!=="gm"||event.ctrlKey||event.metaKey||event.altKey||event.target.matches("input,textarea,select,button")||sceneHasLocalPendingSelection())return;clearSceneMeasurement();Scene.tool="wall";persist();renderScene();event.preventDefault()});
 $("scene-workbench").addEventListener("click",event=>{const close=event.target.closest("[data-close-scene-panel]"),panel=event.target.closest("[data-open-scene-panel]"),camera=event.target.closest("[data-scene-camera]");if(close){const content=close.closest("[data-scene-panel-content]");setScenePanel(content?.dataset.scenePanelContent||null,true);return}if(camera){const actorId=camera.dataset.sceneCamera==="active"?Scene.activeActorId:Scene.selectedActor;if(!actorId)return toast(camera.dataset.sceneCamera==="active"?"Ход ещё не начат":"Сначала выберите участника на поле");focusSceneActorOnBoard(actorId);return}if(panel){if(openSceneCockpitLink(panel))return;setScenePanel(panel.dataset.openScenePanel);return}const template=event.target.closest("[data-scene-template]");if(template){applySceneTemplate(+template.dataset.sceneTemplate);return}const tool=event.target.closest("[data-scene-tool]");if(tool){const requested=tool.dataset.sceneTool;if(activeSceneView()==="player"&&!["select","target","measure"].includes(requested)&&!(requested==="place"&&playerCanRepositionSceneActor()))return;changeSceneTool(requested);if(["area","wall","marker","topology"].includes(requested)&&!usingNextSceneInterface())setScenePanel("map");return}const space=event.target.closest("[data-scene-space]");if(space){if(Scene.pendingActionPlan||pendingCoreAction||pendingCoreReaction||pendingTechniqueRule||pendingEnemyRule||pendingEnemyStepActorId||pendingZealotPlan)cancelSceneFlow();Scene.activeSpace=space.dataset.sceneSpace;Scene.selectedActor=null;Scene.targetIds=[];Scene.targetCells=[];sceneTopologyCells.clear();clearSceneMeasurement({render:false});persist();renderScene()}});
 document.querySelector(".scene-chrome-menu")?.addEventListener("click",event=>{if(event.target.closest("[data-open-scene-panel]"))event.currentTarget.open=false});
@@ -363,21 +370,24 @@ function updateTableRecoveryStatus(message=""){
   output.textContent=(message||savedAt)?`${message?`${message} · `:""}Точка: ${savedAt?new Date(savedAt).toLocaleString("ru-RU"):"не создана"}`:"Точка восстановления ещё не создана.";
 }
 async function saveTableRecovery(label="Ручная точка"){
-  const payload=tableBackupPayload();payload.recoveryLabel=label;payload.gmLibrary=null;const serialized=JSON.stringify(payload),metadata=JSON.stringify({exportedAt:payload.exportedAt,recoveryLabel:label});
+  const payload=tableBackupPayload();payload.recoveryLabel=label;payload.gmLibrary=null;const serialized=JSON.stringify(payload),metadata=storage=>JSON.stringify({exportedAt:payload.exportedAt,recoveryLabel:label,storage});
   try{
     await writeHeroMedia([{key:TABLE_RECOVERY_KEY,value:serialized}]);
-    try{localStorage.setItem(TABLE_RECOVERY_META_KEY,metadata)}catch{}
+    try{localStorage.setItem(TABLE_RECOVERY_META_KEY,metadata("indexedDB"))}catch{}
     updateTableRecoveryStatus(label);return true;
   }catch(error){
-    try{localStorage.setItem(TABLE_RECOVERY_KEY,serialized);try{localStorage.setItem(TABLE_RECOVERY_META_KEY,metadata)}catch{}updateTableRecoveryStatus(label);return true}
+    try{localStorage.setItem(TABLE_RECOVERY_KEY,serialized);try{localStorage.setItem(TABLE_RECOVERY_META_KEY,metadata("localStorage"))}catch{}updateTableRecoveryStatus(label);return true}
     catch{toast("Не удалось сохранить точку восстановления: освободите место в браузере");return false}
   }
 }
 async function readTableRecovery(){
-  try{const stored=await readHeroMedia([TABLE_RECOVERY_KEY]);if(stored.has(TABLE_RECOVERY_KEY)){const raw=stored.get(TABLE_RECOVERY_KEY);normalizedTableBackup(JSON.parse(raw));return raw}}
-  catch{}
-  try{const raw=localStorage.getItem(TABLE_RECOVERY_KEY)||"";if(!raw)return"";normalizedTableBackup(JSON.parse(raw));return raw}
-  catch{return""}
+  const candidates=[],add=(raw,storage)=>{if(!raw)return;const payload=JSON.parse(raw);normalizedTableBackup(payload);const exportedAt=payload.format===TABLE_BACKUP_FORMAT?payload.exportedAt||"":"",time=Date.parse(exportedAt);candidates.push({raw,storage,exportedAt,recoveryLabel:payload.recoveryLabel||"",time:Number.isFinite(time)?time:0});};
+  try{const stored=await readHeroMedia([TABLE_RECOVERY_KEY]);add(stored.get(TABLE_RECOVERY_KEY),"indexedDB")}catch{}
+  let metadata=null;try{add(localStorage.getItem(TABLE_RECOVERY_KEY),"localStorage")}catch{}
+  try{metadata=JSON.parse(localStorage.getItem(TABLE_RECOVERY_META_KEY)||"null")}catch{}
+  const preferred=row=>row.storage===metadata?.storage&&row.exportedAt===metadata.exportedAt&&row.recoveryLabel===metadata.recoveryLabel?1:0;
+  candidates.sort((left,right)=>right.time-left.time||preferred(right)-preferred(left));
+  return candidates[0]?.raw||"";
 }
 function applyTableBackup(backup,label){
   resetSceneMediaEdits();
@@ -386,9 +396,25 @@ function applyTableBackup(backup,label){
   const candidate=normalizeScene(backup.scene),currentVersion=Number(Scene.version||0),currentView=Scene.view,currentUndo=Scene.undo;candidate.selectedActor=null;candidate.targetIds=[];const applied=commitScene(label,scene=>{for(const key of Object.keys(scene))delete scene[key];Object.assign(scene,candidate,{version:currentVersion,view:currentView,undo:currentUndo})},{tableRestore:true});if(!applied)return false;if(backup.gmLibrary)store.gmLibrary=normalizeGmLibrary(backup.gmLibrary);persist();renderScene();setScenePanel("add");return true;
 }
 $("scene-export-table").onclick=()=>{const payload=tableBackupPayload(),stamp=new Date().toISOString().slice(0,10),name=(Scene.name||"table").replace(/[^a-zа-я0-9_-]+/gi,"-");download(`DAWN-стол-${name}-${stamp}.json`,JSON.stringify(payload,null,2));toast("Резервная копия стола скачана")};
-$("scene-import-table").onchange=async event=>{const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>8_000_000)return toast("Копия больше 8 МБ — проверьте файл и изображения");try{const backup=normalizedTableBackup(JSON.parse(await file.text()));if(!window.confirm(`Восстановить стол из файла${backup.legacy?" старого формата":""}? Текущее состояние будет сохранено как точка восстановления и останется в отмене.`))return;if(!await saveTableRecovery("До импорта"))return;if(applyTableBackup(backup,backup.legacy?"Импортирована старая копия стола":"Восстановлена резервная копия стола"))toast(backup.legacy?"Старая копия мигрирована и восстановлена":"Стол восстановлен из файла")}catch(error){toast(error?.message||"Не удалось прочитать резервную копию")}};
+$("scene-import-table").onchange=async event=>{
+  const job=beginSceneTableRestore(event.target);if(!job?.file)return;
+  if(job.file.size>8_000_000)return toast("Копия больше 8 МБ — проверьте файл и изображения");
+  try{const raw=await job.file.text();if(!sceneTableRestoreCurrent(job))return;
+    const backup=normalizedTableBackup(JSON.parse(raw));
+    if(!window.confirm(`Восстановить стол из файла${backup.legacy?" старого формата":""}? Текущее состояние будет сохранено как точка восстановления и останется в отмене.`)||!sceneTableRestoreCurrent(job))return;
+    checkpointSceneTableRestore(job);if(!await saveTableRecovery("До импорта")||!sceneTableRestoreCurrent(job))return;
+    if(applyTableBackup(backup,backup.legacy?"Импортирована старая копия стола":"Восстановлена резервная копия стола")){finishSceneTableRestoreInput(job);toast(backup.legacy?"Старая копия мигрирована и восстановлена":"Стол восстановлен из файла");}
+  }catch(error){if(sceneTableRestoreCurrent(job))toast(error?.message||"Не удалось прочитать резервную копию")}
+};
 $("scene-save-recovery").onclick=async()=>{if(await saveTableRecovery())toast("Точка восстановления сохранена в этом браузере")};
-$("scene-restore-recovery").onclick=async()=>{try{const raw=await readTableRecovery();if(!raw)return toast("Сначала создайте точку восстановления");const backup=normalizedTableBackup(JSON.parse(raw));if(!window.confirm("Вернуться к сохранённой точке? Текущее состояние останется доступно через «Отменить»."))return;if(applyTableBackup(backup,"Возврат к точке восстановления"))toast("Точка восстановления применена")}catch(error){toast(error?.message||"Точка восстановления повреждена")}};
+$("scene-restore-recovery").onclick=async()=>{
+  const job=beginSceneTableRestore();if(!job)return;
+  try{const raw=await readTableRecovery();if(!sceneTableRestoreCurrent(job))return;if(!raw)return toast("Сначала создайте точку восстановления");
+    const backup=normalizedTableBackup(JSON.parse(raw));
+    if(!window.confirm("Вернуться к сохранённой точке? Текущее состояние останется доступно через «Отменить».")||!sceneTableRestoreCurrent(job))return;
+    if(applyTableBackup(backup,"Возврат к точке восстановления"))toast("Точка восстановления применена");
+  }catch(error){if(sceneTableRestoreCurrent(job))toast(error?.message||"Точка восстановления повреждена")}
+};
 updateTableRecoveryStatus();
 $("scene-reset-table").onclick=()=>{
   if(sceneEnvironmentBlocked())return;

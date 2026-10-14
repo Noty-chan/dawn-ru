@@ -76,7 +76,8 @@ const playUiSource = fs.readFileSync(path.join(root, "play-ui.js"), "utf8"), sce
 const heroSheetRefresh = playUiSource.slice(playUiSource.indexOf("function renderSceneHeroSheet("), playUiSource.indexOf("function renderPlay("));
 assert.match(heroSheetRefresh, /entries\("details",detailKey\)[\s\S]+details\.has\(key\)\)element\.open=details\.get\(key\)/, "Expanded hero rules must survive the shared sheet repaint");
 const canonicalSceneRefresh = sceneUiSource.slice(sceneUiSource.indexOf("function renderScene(){"), sceneUiSource.indexOf("function activeSceneView(){"));
-assert.match(canonicalSceneRefresh, /renderSceneHeroSheet\(\);renderSceneChrome\(\);/, "Every canonical Scene repaint refreshes the Hero cockpit before its navigation shortcuts");
+assert.match(canonicalSceneRefresh, /renderOpenScenePanels\(\);[\s\S]+renderSceneChrome\(\);/, "Every canonical Scene repaint refreshes open cockpits before their navigation shortcuts");
+assert.match(sceneUiSource, /if\(!manual&&open\("sheet"\)\)\{renderSceneHeroSheet\(\);setSheetTab\(activeSheetTab\);/, "An open Hero cockpit receives the current canonical Scene and tab before shortcuts refresh");
 assert.match(companionMarkup, /id="stress-trackers"/, "Tools must expose the shared Stress tracker");
 assert.match(appSource, /key:"stress",value:next/, "The narrator edits Stress through a canonical Scene event");
 assert.match(appSource, /scene\.undo=\[\]/, "Recursive undo snapshots must never fill localStorage");

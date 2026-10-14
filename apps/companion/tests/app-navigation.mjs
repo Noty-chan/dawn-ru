@@ -78,6 +78,7 @@ const state={id:"table-a",view:"gm",pendingAction:{id:"attack",actorId:"enemy",r
 const frozen=object=>{for(const value of Object.values(object))if(value&&typeof value==="object")frozen(value);return Object.freeze(object);};
 frozen(state);
 const context={window,document,location,history,HTMLElement:Element,HTMLDetailsElement:Details,
+  renderSceneDirector(){},renderSceneHeroSheet(){},setSheetTab(){},
   requestAnimationFrame:callback=>frames.push(callback),activeSceneView:()=>view,sceneViewportProfile:()=>viewport,
   $:id=>document.getElementById(id),$$:selector=>document.querySelectorAll(selector),state,
   localStorage:{getItem(){throw Error("Navigation must not read persistence");},setItem(){throw Error("Navigation must not write persistence");}},

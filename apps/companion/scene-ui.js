@@ -98,7 +98,7 @@ function openSceneActorCockpit(actorId,{section="turn"}={}){
   }
   if(!selectSceneDirectorActor(actor.id))return false;
   activeDirectorTab=section==="manual"?"manual":"turn";
-  renderSceneDirector();setScenePanel("director");return true;
+  setScenePanel("director");return true;
 }
 function openSceneCockpitLink(button){
   if(!button?.dataset?.sceneControlActor)return false;
@@ -528,8 +528,33 @@ function renderSceneWalls(board,walls){
     cell.insertAdjacentHTML("beforeend",`<button type="button" class="scene-wall side-${side}" data-scene-wall="${esc(wall.id)}" title="${esc(label)}" aria-label="${esc(manual?label:`${wall.label}, Здоровье ${wall.hp} из ${wall.maxHp}`)}"><span>${manual?"│":wall.hp}</span></button>`);
   });
 }
+function sceneDestinationPreviewScene(){
+  const{undo,redo,turnUndo,artworks,...scene}=Scene;
+  return{...scene,actors:(Scene.actors||[]).map(({tokenImage,portraitImage,portraitUrl,...actor})=>actor)};
+}
+function sceneDestinationPreviewKey(request){
+  const sync=Sync?.state?.()||{};
+  return JSON.stringify([sceneDestinationPreviewScene(),request,store.mode,activeSceneView(),sync.sceneId||null,sync.campaignId||null,sync.userId||null,sync.role||null,Boolean(sync.canNarrate),typeof S!=="undefined"?S.id:null,
+    typeof sceneMediaScopeGeneration!=="undefined"?sceneMediaScopeGeneration:0,
+    typeof manualTableDraftGeneration!=="undefined"?manualTableDraftGeneration:0,
+    pendingCoreAction,pendingEnemyStepActorId]);
+}
+function queueSceneBoardDestinationHighlights(board,space,request,{describe,isCurrent}={}){
+  const api=window.DAWN_SCENE_DESTINATION_HIGHLIGHTS,engine=window.DAWN_LIONWING_ENGINE;
+  if(!api?.supportsAsync||!engine)return false;
+  const key=sceneDestinationPreviewKey(request);
+  api.queue({board,cells:[...board.querySelectorAll("[data-scene-cell]")],key,
+    currentKey:()=>isCurrent&&!isCurrent()?null:sceneDestinationPreviewKey(request),
+    createQuery:()=>{
+      const query=engine.createDestinationQuery?.(Scene);
+      const snapshot=query?null:JSON.parse(JSON.stringify(sceneDestinationPreviewScene()));
+      return{status:destination=>query?query.status({...request,destination:{space:space.id,...destination}}):engine.destinationStatus(snapshot,{...request,destination:{space:space.id,...destination}}),dispose:()=>query?.dispose()};
+    },describe,onError:error=>console.warn("DAWN destination highlights unavailable",error)});
+  return true;
+}
 function renderSceneBoard(){
   const space=activeSceneSpace(),board=$("scene-board"),manualBoard=Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene)),combatStarted=sceneCombatStarted(Scene);
+  window.DAWN_SCENE_DESTINATION_HIGHLIGHTS?.cancel(board);
   if(!manualBoard&&typeof lwReconcileDestination === "function") lwReconcileDestination();
   board.dataset.battlefieldMode=space.mode||"custom";
   board.setAttribute("aria-label",t("scene.board.label",{width:space.width,height:space.height}));
@@ -559,13 +584,14 @@ const objects=Scene.objects.filter(object=>object.space===space.id&&sceneEnviron
     const x=Number(marker.x)+dx,y=Number(marker.y)+dy;if(x>=0&&y>=0&&x<space.width&&y<space.height)wispAuraCells.add(`${x},${y}`);
   }
   const cells=Array.from({length:space.width*space.height},(_,index)=>{
-    const x=index%space.width,y=Math.floor(index/space.width),key=`${x},${y}`,cellObjects=objectsByCell.get(key)||[],cellActors=actorsByCell.get(key)||[],cellMarkers=markersByCell.get(key)||[],reactionPath=reactionActor?.space===space.id?SceneEngine.movementPath(Scene,reactionActor.id,{x,y},{maxDistance:reactionDistance}):[],reactionOccupied=reactionActor&&SceneEngine.effectCellOccupancyStatus(Scene,reactionActor.id,{space:space.id,x,y}).available,reactionSpecialValid=reactionOption?.destinationKind==="edge"?reactionOccupied&&(x===0||y===0||x===space.width-1||y===space.height-1):reactionOption?.destinationKind?.startsWith("adjacent")?reactionOccupied&&reactionAnchor?.space===space.id&&Math.max(Math.abs(reactionAnchor.x-x),Math.abs(reactionAnchor.y-y))<=1:reactionOption?.destinationKind==="move"?reactionOccupied&&(reactionPath.length||(reactionActor.x===x&&reactionActor.y===y)):false,reactionValid=Boolean(reactionActor&&(reactionOption?.enemyTrait?reactionSpecialValid:reactionPath.length&&reactionOccupied)),movementPath=!lionwingMovement&&!appearanceAction&&!planModifierDestination&&movementActor?.space===space.id?SceneEngine.movementPath(Scene,movementActor.id,{x,y},{maxDistance:movementLimit,straight:jumping,ignoreEnemies:jumping,ignoreDifficult:jumping}):[],appearanceValid=appearanceAction&&SceneEngine.effectCellOccupancyStatus(Scene,movementActor.id,{space:space.id,x,y}).available&&(assassinAppearance||!actors.some(item=>item.id!==movementActor.id&&!item.knockedOut&&Math.abs(item.x-x)+Math.abs(item.y-y)<=1)),modifierDestinationValid=planModifierDestination&&SceneEngine.attackModifierDestinationStatus(Scene,movementActor.id,actionPlan.context?.targetIds||[],actionPlan.context?.attackModifierIds||[],{x,y},{actionId:movementAction?.id,origin:actionPlan.context?.reappearance||null}).available,bladeDestinationValid=armamentBlade&&SceneEngine.masterAtArmsStatus(Scene,movementActor.id,{modeId:"blade",targetIds:pendingCoreActionContext.context.targetIds||[],destination:{x,y}}).available,movementValid=lionwingMovement?window.DAWN_LIONWING_ENGINE.destinationStatus(Scene,{actorId:movementActor.id,payload:{kind:"action",actionId:movementAction.id,targetIds:[]},destination:{space:space.id,x,y}}).available:Boolean(movementActor&&SceneEngine.effectCellOccupancyStatus(Scene,movementActor.id,{space:space.id,x,y}).available&&(appearanceValid||modifierDestinationValid||(armamentBlade?bladeDestinationValid:movementPath.length))),classes=[...cellObjects.map(object=>`has-${sceneObjectDisplayType(object)}${object.manual?" has-manual-area":""}`),...(!combatStarted?[...(deployHero.has(key)?["has-deploy-hero"]:[]),...(deployEnemy.has(key)?["has-deploy-enemy"]:[])]:[])].join(" ");
+    const x=index%space.width,y=Math.floor(index/space.width),key=`${x},${y}`,cellObjects=objectsByCell.get(key)||[],cellActors=actorsByCell.get(key)||[],cellMarkers=markersByCell.get(key)||[],reactionPath=reactionActor?.space===space.id?SceneEngine.movementPath(Scene,reactionActor.id,{x,y},{maxDistance:reactionDistance}):[],reactionOccupied=reactionActor&&SceneEngine.effectCellOccupancyStatus(Scene,reactionActor.id,{space:space.id,x,y}).available,reactionSpecialValid=reactionOption?.destinationKind==="edge"?reactionOccupied&&(x===0||y===0||x===space.width-1||y===space.height-1):reactionOption?.destinationKind?.startsWith("adjacent")?reactionOccupied&&reactionAnchor?.space===space.id&&Math.max(Math.abs(reactionAnchor.x-x),Math.abs(reactionAnchor.y-y))<=1:reactionOption?.destinationKind==="move"?reactionOccupied&&(reactionPath.length||(reactionActor.x===x&&reactionActor.y===y)):false,reactionValid=Boolean(reactionActor&&(reactionOption?.enemyTrait?reactionSpecialValid:reactionPath.length&&reactionOccupied)),movementPath=!lionwingMovement&&!appearanceAction&&!planModifierDestination&&movementActor?.space===space.id?SceneEngine.movementPath(Scene,movementActor.id,{x,y},{maxDistance:movementLimit,straight:jumping,ignoreEnemies:jumping,ignoreDifficult:jumping}):[],appearanceValid=appearanceAction&&SceneEngine.effectCellOccupancyStatus(Scene,movementActor.id,{space:space.id,x,y}).available&&(assassinAppearance||!actors.some(item=>item.id!==movementActor.id&&!item.knockedOut&&Math.abs(item.x-x)+Math.abs(item.y-y)<=1)),modifierDestinationValid=planModifierDestination&&SceneEngine.attackModifierDestinationStatus(Scene,movementActor.id,actionPlan.context?.targetIds||[],actionPlan.context?.attackModifierIds||[],{x,y},{actionId:movementAction?.id,origin:actionPlan.context?.reappearance||null}).available,bladeDestinationValid=armamentBlade&&SceneEngine.masterAtArmsStatus(Scene,movementActor.id,{modeId:"blade",targetIds:pendingCoreActionContext.context.targetIds||[],destination:{x,y}}).available,movementValid=lionwingMovement?(window.DAWN_SCENE_DESTINATION_HIGHLIGHTS?.supportsAsync?false:window.DAWN_LIONWING_ENGINE.destinationStatus(Scene,{actorId:movementActor.id,payload:{kind:"action",actionId:movementAction.id,targetIds:[]},destination:{space:space.id,x,y}}).available):Boolean(movementActor&&SceneEngine.effectCellOccupancyStatus(Scene,movementActor.id,{space:space.id,x,y}).available&&(appearanceValid||modifierDestinationValid||(armamentBlade?bladeDestinationValid:movementPath.length))),classes=[...cellObjects.map(object=>`has-${sceneObjectDisplayType(object)}${object.manual?" has-manual-area":""}`),...(!combatStarted?[...(deployHero.has(key)?["has-deploy-hero"]:[]),...(deployEnemy.has(key)?["has-deploy-enemy"]:[])]:[])].join(" ");
     const tokens=cellActors.map(actor=>{const manual=globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene),maxHp=Number(actor.maxHp)||0,grimFocus=!manual&&Boolean(actor.ruleState?.grimTransformed),insideGas=cellObjects.some(object=>object.type==="gas"),hudValue=grimFocus?Number(actor.focus||0):Number(actor.hp||0),hudMaximum=grimFocus?Math.max(10,hudValue):maxHp,hpRatio=hudMaximum?clamp(hudValue/hudMaximum*100,0,100):100,effectCount=sceneActorEffects(actor).length,turnActorId=manual?Scene.manualTable?.actorId:Scene.activeActorId,status=!manual&&actor.knockedOut?t("scene.board.out"):turnActorId===actor.id?t(manual?"scene.board.playing":"scene.board.turn"):"";return `<button type="button" draggable="${canDragSceneActor(actor)}" class="scene-token ${actor.team} ${insideGas?"inside-gas":""} ${grimFocus?"grim-focus":""} ${!manual&&actor.knockedOut?"knocked-out":""} ${turnActorId===actor.id?"active-turn":""} ${Scene.selectedActor===actor.id?"selected":""} ${Scene.targetIds.includes(actor.id)?"targeted":""}" data-scene-actor="${actor.id}" data-scene-actor-team="${actor.team}" style="--token-color:${actor.tokenColor};--token-hp:${hpRatio}%" aria-label="${esc(grimFocus?t("scene.board.focusAria",{name:actor.name,value:hudValue,ap:actor.ap,status}):t("scene.board.healthAria",{name:actor.name,hp:actor.hp,max:maxHp||t("scene.board.unknown"),ap:manual?"":t("scene.board.ap",{ap:actor.ap}),status}))}"><span class="scene-token-visual">${actor.tokenImage?`<img src="${actor.tokenImage}" alt="">`:esc(actor.tokenSymbol||actor.name.trim().slice(0,2).toUpperCase()||"?")}</span><span class="scene-token-hud" aria-hidden="true"><i><u></u></i><b>${grimFocus?`Ф ${hudValue}`:`${actor.hp}/${maxHp||"—"}`}</b></span>${actor.kind!=="token"&&!manual?`<span class="scene-token-ap" aria-hidden="true">${actor.ap}</span>`:""}${effectCount?`<span class="scene-token-effects" aria-hidden="true">${effectCount}</span>`:""}</button>`}).join("");
     const topologyCut=cutsByCell.get(key),topologySelected=sceneTopologyCells.has(key),topologyInvalid=Scene.tool==="topology"&&(removed.has(key)||busy.has(key)),innerWorldCellValid=innerWorldPrompt&&(Scene.pendingPrompt.options||[]).includes(`cell:${x},${y}`),promptPlacementValid=placementPrompt&&SceneEngine.preparePromptPlacement(Scene,{destination:{x,y}}).ok;
     return `<div class="scene-cell ${classes} ${removed.has(key)?"topology-removed":""} ${topologyCut?.crossing==="opposite"?"topology-crossing":""} ${topologySelected?"topology-selected":""} ${topologyInvalid?"topology-invalid":""} ${reactionValid?"reaction-valid":""} ${movementValid?"movement-valid":""} ${promptPlacementValid||innerWorldCellValid?"prompt-placement-valid":""} ${scenePreviewCells.has(key)?"preview":""} ${sceneMeasureCells.has(key)?"measured":""}" style="--manual-area-color:${safeColor(cellObjects.find(o=>o.manual)?.color,"#65c8d0")}" role="gridcell" tabindex="0" data-scene-cell="${key}" aria-disabled="${removed.has(key)||innerWorldPrompt&&!innerWorldCellValid}" aria-label="${esc(t("scene.board.cell",{x:x+1,y:y+1}))}${innerWorldPrompt&&!innerWorldCellValid?t("scene.board.unavailable"):removed.has(key)?topologyCut?.crossing==="opposite"?t("scene.board.crossing"):t("scene.board.removed"):""}">${removed.has(key)?`<span class="scene-topology-glyph" aria-hidden="true">${topologyCut?.crossing==="opposite"?"⇥":"▧"}</span>`:""}${cellObjects.length?`<span class="scene-cell-rules" title="${esc(cellObjects.map(object=>`${object.label}: ${object.source}`).join("; "))}">${cellObjects.map(object=>sceneObjectDisplayName(object)[0]).join("")}</span>`:""}${cellMarkers.length?`<span class="scene-cell-markers">${cellMarkers.map(marker=>`<button type="button" class="scene-marker marker-${marker.kind} ${Scene.pendingPrompt?.context?.markerId===marker.id?"marker-selected":""}" data-scene-marker="${marker.id}" style="--marker-color:${marker.color}" title="${esc(`${marker.label} · ${String.fromCharCode(65+marker.x)}${marker.y+1} · ${SCENE_DURATION_NAMES[marker.duration]||"срок не указан"}`)}">${esc(sceneMarkerGlyph(marker))}</button>`).join("")}</span>`:""}<span class="scene-coord">${String.fromCharCode(65+x)}${y+1}</span><span class="scene-tokens">${tokens}</span>${typeof sceneMeasureEnd!=="undefined"&&sceneMeasureEnd?.x===x&&sceneMeasureEnd?.y===y?`<output class="scene-measure-readout" aria-live="polite">${esc(sceneMeasureLabel)}</output>`:""}</div>`}).join("");
   const presentParticipants=Scene.actors.filter(actor=>actor.space===space.id&&!actor.deploymentProxy&&(activeSceneView()==="gm"||!actor.hidden)),disappearedParticipants=presentParticipants.filter(actor=>sceneActorEffects(actor).includes("positive.исчез")),hasParticipants=presentParticipants.length>0;
   const empty=actors.length||placementPrompt||planAppearance||["topology","area","wall","marker"].includes(Scene.tool)||pendingZealotPlan?"":`<div class="scene-empty-state" role="note"><span aria-hidden="true">✦</span><strong>${hasParticipants?(isEnglishPreview()?"Participants off the field":"Участники вне поля"):(isEnglishPreview()?"The Scene is waiting for participants":"Сцена ждёт героев")}</strong><small>${hasParticipants?`${isEnglishPreview()?"Participants are already added but are currently off the field. Check their state in the cockpit.":"Участники уже добавлены, но сейчас вне поля. Проверьте их состояние в Пульте."}${disappearedParticipants.length?(isEnglishPreview()?" Disappeared characters can reappear at the start of their Turn: start the Turn and choose an arrival space.":" Исчезнувшие могут появиться в начале своего Хода: начните Ход и выберите клетку появления."):""}`:activeSceneView()==="gm"?(isEnglishPreview()?"Add a hero or opponent to the field.":"Добавьте героя или противника — они сразу появятся на поле."):(isEnglishPreview()?"The Narrator has not added participants yet.":"Нарратор ещё не добавил участников.")}</small>${activeSceneView()==="gm"?`<button type="button" class="primary" data-open-scene-panel="${hasParticipants?"director":"add"}">${hasParticipants?(isEnglishPreview()?"Open cockpit":"Открыть Пульт"):(isEnglishPreview()?"Add participant":"Добавить участника")}</button>`:""}</div>`;
   board.innerHTML=cells+sceneMovementTracesSvg(space,actors)+empty;
+  if(lionwingMovement)queueSceneBoardDestinationHighlights(board,space,{actorId:movementActor.id,payload:{kind:"action",actionId:movementAction.id,targetIds:[]}});
   if(typeof lwApplyDestinationHighlights === "function") lwApplyDestinationHighlights(board,space);
   for (const markerId of detectiveMarkerIds) board.querySelector(`[data-scene-marker="${CSS.escape(markerId)}"]`)?.classList.add("detective-teleport-target");
   for(const key of Scene.targetCells||[])board.querySelector(`[data-scene-cell="${CSS.escape(key)}"]`)?.classList.add("targeted-cell");
@@ -700,6 +726,40 @@ function renderSceneMedia(){
 function usingNextSceneInterface(){return sceneInterfaceVersion==="next"}
 function scenePanelSide(panel){if(!usingNextSceneInterface()||activeSceneView()==="player"||!sceneLeftPanelsEnabled)return"right";if(scenePanelLayoutMode==="right")return"right";if(scenePanelLayoutMode==="left")return"left";return scenePanelLayoutMode==="custom"?(scenePanelSides[panel]||"right"):(DEFAULT_SCENE_PANEL_SIDES[panel]||"right")}
 function isScenePanelOpen(panel){return usingNextSceneInterface()?activeScenePanels.left===panel||activeScenePanels.right===panel:activeScenePanel===panel}
+let scenePanelRenderPass=false,scenePanelPrivacyScope=null;
+function reconcileScenePanelPrivacy(){
+  const sync=typeof Sync!=="undefined"?Sync?.state?.()||{}:{},scope=JSON.stringify([sync.sceneId||null,sync.campaignId||null,sync.userId||null,sync.role||null,Boolean(sync.canNarrate),activeSceneView(),
+    Scene.id||Scene.sceneId||Scene.sceneIdentity||null,Scene.rulesEdition,Scene.tablePolicy?.mode||"rules",Scene.tablePolicy?.epoch||0,Scene.lionwing?.sceneSerial||1,
+    typeof manualTableDraftGeneration!=="undefined"?manualTableDraftGeneration:0,typeof S!=="undefined"?S.id:null]);
+  if(scenePanelPrivacyScope!==null&&scenePanelPrivacyScope!==scope){
+    const ownsPaint=typeof lwPaintingDirector!=="undefined",previousPaint=ownsPaint?lwPaintingDirector:false;
+    if(ownsPaint)lwPaintingDirector=true;
+    try{
+    for(const id of ["scene-director","scene-entities","play-kit","scene-utility","scene-reference-list","gm-enemy-library","gm-encounter-library","scene-compound-parts"]){
+      const root=$(id);if(root){root.innerHTML="";delete root.sceneReferenceMarkup;delete root.sceneReferenceCards;if(root.dataset){delete root.dataset.lwCockpitScope;delete root.dataset.sceneSheetIdentity;delete root.dataset.sceneSheetActorScope;}}
+    }
+    if(typeof resetSceneCockpitDrafts==="function")resetSceneCockpitDrafts();
+    window.DAWN_SCENE_DESTINATION_HIGHLIGHTS?.cancel?.($("scene-board"));
+    }finally{if(ownsPaint)lwPaintingDirector=previousPaint;}
+  }
+  scenePanelPrivacyScope=scope;
+}
+function reconcileSceneBoardDrafts(){
+  if(typeof lwReconcileGeometryPreview==="function")lwReconcileGeometryPreview();
+  if(typeof lwInstallGeometryPreviewGuard==="function")lwInstallGeometryPreviewGuard();
+}
+function renderOpenScenePanels(requested=null){
+  reconcileScenePanelPrivacy();
+  const manual=Boolean(window.DAWN_TABLE_POLICY?.isManual(Scene)),gm=activeSceneView()==="gm",open=panel=>(requested===null||requested===panel)&&isScenePanelOpen(panel);
+  let painted=false;
+  if(!manual&&gm&&open("director")){renderSceneDirector();painted=true;}
+  if(!manual&&open("sheet")){renderSceneHeroSheet();setSheetTab(activeSheetTab);painted=true;}
+  if(!manual&&open("utility")){renderSceneUtility();painted=true;}
+  if(open("reference")){renderSceneReference();painted=true;}
+  if(gm&&open("entities")&&typeof renderLionwingEntities==="function"){renderLionwingEntities();painted=true;}
+  if(gm&&open("add")){renderEnemySelect();renderGmLibraries();renderCompoundBuilder();painted=true;}
+  return painted;
+}
 function syncScenePanels(previous=null){
   const workbench=$("scene-workbench"),player=activeSceneView()==="player",leftRail=$("scene-rail-left"),rightRail=$("scene-rail-right");
   if(!usingNextSceneInterface()){
@@ -741,7 +801,7 @@ function setScenePanel(panel,toggle=false){
   if(panel&&activeSceneView()==="player"&&document.querySelector(`[data-scene-panel-content="${panel}"]`)?.classList.contains("gm-only"))panel=null;
   const previous=activeScenePanel;
   if(!usingNextSceneInterface()){
-    const next=toggle&&previous===panel?null:panel;if(next&&!previous&&document.activeElement instanceof HTMLElement)scenePanelTrigger=document.activeElement;activeScenePanel=next;syncScenePanels(previous);if(next&&next!==previous)requestAnimationFrame(()=>document.querySelector(`[data-scene-panel-content="${next}"] [data-close-scene-panel]`)?.focus({preventScroll:true}));else if(!next&&previous&&scenePanelTrigger?.isConnected){const trigger=scenePanelTrigger;scenePanelTrigger=null;requestAnimationFrame(()=>trigger.focus({preventScroll:true}))}return
+    const next=toggle&&previous===panel?null:panel;if(next&&!previous&&document.activeElement instanceof HTMLElement)scenePanelTrigger=document.activeElement;activeScenePanel=next;syncScenePanels(previous);if(!scenePanelRenderPass&&renderOpenScenePanels(next||"")&&typeof renderSceneChrome==="function")renderSceneChrome();if(next&&next!==previous)requestAnimationFrame(()=>document.querySelector(`[data-scene-panel-content="${next}"] [data-close-scene-panel]`)?.focus({preventScroll:true}));else if(!next&&previous&&scenePanelTrigger?.isConnected){const trigger=scenePanelTrigger;scenePanelTrigger=null;requestAnimationFrame(()=>trigger.focus({preventScroll:true}))}return
   }
   if(!panel){
     const side=previous?Object.entries(activeScenePanels).find(([,open])=>open===previous)?.[0]:(activeScenePanels.right?"right":activeScenePanels.left?"left":null);
@@ -754,6 +814,7 @@ function setScenePanel(panel,toggle=false){
     else{if(!isScenePanelOpen(panel)&&document.activeElement instanceof HTMLElement)scenePanelTrigger=document.activeElement;activeScenePanels[side]=panel;activeScenePanel=panel}
   }
   syncScenePanels(previous);window.DAWN_SCENE_WORKSPACE?.refresh();
+  if(!scenePanelRenderPass&&renderOpenScenePanels(panel||"")&&typeof renderSceneChrome==="function")renderSceneChrome();
   if(activeScenePanel&&activeScenePanel!==previous)requestAnimationFrame(()=>document.querySelector(`[data-scene-panel-content="${activeScenePanel}"] [data-close-scene-panel]`)?.focus({preventScroll:true}));
   else if(!activeScenePanel&&previous&&scenePanelTrigger?.isConnected){const trigger=scenePanelTrigger;scenePanelTrigger=null;requestAnimationFrame(()=>trigger.focus({preventScroll:true}))}
 }
@@ -826,8 +887,12 @@ function sceneRollShortcuts(actor){
   const skills=(actor.skills||[]).filter(skill=>skillDisplayName(skill,actor).trim()),abilities=[["ability",actor.ability],["taintedAbility",actor.taintedAbility]].filter(([,ability])=>Boolean(ability));
   return `<div class="scene-roll-shortcuts"><div class="scene-shortcut-head"><div><span class="kind">БРОСОК С ЛИСТА</span><strong>Выберите подходящую особенность</strong></div><small>Затем останется выбрать Атрибут</small></div>${skills.length?`<div class="scene-feature-group"><h4>Навыки</h4><div class="scene-feature-buttons">${skills.map(skill=>`<button type="button" data-sheet-roll-skill="${esc(skill.id)}"><span>${esc(skillDisplayName(skill,actor))}</span><b>+${skill.rank}D6</b></button>`).join("")}</div></div>`:""}${abilities.length?`<div class="scene-feature-group"><h4>Способности</h4><div class="scene-feature-buttons">${abilities.map(([key,ability])=>`<button type="button" class="ability" data-sheet-roll-ability="${key}"><span>${esc(ability.name||"Способность")}</span><b>+${ability.rank}D6</b><small>${esc(ability.desc||"")}</small></button>`).join("")}</div></div>`:""}</div>`;
 }
+function sceneSheetActor(){
+  const localActor=Scene.actors.find(item=>item.heroId===S.id)||null;
+  return activeSceneView()==="gm"?(Scene.actors.find(item=>item.id===Scene.selectedActor)||Scene.actors.find(item=>item.id===Scene.activeActorId)||localActor):localActor;
+}
 function sceneSheetPanel(){
-  const localActor=Scene.actors.find(item=>item.heroId===S.id)||null,actor=activeSceneView()==="gm"?(Scene.actors.find(item=>item.id===Scene.selectedActor)||Scene.actors.find(item=>item.id===Scene.activeActorId)||localActor):localActor;
+  const actor=sceneSheetActor();
   if(!actor){
     const en=isEnglishPreview(),gm=activeSceneView()==="gm",hasParticipants=Scene.actors.length>0,sync=Sync?.state(),canJoin=!gm&&Boolean(sync?.sceneId&&sync.role==="player");
     const title=hasParticipants?(en?"No character selected":"Участник не выбран"):(en?"No participants on the Table yet":"На Столе пока нет участников");
@@ -858,7 +923,7 @@ function openSceneRollPreset({actorId="",skillId="",abilityKey=""}={}){
   if(view!=="gm"&&actorId&&(!local||requested?.id!==local.id))return toast("Броски доступны только для вашего героя");
   const actor=view==="gm"?(requested||Scene.actors.find(item=>item.id===Scene.selectedActor)||Scene.actors.find(item=>sceneUtilityActorAvailable(item,"gm"))):local;
   if(!sceneUtilityActorAvailable(actor,view))return toast("Сначала добавьте или обновите героя на Сцене");
-  activeUtilityPreset={skillId:String(skillId||""),abilityKey:String(abilityKey||"")};activeUtilityActorId=actor.id;renderSceneUtility();setScenePanel("utility");requestAnimationFrame(()=>$('scene-dice-attr')?.focus())
+  activeUtilityPreset={skillId:String(skillId||""),abilityKey:String(abilityKey||"")};activeUtilityActorId=actor.id;setScenePanel("utility");requestAnimationFrame(()=>$('scene-dice-attr')?.focus())
 }
 function sceneUtilityActor(){
   const view=activeSceneView();
@@ -1140,6 +1205,7 @@ function renderSceneLog(view=activeSceneView()){
   if(log.innerHTML!==markup)log.innerHTML=markup;
 }
 function renderScene(){
+  reconcileScenePanelPrivacy();
   const writeText=(node,value)=>{const text=String(value);if(node.textContent!==text)node.textContent=text;};
   const writeMarkup=(node,markup)=>{if(node.innerHTML!==markup)node.innerHTML=markup;};
   reconcileLocalSceneFlow();
@@ -1148,7 +1214,7 @@ function renderScene(){
   renderSceneLayoutSettings();
   document.body.classList.toggle("scene-turn-strip-hidden",usingNextSceneInterface()&&!sceneTurnStripVisible);
   document.body.classList.toggle("scene-density-comfortable",usingNextSceneInterface()&&sceneInterfaceDensity==="comfortable");
-  const workbench=$("scene-workbench"),view=activeSceneView(),forcedPlayer=Sync?.state().sceneId&&Sync.state().role==="player",tool=activeSceneTool(),areaSelect=$("scene-area-type"),deploymentClosed=sceneCombatStarted(Scene);if(deploymentClosed&&areaSelect.value.startsWith("deploy-"))areaSelect.value="terrain";const areaType=areaSelect.value;workbench.classList.toggle("player-view",view==="player");document.body.classList.toggle("scene-player-view",view==="player");$("scene-view").value=view;$("scene-view").disabled=Boolean(forcedPlayer);writeText($("scene-name"),sceneDisplayName());writeText($("scene-round-value"),Scene.round);writeText($("scene-tension-value"),Scene.tension);const active=Scene.actors.find(actor=>actor.id===Scene.activeActorId&&(view==="gm"||!actor.hidden));writeText($("scene-active-turn"),active?`Ход: ${active.name}`:"Ход не начат");$("scene-space-tabs").hidden=Scene.spaces.length<2;writeMarkup($("scene-space-tabs"),Scene.spaces.map(space=>`<button type="button" class="${space.id===Scene.activeSpace?"on":""}" data-scene-space="${space.id}">${esc(sceneSpaceDisplayName(space))} <small>${Scene.actors.filter(actor=>actor.space===space.id&&(view==="gm"||!actor.hidden)).length}</small></button>`).join(""));$$('[data-scene-tool]').forEach(button=>{const help=button.dataset.toolHelp,areaButton=button.dataset.sceneTool==="area",selected=button.dataset.sceneTool===tool&&(!areaButton||button.dataset.sceneAreaType===areaType);button.classList.toggle("on",selected);if(button.getAttribute("aria-pressed")!==String(selected))button.setAttribute("aria-pressed",String(selected));if(help){button.title=help;if(!button.getAttribute("aria-label"))button.setAttribute("aria-label",help)}});$("scene-area-controls").hidden=tool!=="area";$("scene-marker-controls").hidden=tool!=="marker";$("scene-topology-controls").hidden=tool!=="topology";if($("scene-erase-controls"))$("scene-erase-controls").hidden=tool!=="erase";const selected=Scene.actors.find(actor=>actor.id===Scene.selectedActor&&(view==="gm"||!actor.hidden)),targets=Scene.actors.filter(actor=>Scene.targetIds.includes(actor.id)&&(view==="gm"||!actor.hidden)),templates=availableSceneTemplates(),promptMarker=canControlScenePrompt()?Scene.markers.find(marker=>marker.id===Scene.pendingPrompt?.context?.markerId):null;writeText($("scene-selection-summary"),promptMarker?`Перемещение: ${promptMarker.label} — выберите подсвеченную клетку`:tool==="place"?selected?`Ручная перестановка: ${selected.name} — выберите клетку`:"Ручная перестановка: выберите участника":tool==="topology"?`Разрыв поля: выбрано ${sceneTopologyCells.size} клеток`:sceneMeasureLabel||targets.length?sceneMeasureLabel||`Цели (${targets.length}): ${targets.map(actor=>actor.name).join(", ")}`:selected?`Выбран: ${selected.name}`:"Нет выбранных целей");$("scene-topology-apply").disabled=!sceneTopologyCells.size;writeMarkup($("scene-rule-suggestions"),templates.length?`<strong>С листа:</strong>${templates.map((template,index)=>`<button type="button" data-scene-template="${index}">${esc(template.name)}</button>`).join("")}`:"");$("scene-undo").disabled=!(Scene.undo.length||(Scene.turnUndo||[]).length);renderSceneSources();renderEnemySelect();renderSceneManager();renderSceneBoard();renderSceneInspector();renderSceneMedia();
+  const workbench=$("scene-workbench"),view=activeSceneView(),forcedPlayer=Sync?.state().sceneId&&Sync.state().role==="player",tool=activeSceneTool(),areaSelect=$("scene-area-type"),deploymentClosed=sceneCombatStarted(Scene);if(deploymentClosed&&areaSelect.value.startsWith("deploy-"))areaSelect.value="terrain";const areaType=areaSelect.value;workbench.classList.toggle("player-view",view==="player");document.body.classList.toggle("scene-player-view",view==="player");$("scene-view").value=view;$("scene-view").disabled=Boolean(forcedPlayer);writeText($("scene-name"),sceneDisplayName());writeText($("scene-round-value"),Scene.round);writeText($("scene-tension-value"),Scene.tension);const active=Scene.actors.find(actor=>actor.id===Scene.activeActorId&&(view==="gm"||!actor.hidden));writeText($("scene-active-turn"),active?`Ход: ${active.name}`:"Ход не начат");$("scene-space-tabs").hidden=Scene.spaces.length<2;writeMarkup($("scene-space-tabs"),Scene.spaces.map(space=>`<button type="button" class="${space.id===Scene.activeSpace?"on":""}" data-scene-space="${space.id}">${esc(sceneSpaceDisplayName(space))} <small>${Scene.actors.filter(actor=>actor.space===space.id&&(view==="gm"||!actor.hidden)).length}</small></button>`).join(""));$$('[data-scene-tool]').forEach(button=>{const help=button.dataset.toolHelp,areaButton=button.dataset.sceneTool==="area",selected=button.dataset.sceneTool===tool&&(!areaButton||button.dataset.sceneAreaType===areaType);button.classList.toggle("on",selected);if(button.getAttribute("aria-pressed")!==String(selected))button.setAttribute("aria-pressed",String(selected));if(help){button.title=help;if(!button.getAttribute("aria-label"))button.setAttribute("aria-label",help)}});$("scene-area-controls").hidden=tool!=="area";$("scene-marker-controls").hidden=tool!=="marker";$("scene-topology-controls").hidden=tool!=="topology";if($("scene-erase-controls"))$("scene-erase-controls").hidden=tool!=="erase";const selected=Scene.actors.find(actor=>actor.id===Scene.selectedActor&&(view==="gm"||!actor.hidden)),targets=Scene.actors.filter(actor=>Scene.targetIds.includes(actor.id)&&(view==="gm"||!actor.hidden)),templates=availableSceneTemplates(),promptMarker=canControlScenePrompt()?Scene.markers.find(marker=>marker.id===Scene.pendingPrompt?.context?.markerId):null;writeText($("scene-selection-summary"),promptMarker?`Перемещение: ${promptMarker.label} — выберите подсвеченную клетку`:tool==="place"?selected?`Ручная перестановка: ${selected.name} — выберите клетку`:"Ручная перестановка: выберите участника":tool==="topology"?`Разрыв поля: выбрано ${sceneTopologyCells.size} клеток`:sceneMeasureLabel||targets.length?sceneMeasureLabel||`Цели (${targets.length}): ${targets.map(actor=>actor.name).join(", ")}`:selected?`Выбран: ${selected.name}`:"Нет выбранных целей");$("scene-topology-apply").disabled=!sceneTopologyCells.size;writeMarkup($("scene-rule-suggestions"),templates.length?`<strong>С листа:</strong>${templates.map((template,index)=>`<button type="button" data-scene-template="${index}">${esc(template.name)}</button>`).join("")}`:"");$("scene-undo").disabled=!(Scene.undo.length||(Scene.turnUndo||[]).length);renderSceneSources();renderSceneManager();reconcileSceneBoardDrafts();renderSceneBoard();renderSceneInspector();renderSceneMedia();
   $("scene-clear-targets").disabled=!targets.length&&!Scene.targetCells?.length;
   if(sceneHasLegacyLionwingModifiers(Scene))writeText($("scene-selection-summary"),LEGACY_LIONWING_SCENE_MESSAGE);
   $("scene-wall-controls").hidden=tool!=="wall";appendTerrainRepairControls();appendSceneWallInspector();appendMarkerClockControls();if($("scene-redo"))$("scene-redo").disabled=!Scene.redo?.length;
@@ -1158,7 +1224,11 @@ function renderScene(){
   const cameraActions=document.querySelector(".scene-view-actions");
   if(cameraActions&&!cameraActions.querySelector("[data-scene-camera]"))cameraActions.insertAdjacentHTML("afterbegin",'<button type="button" data-scene-camera="active" title="Показать текущего участника на поле">К ходу</button><button type="button" data-scene-camera="selected" title="Показать выбранного участника на поле">К выбранному</button>');
   for(const button of $$("[data-scene-camera]")){const hasActor=button.dataset.sceneCamera==="active"?Boolean(active):Boolean(selected);button.disabled=!hasActor;button.title=hasActor?button.dataset.sceneCamera==="active"?"Показать текущего участника на поле":"Показать выбранного участника на поле":button.dataset.sceneCamera==="active"?"Ход ещё не начат":"Сначала выберите участника на поле"}
-  renderSceneTurnStrip();renderSceneFlow();renderSceneDirector();renderSceneUtility();renderSceneReference();renderGmLibraries();renderCompoundBuilder();renderSceneHeroSheet();renderSceneChrome();refreshSceneControlStates();applySceneZoom();setScenePanel(activeScenePanel);setSheetTab(activeSheetTab);if(sceneNeedsInitialFit)scheduleSceneViewportFit();
+  renderSceneTurnStrip();renderSceneFlow();
+  const previousPanelPass=scenePanelRenderPass;scenePanelRenderPass=true;
+  try{setScenePanel(activeScenePanel);renderOpenScenePanels();}finally{scenePanelRenderPass=previousPanelPass;}
+  renderSceneChrome();refreshSceneControlStates();applySceneZoom();
+  if(sceneNeedsInitialFit)scheduleSceneViewportFit();
   document.body.classList.toggle("scene-player-view",store.mode==="play"&&view==="player");
   window.DAWN_SCENE_WORKSPACE?.refresh();
   renderSceneLog(view);

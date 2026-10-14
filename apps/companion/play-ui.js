@@ -2,6 +2,8 @@
 
 function renderSync(){
   if(!Sync)return;
+  if(typeof reconcileScenePanelPrivacy==="function")reconcileScenePanelPrivacy();
+  globalThis.window?.DAWN_SCENE_DESTINATION_HIGHLIGHTS?.reconcile?.($("scene-board"));
   const sync=Sync.state(),queued=typeof networkV2QueueStatus==="function"?networkV2QueueStatus():{pending:0,failed:0};
   const statusNames={offline:t(sync.authenticated?"sync.status.noNetwork":"sync.status.local"),connecting:t("sync.status.connecting"),authenticated:t("sync.status.authenticated"),online:t("sync.status.online"),error:t("sync.status.error")};
   const roleNames={owner:t("sync.role.owner"),narrator:t("sync.role.narrator"),player:t("sync.role.player")};
@@ -34,24 +36,27 @@ function renderSync(){
 function renderSceneHeroSheet(){
   if(globalThis.window?.DAWN_TABLE_POLICY?.isManual(Scene)){const root=$("play-kit");if(root)root.innerHTML="";return;}
   const playKit=$("play-kit");if(!playKit)return;
-  const sceneIdentity=typeof lwGeometrySceneIdentity==="function"?lwGeometrySceneIdentity():JSON.stringify([Scene.id||null,Scene.rulesEdition,Scene.name]);
+  const actor=sceneSheetActor(),actorScope=typeof lwCockpitUiScope==="function"?lwCockpitUiScope(actor?.id):JSON.stringify([actor?.id,actor?.heroId,actor?.ownerId,actor?.team,actor?.hidden]);
+  const sceneIdentity=JSON.stringify([typeof lwGeometrySceneIdentity==="function"?lwGeometrySceneIdentity():[Scene.id||null,Scene.rulesEdition,Scene.name],actorScope,[actor?.id,actor?.kind,actor?.heroId,actor?.ownerId,actor?.characterId,actor?.profileId,actor?.crowdGroupId]]);
   const preserve=playKit.dataset.sceneSheetIdentity===sceneIdentity;
+  if(!preserve&&playKit.dataset.sceneSheetActorScope&&typeof lwDiscardFormDraftScope==="function")lwDiscardFormDraftScope(playKit.dataset.sceneSheetActorScope);
   const entries=(selector,keyFor)=>{const counts=new Map();return [...playKit.querySelectorAll(selector)].map(element=>{const base=keyFor(element),index=counts.get(base)||0;counts.set(base,index+1);return{element,key:JSON.stringify([base,index])}})};
   const scope=element=>[element.closest("[data-scene-sheet-actor]")?.dataset.sceneSheetActor||"",element.closest("[data-lw-technique-group]")?.dataset.lwTechniqueGroup||"",element.closest("[data-lw-technique-level]")?.dataset.lwTechniqueLevel||""];
   const detailKey=element=>JSON.stringify([...scope(element),element.querySelector("summary")?.textContent||""]);
-  const controlKey=element=>typeof lwDraftKey==="function"&&lwDraftKey(element)||JSON.stringify([...scope(element),element.id||element.name||"",[...element.attributes].filter(attr=>attr.name.startsWith("data-")).map(attr=>[attr.name,attr.value])]);
+  const controlKey=element=>typeof lwCockpitElementKey==="function"&&element.closest("[data-lw-root]")?lwCockpitElementKey(element):JSON.stringify([...scope(element),element.id||element.name||"",[...element.attributes].filter(attr=>attr.name.startsWith("data-")).map(attr=>[attr.name,attr.value])]);
   const details=new Map(preserve?entries("details",detailKey).map(({element,key})=>[key,element.open]):[]);
   const controls=preserve?entries("input,select,textarea",controlKey):[];
-  const values=new Map(controls.map(({element,key})=>[key,element.type==="checkbox"||element.type==="radio"?element.checked:element.value]));
-  const focused=controls.find(({element})=>element===document.activeElement),selection=focused?{start:focused.element.selectionStart,end:focused.element.selectionEnd,direction:focused.element.selectionDirection}:null;
-  if(preserve&&typeof lwDraftKey==="function"&&typeof lwFormDraft!=="undefined")for(const{element}of controls){const key=lwDraftKey(element);if(key)lwFormDraft.set(key,element.type==="checkbox"||element.type==="radio"?element.checked:element.value);}
-  playKit.innerHTML=sceneSheetPanel();playKit.dataset.sceneSheetIdentity=sceneIdentity;
+  const editable=element=>!element.disabled&&!element.readOnly&&element.type!=="file",dirty=element=>typeof lwCockpitControlDirty==="function"?lwCockpitControlDirty(element):element.type==="checkbox"||element.type==="radio"?element.checked!==element.defaultChecked:element.tagName==="SELECT"?[...element.options].some(option=>option.selected!==option.defaultSelected):element.value!==element.defaultValue;
+  const values=new Map(controls.filter(({element})=>editable(element)&&dirty(element)).map(({element,key})=>[key,element.type==="checkbox"||element.type==="radio"?element.checked:element.value]));
+  const focused=controls.find(({element})=>element===document.activeElement&&editable(element)),selection=focused?{start:focused.element.selectionStart,end:focused.element.selectionEnd,direction:focused.element.selectionDirection}:null;
+  if(preserve&&typeof lwDraftKey==="function"&&typeof lwFormDraft!=="undefined")for(const{element,key:control}of controls){const key=lwDraftKey(element);if(key){if(values.has(control))lwFormDraft.set(key,values.get(control));else lwFormDraft.delete(key);}}
+  playKit.innerHTML=sceneSheetPanel();playKit.dataset.sceneSheetIdentity=sceneIdentity;playKit.dataset.sceneSheetActorScope=actorScope;
   for(const{element,key}of entries("details",detailKey))if(details.has(key))element.open=details.get(key);
   const nextControls=entries("input,select,textarea",controlKey);
-  for(const{element,key}of nextControls)if(values.has(key)){if(element.type==="checkbox"||element.type==="radio")element.checked=values.get(key);else element.value=values.get(key);}
+  for(const{element,key}of nextControls)if(values.has(key)&&editable(element)){if(element.type==="checkbox"||element.type==="radio")element.checked=values.get(key);else if(element.tagName!=="SELECT"||[...element.options].some(option=>option.value===values.get(key)))element.value=values.get(key);}
   if(typeof lwRestoreFormDrafts==="function")lwRestoreFormDrafts(playKit);
   const nextFocused=focused&&nextControls.find(({key})=>key===focused.key)?.element;
-  if(nextFocused){nextFocused.focus({preventScroll:true});if(Number.isInteger(selection.start)&&Number.isInteger(selection.end)&&typeof nextFocused.setSelectionRange==="function")nextFocused.setSelectionRange(selection.start,selection.end,selection.direction);}
+  if(nextFocused&&editable(nextFocused)){nextFocused.focus({preventScroll:true});if(Number.isInteger(selection.start)&&Number.isInteger(selection.end)&&typeof nextFocused.setSelectionRange==="function")nextFocused.setSelectionRange(selection.start,selection.end,selection.direction);}
 }
 function renderPlay(){
   ensureRuntime();const d=derived(),rt=S.runtime,usesWounds=d.guts!=null;
