@@ -3,7 +3,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const source=fs.readFileSync(new URL("../lionwing-ui.js",import.meta.url),"utf8");
-const helper=source.slice(source.indexOf("const lwGeometryStopReasons"),source.indexOf("function lwCostsFrom"));
+const helper=source.slice(source.indexOf("function lwTechniqueDraftSceneKey()"),source.indexOf("function lwTechniqueDraftHtml("))+source.slice(source.indexOf("const lwGeometryStopReasons"),source.indexOf("function lwCostsFrom"));
 const clickStart=source.indexOf('document.addEventListener("click", event => {');
 const clickHandler=source.slice(clickStart,source.indexOf('document.addEventListener("change",event=>{',clickStart));
 const pendingGuard=source.slice(source.indexOf("function lwPendingCommandReason"),source.indexOf("function lwRefreshPendingControls"));

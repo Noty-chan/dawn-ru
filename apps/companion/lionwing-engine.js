@@ -34,6 +34,38 @@
     const { undo, redo, turnUndo, ...snapshot } = scene;
     return copy(snapshot);
   };
+  // State metadata normalization needs the rule registries, owner identities
+  // and turn log, but never field artwork, actor portraits or geometry. Keep
+  // its complete mechanical history and receipts while copying only inputs
+  // read or written by state(). Rich actor/scene projections use copyForQuery.
+  const copyForStateQuery = scene => copy({
+    lionwing: scene.lionwing,
+    tension: scene.tension,
+    activeActorId: scene.activeActorId,
+    round: scene.round,
+    turnSerial: scene.turnSerial,
+    auras: scene.auras,
+    log: scene.log,
+    actors: (scene.actors || []).map(participant => ({
+      id: participant.id, kind: participant.kind, team: participant.team,
+      acted: participant.acted, ruleState: participant.ruleState,
+      inventory: participant.inventory, lionwing: participant.lionwing,
+    })),
+  });
+  // A destination query returns only availability/reason and discards its
+  // preview scene. These explicit presentation fields cannot affect rule
+  // execution. Keep actor identity/names and every mechanical registry intact;
+  // full prepare/dispatch and rich projections retain their original media.
+  const copyForDestinationQuery = scene => {
+    const { artworks, ...snapshot } = scene;
+    return copyForQuery({
+      ...snapshot,
+      actors: (scene.actors || []).map(participant => {
+        const { tokenImage, portraitImage, portraitUrl, ...mechanicalActor } = participant;
+        return mechanicalActor;
+      }),
+    });
+  };
   const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
   const ids = legacy.ACTION_IDS;
   const actor = (scene, id) => (scene.actors || []).find(item => item.id === id);
@@ -388,7 +420,7 @@
     if (scope === "round") return Number(guard.round) === Number(scene.round || 0);
     if (scope === "turn") {
       if (scene.activeActorId !== target.id) return false;
-      if (guard.ownerTurnSerial != null && Number(guard.ownerTurnSerial) !== Number(ownTurnSerial(target))) return false;
+      if (guard.ownerTurnSerial != null && Number(guard.ownerTurnSerial) !== Number(readOwnTurnSerial(target))) return false;
       if (guard.ownerTurnInstanceId && guard.ownerTurnInstanceId !== scene.lionwing?.activeTurnInstanceId) return false;
       return true;
     }
@@ -420,12 +452,15 @@
     && Number(snapshot.influence) === Number(actor.influence || 0)
     && Number(snapshot.trackValue) === Number(actor[snapshot.track] || 0)
     && Boolean(snapshot.vulnerable) === Boolean(astate(actor).vulnerable);
+  const readOwnTurnSerial = a => {
+    const rawValues = [a?.lionwing?.ownerTurnSerial, a?.lionwing?.ownTurnSerial, a?.lionwing?.turnCount, a?.lionwing?.turnsStarted, a?.lionwing?.turns]
+      .map(value => Number(value)).filter(value => Number.isSafeInteger(value) && value >= 0);
+    return rawValues.length ? Math.max(...rawValues) : 0;
+  };
   function normalizeTurnCounters(a, scene = null) {
     if (!a || typeof a !== "object") return 0;
     a.lionwing ||= {};
-    const rawValues = [a.lionwing.ownerTurnSerial, a.lionwing.ownTurnSerial, a.lionwing.turnCount, a.lionwing.turnsStarted, a.lionwing.turns]
-      .map(value => Number(value)).filter(value => Number.isSafeInteger(value) && value >= 0);
-    let count = rawValues.length ? Math.max(...rawValues) : 0;
+    let count = readOwnTurnSerial(a);
     if (scene) {
       const started = (scene.log || []).filter(row => row?.type === "turn.start" && row.actorId === a.id).length;
       // Old saves may have kept a stale zero in `turns` while the compact
@@ -563,7 +598,7 @@
     }
     defender.evasion = Math.max(0, Number(defender.evasion || 0) - toSpend);
   }
-  const currentTurnInstance = scene => state(copyForQuery(scene)).activeTurnInstanceId || null;
+  const currentTurnInstance = scene => state(copyForStateQuery(scene)).activeTurnInstanceId || null;
   const spellCircleActive = (scene, a) => (scene.markers || []).some(marker =>
     marker?.ownerActorId === a.id && (marker.kind === "ritual" || marker.kind === "spell-circle") && marker.space === a.space && Number(marker.x) === Number(a.x) && Number(marker.y) === Number(a.y));
   const firstSpiritFinisherThisTurn = (scene, a, currentActionInstanceId = null) => {
@@ -880,7 +915,7 @@
   const auraLifetimeExpired = (scene,aura) => {
     const life=aura?.lifetime||"scene",serial=Number(aura?.appliedSerial??0),round=Number(aura?.appliedRound??0),owner=aura?.ownerActorId;
     if(life&&typeof life==="object"){
-      const ownerActor=actor(scene,life.ownerActorId),currentSerial=ownerActor?ownTurnSerial(ownerActor):Number(life.ownerTurnSerial??0);
+      const ownerActor=actor(scene,life.ownerActorId),currentSerial=ownerActor?readOwnTurnSerial(ownerActor):Number(life.ownerTurnSerial??0);
       if(life.boundary==="startNextOwnerTurn")return scene.activeActorId===life.ownerActorId&&currentSerial>=Number(life.ownerTurnSerial||0)+1;
       if(life.boundary==="endNextOwnerTurn")return scene.activeActorId!==life.ownerActorId&&currentSerial>=Number(life.ownerTurnSerial||0)+1;
       return false;
@@ -939,7 +974,19 @@
     const sources=[...direct,...ambient],activeSources=sources.filter(source=>source.active!==false&&!source.suppressedBy?.length);
     return { actorId,effect,present:activeSources.length>0,sources,activeSources,suppressedBy:[...new Set(sources.flatMap(source=>source.suppressedBy||[]))],directSources:direct,auraSources:ambient,reasons:sources.map(source=>({sourceId:source.sourceId,active:source.active!==false&&!source.suppressedBy?.length,reason:source.reason})) };
   }
-  const effectActive = (scene,a,effect) => Boolean(activeState(scene,a?.id,effect).activeSources.length);
+  const effectActive = (scene,a,effect) => {
+    const target = actor(scene, a?.id), sources = target?.effectStates?.[effect]?.sources || [];
+    // Keep the diagnostic path's behavior for malformed saved source lists.
+    if (!Array.isArray(sources) || sources.some(source => !source || typeof source !== "object" || source.suppressedBy && !Array.isArray(source.suppressedBy))) return Boolean(activeState(scene,a?.id,effect).activeSources.length);
+    let present = sources.length ? sources.some(source => !(source.suppressedBy || []).length) : Boolean(target?.effects?.includes(effect));
+    // A boolean gate needs no copies of provenance, reasons or inactive
+    // source records. Evaluate all matching auras with the same validator.
+    for (const aura of auraCollection(scene)) if (aura?.effectId === effect) {
+      if (aura.suppressedBy && !Array.isArray(aura.suppressedBy)) return Boolean(activeState(scene,a?.id,effect).activeSources.length);
+      if (auraStatus(scene, aura, target).active && !aura.suppressedBy?.length) present = true;
+    }
+    return present;
+  };
   const effectiveEffectActive = (scene, actorId, effect) => Boolean(actor(scene, actorId) && effectActive(scene, actor(scene, actorId), effect));
   global.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE = effectiveEffectActive;
   if (typeof globalThis !== "undefined") globalThis.DAWN_LIONWING_EFFECTIVE_EFFECT_ACTIVE = effectiveEffectActive;
@@ -947,7 +994,7 @@
   function effectInstanceStatus(scene, actorId, effect) { return activeState(scene,actorId,effect); }
 
   function turnStartStatus(scene, id) {
-    const a = actor(scene, id), s = state(copyForQuery(scene));
+    const a = actor(scene, id), s = state(copyForStateQuery(scene));
     if (!live(a) || a.kind === "crowd" || String(a.profileId || "").includes(".modifier.")) return unavailable("Этот участник не может совершать Ход");
     if (scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.pausedChains?.length) return unavailable("Сначала завершите действие и ожидающие решения");
     if (scene.activeActorId) return unavailable("Сначала завершите текущий Ход");
@@ -961,7 +1008,7 @@
   }
 
   function roundEndStatus(scene) {
-    const s = state(copyForQuery(scene));
+    const s = state(copyForStateQuery(scene));
     if (scene.activeActorId || scene.pendingAction || scene.pendingPrompt || s.choices?.length || s.grantedTurns?.length || s.pausedChains?.length) return unavailable("Сначала завершите Ход и ожидающие решения");
     const heroes = scene.actors.filter(a => live(a) && isPlayer(a));
     if (heroes.some(a => !a.acted)) return unavailable("Не все герои совершили Ход");
@@ -986,7 +1033,8 @@
     for (const guardian of scene.actors.filter(item => live(item) && item.team !== a.team && guardianProfiles.has(item.profileId) && item.space === board.id)) {
       for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]) difficult.add(`${guardian.x + dx},${guardian.y + dy}`);
     }
-    const occupied = scene.actors.filter(x => x.id !== a.id && (!a.compoundId||x.compoundId!==a.compoundId) && x.space === board.id && live(x) && !effectActive(scene,x, "positive.исчез") && effectActive(scene,a,"positive.изгнан") === effectActive(scene,x,"positive.изгнан"));
+    const sourceBanished = effectActive(scene,a,"positive.изгнан");
+    const occupied = scene.actors.filter(x => x.id !== a.id && (!a.compoundId||x.compoundId!==a.compoundId) && x.space === board.id && live(x) && !effectActive(scene,x, "positive.исчез") && sourceBanished === effectActive(scene,x,"positive.изгнан"));
     const blocked = p => !options.ignoreTerrain && (topologyCuts.has(key(p)) || !movesThroughObstacles && terrain.has(key(p)));
     const footprint = p => {
       const cells=[];
@@ -1038,10 +1086,10 @@
     fail("Нет доступного пути в пределах движения");
   }
 
-  function actionStatus(scene, a, def, request = {}) {
+  function actionStatus(scene, a, def, request = {}, normalizedState = null) {
     if (!live(a)) return unavailable("Участник выведен из боя");
     if (a.deploymentProxy) return unavailable("Этот НПС не находится на Поле и не может использовать базовые Действия");
-    if (scene.pendingAction || scene.pendingPrompt || state(copyForQuery(scene)).choices?.length) return unavailable("Сначала завершите текущую цепочку");
+    if (scene.pendingAction || scene.pendingPrompt || (normalizedState || state(copyForStateQuery(scene))).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
     const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
     if (denial) return unavailable(denial.reason || "Действие запрещено активным правилом");
@@ -1166,12 +1214,12 @@
   }
 
   function historyStatus(scene, query) {
-    const history = state(copyForQuery(scene)).history;
+    const history = state(copyForStateQuery(scene)).history;
     return { count: foundations.historyCount(history, query), facts: copy(history.filter(item => foundations.inScope(item, query))) };
   }
 
   function turnIdentity(scene, actorId) {
-    const snapshot = copyForQuery(scene), s = state(snapshot), target = actor(snapshot, actorId);
+    const snapshot = copyForStateQuery(scene), s = state(snapshot), target = actor(snapshot, actorId);
     if (!target) return null;
     const serialValue = ownTurnSerial(target);
     const active = snapshot.activeActorId === target.id;
@@ -1195,7 +1243,7 @@
   // hook above; this helper only gives callers one stable vocabulary for
   // Turn/Round/Scene windows and receipt keys.
   function lifecycleContext(scene, query = {}) {
-    const snapshot = copyForQuery(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || snapshot.activeActorId), boundaryAliases = { sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }, boundary = boundaryAliases[query.boundary] || query.boundary || "ownTurnStart", ownerSerial = owner ? ownTurnSerial(owner) : Number(query.ownerTurnSerial || 0), ownerKey = owner ? ownerTurnKey(s.sceneSerial, owner, ownerSerial) : null, turnInstanceId = query.turnInstanceId || (snapshot.activeActorId === owner?.id ? s.activeTurnInstanceId || null : owner?.lionwing?.turnInstanceId || owner?.lionwing?.lastTurnInstanceId || null);
+    const snapshot = copyForStateQuery(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || snapshot.activeActorId), boundaryAliases = { sceneStart: "sceneStart", sceneEnd: "sceneEnd", roundStart: "roundStart", roundEnd: "roundEnd", turnStart: "ownTurnStart", turnEnd: "ownTurnEnd", ownTurnStart: "ownTurnStart", ownTurnEnd: "ownTurnEnd", anyTurnStart: "anyTurnStart", anyTurnEnd: "anyTurnEnd" }, boundary = boundaryAliases[query.boundary] || query.boundary || "ownTurnStart", ownerSerial = owner ? ownTurnSerial(owner) : Number(query.ownerTurnSerial || 0), ownerKey = owner ? ownerTurnKey(s.sceneSerial, owner, ownerSerial) : null, turnInstanceId = query.turnInstanceId || (snapshot.activeActorId === owner?.id ? s.activeTurnInstanceId || null : owner?.lionwing?.turnInstanceId || owner?.lionwing?.lastTurnInstanceId || null);
     if (!["sceneStart", "sceneEnd", "roundStart", "roundEnd", "ownTurnStart", "ownTurnEnd", "anyTurnStart", "anyTurnEnd"].includes(boundary)) fail("Неизвестная граница жизненного цикла");
     const periodKey = ["sceneStart", "sceneEnd"].includes(boundary) ? `${s.sceneSerial}:${boundary}` : ["roundStart", "roundEnd"].includes(boundary) ? `${s.sceneSerial}:${snapshot.round}:${boundary}` : ["ownTurnStart", "ownTurnEnd"].includes(boundary) ? `${ownerKey}:${boundary}` : `${s.sceneSerial}:${s.activeTurnInstanceId || `scene-turn:${snapshot.turnSerial}`}:${boundary}`;
     const historyQuery = query.history && typeof query.history === "object" ? { ...query.history, sceneSerial: query.history.sceneSerial ?? s.sceneSerial, ownerActorId: query.history.ownerActorId ?? owner?.id, ownerTurnSerial: query.history.ownerTurnSerial ?? ownerSerial, ownerTurnInstanceId: query.history.ownerTurnInstanceId ?? turnInstanceId } : null;
@@ -1203,7 +1251,7 @@
   }
 
   function lifetimeExpired(scene, lifetime, query = {}) {
-    const snapshot = copyForQuery(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || lifetime?.ownerActorId);
+    const snapshot = copyForStateQuery(scene), s = state(snapshot), owner = actor(snapshot, query.ownerActorId || query.actorId || lifetime?.ownerActorId);
     const current = {
       ...query,
       sceneSerial: query.sceneSerial ?? s.sceneSerial,
@@ -1419,7 +1467,7 @@
   // Project only this reviewed family; a known legacy ID is not permission to
   // run every old hero technique in a LionWing scene.
   function masterScene(scene) {
-    const projected = copy(scene);
+    const projected = copyForQuery(scene);
     for (const owner of projected.actors || []) if (isPlayer(owner)) {
       owner.techniques = masterLevel(owner) ? { [masterTechniqueId]: masterLevel(owner) } : {};
     }
@@ -3002,7 +3050,7 @@
       const derived=internal.derivedContract||null;
       const derivedQuote=derived?global.DAWN_LIONWING_ADAPTERS?.actionQuote?.(a,{scene,actionId:def.id,targetIds:p.targetIds||[],attribute:p.attribute||null,baseCost:0,baseResource:def.cost.resource,baseSwift:true,techniqueRuleId:derived.id,techniqueIds:[derived.id]}):null;
       if(derivedQuote?.ok===false)fail(derivedQuote.reason||"Модификаторы производного действия конфликтуют");
-      const status=derived?{available:true,reason:"",cost:0,resource:def.cost.resource,swift:true,actionQuote:derivedQuote||{}}:actionStatus(scene,a,def,p);
+      const status=derived?{available:true,reason:"",cost:0,resource:def.cost.resource,swift:true,actionQuote:derivedQuote||{}}:actionStatus(scene,a,def,p,s);
       if(!status.available)fail(status.reason);
       if (isMasterAction(a, p)) {
         const gate = status;
@@ -4117,6 +4165,7 @@
         case "reaction": {
           const pending = scene.pendingAction;
           if (!pending?.lionwing || !pending.targetIds.includes(sourceId) || pending.responses[sourceId]?.choice !== "pending") fail("Эта Реакция уже недоступна");
+          if (p.attackId !== undefined && (typeof p.attackId !== "string" || p.attackId !== pending.id)) fail("Реакция относится к другой Атаке");
           if (p.planId != null && p.planId !== pending.actionPlanId) fail("Реакция относится к другому ActionPlan");
           if (!["take", "block", "dodge", "clash"].includes(p.choice)) fail("Неизвестная Реакция");
           requiredActor(scene, sourceId);
@@ -4167,6 +4216,7 @@
         case "duel-return":{const duel=s.duels.find(item=>item.id===p.duelId);if(duel)duelReturn(duel);break;}
         case "resolve-attack": {
           const pending = scene.pendingAction;
+          if (p.attackId !== undefined && (typeof p.attackId !== "string" || p.attackId !== pending?.id)) fail("Разрешение относится к другой Атаке");
           if (p.planId != null && p.planId !== pending?.actionPlanId) fail("Разрешение относится к другому ActionPlan");
           if (!pending?.lionwing || !lionwingPendingActionStatus(scene).canResolve) fail("Сначала дождитесь всех Реакций или прервите недоступную Атаку");
           scene.pendingAction = null;
@@ -4241,6 +4291,7 @@
         case "cancel-attack": {
           const pending = scene.pendingAction;
           if (!pending) fail("Нет ожидающей Атаки для отмены");
+          if (p.attackId !== undefined && (typeof p.attackId !== "string" || p.attackId !== pending.id)) fail("Отмена относится к другой Атаке");
           const actionId = pending.sourceActionId || pending.actionId || "manual.attack";
           provenance = foundations.identity({ ...provenance, actionId, actionDefinitionId: actionId, actionInstanceId: pending.actionInstanceId || pending.id, ownerActorId: pending.actorId });
           scene.pendingAction = null; s.afterAttack = [];
@@ -5005,7 +5056,7 @@
    * Intermediate reappearance uses the same validator as action execution. */
   function destinationStatus(scene, request = {}) {
     try {
-      const snapshot = copyForQuery(scene), field = request.field || "destination", destination = request.destination;
+      const snapshot = copyForDestinationQuery(scene), field = request.field || "destination", destination = request.destination;
       if (!["destination", "reappearance", "areaCenter"].includes(field)) fail("Неизвестный выбор клетки");
       if (!destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y)) fail("Выберите клетку внутри поля");
       const board = snapshot.spaces?.find(space => space.id === (destination.space || actor(snapshot, request.actorId)?.space));
@@ -5037,7 +5088,7 @@
     } catch (error) { return { available: false, reason: error.message }; }
   }
   const followupStatus = (scene, id = null) => {
-    const rows = state(copyForQuery(scene)).followups || [];
+    const rows = state(copyForStateQuery(scene)).followups || [];
     const selected = id == null ? rows : rows.filter(item => item.id === id);
     return copy(selected.map(item => ({ ...item, completionOperations: undefined })));
   };
@@ -5066,7 +5117,7 @@
     return { ...actionStatus(scene, target, definition, typeof request === "object" ? request : {}), schema: 1, actorId: target.id, actionId: definition.id, authoritative: true, manualFallback: false };
   }
   function consequenceStatus(scene, actorId) {
-    const snapshot = copyForQuery(scene), target = actor(snapshot, actorId);
+    const snapshot = copyForStateQuery(scene), target = actor(snapshot, actorId);
     if (!target) return { schema: 1, actorId, available: false, reason: "Участник не найден.", categories: [], records: [], legacyNotes: [] };
     const l = ensureConsequenceState(target), used = new Set(l.usedConsequenceCategories || []);
     return {
@@ -5125,7 +5176,10 @@
   route("dispatchMany", dispatchMany); route("dispatch", (scene, event, options) => dispatchMany(scene, [event], options)); route("previewEvents", previewEvents);
   route("turnStartStatus", turnStartStatus); route("roundEndStatus", roundEndStatus);
   route("prepareAction", (scene, data, request) => prepare(scene, { kind: "action", ...request }));
-  route("availableActions", (scene, data, id) => core.actions.list.filter(d => d.type === "action").map(d => { const status = actionStatus(scene, actor(scene, id), d); return { ...d, ...status, cost: `${status.cost ?? d.cost.amount} ${d.cost.resource === "ap" ? "ОД" : d.cost.resource}`, automation: ["action.атаки.дуэль",ids.interact,ids.study].includes(d.id)?"decision":"full" }; }));
+  route("availableActions", (scene, data, id) => {
+    const target = actor(scene, id), normalizedState = live(target) && !target.deploymentProxy && !scene.pendingAction && !scene.pendingPrompt ? state(copyForStateQuery(scene)) : null;
+    return core.actions.list.filter(d => d.type === "action").map(d => { const status = actionStatus(scene, target, d, {}, normalizedState); return { ...d, ...status, cost: `${status.cost ?? d.cost.amount} ${d.cost.resource === "ap" ? "ОД" : d.cost.resource}`, automation: ["action.атаки.дуэль",ids.interact,ids.study].includes(d.id)?"decision":"full" }; });
+  });
   route("effectiveActorSpeed", (scene, id) => sceneSpeed(scene,requiredActor(scene, id, false)));
   route("effectiveActorMaxHealth", (scene, id) => maxHealth(requiredActor(scene, id, false)));
   route("effectiveActorStats", (scene, id) => effectiveStats(scene, requiredActor(scene, id, false)));
@@ -5165,15 +5219,21 @@
       return { ...rule, automation: "full", available: !reason, reason };
     });
   });
-  const sceneWithActiveEffects = scene => ({
+  const sceneWithActiveEffects = (scene, actorIds = null) => ({
     ...scene,
-    actors: (scene.actors || []).map(participant => ({
+    actors: (scene.actors || []).map(participant => actorIds && !actorIds.has(participant.id) ? participant : ({
       ...participant,
       effects: [...new Set([...(participant.effects || []), ...activeState(scene, participant.id).effects.filter(status => status.present).map(status => status.effect)])],
     })),
   });
-  route("effectiveEffects", (scene, actorId) => sceneWithActiveEffects(scene).actors.find(participant => participant.id === actorId)?.effects || []);
-  for(const name of ["effectStatus","effectExpiryStatus","effectPresenceStatus","effectTargetingStatus","effectMovementStatus","effectCellOccupancyStatus","effectAttackStatus","effectDefenseStatus","attackModifierStatus","attackModifierDestinationStatus","displacementStatus","movementPath","pendingTargetOutcome","spatialShapeStatus","targetStatus","terrainStatus","topologyStatus","topologyStepDestination"]){
+  route("effectiveEffects", (scene, actorId) => {
+    const participant = actor(scene, actorId);
+    return participant ? [...new Set([...(participant.effects || []), ...activeState(scene, actorId).effects.filter(status => status.present).map(status => status.effect)])] : [];
+  });
+  // Presence reads only this actor's effective effects. Expanding every other
+  // body here made a roster of N actors build N complete effect projections.
+  route("effectPresenceStatus", (scene, actorId) => legacy.effectPresenceStatus(sceneWithActiveEffects(scene, new Set([actorId])), actorId));
+  for(const name of ["effectStatus","effectExpiryStatus","effectTargetingStatus","effectMovementStatus","effectCellOccupancyStatus","effectAttackStatus","effectDefenseStatus","attackModifierStatus","attackModifierDestinationStatus","displacementStatus","movementPath","pendingTargetOutcome","spatialShapeStatus","targetStatus","terrainStatus","topologyStatus","topologyStepDestination"]){
     if(typeof legacy[name]==="function")route(name,(scene,...args)=>legacy[name](sceneWithActiveEffects(scene),...args));
   }
   route("projectScene",(scene,viewer={})=>{

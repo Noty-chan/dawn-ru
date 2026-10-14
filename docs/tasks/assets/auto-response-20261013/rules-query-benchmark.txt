@@ -1,0 +1,135 @@
+LionWing rules query response: media-free state metadata, complete ledgers, migrated counters, immutable aura/guard queries, fresh boolean effects and preview presentation passed
+{
+  "baselineRef": "1368b6f",
+  "workload": "Production native action roster, turn roster and all 144 Step destination gates on 12x12/20 actors; canonical action ledger and receipts; with/without 100KB art + 20 portraits at 30KB, 20 undo/10 turn snapshots. Same full prepare/commit validators, no DOM/network",
+  "rows": [
+    {
+      "workload": "actionRoster",
+      "media": false,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 2.89,
+      "maxMs": 3.27
+    },
+    {
+      "workload": "actionRoster",
+      "media": false,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 0.3,
+      "maxMs": 0.52
+    },
+    {
+      "workload": "turnRoster",
+      "media": false,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 2.75,
+      "maxMs": 3.39
+    },
+    {
+      "workload": "turnRoster",
+      "media": false,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 2.16,
+      "maxMs": 2.44
+    },
+    {
+      "workload": "effectRoster",
+      "media": false,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 1.1,
+      "maxMs": 1.64
+    },
+    {
+      "workload": "effectRoster",
+      "media": false,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 0.19,
+      "maxMs": 0.33
+    },
+    {
+      "workload": "stepCells",
+      "media": false,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 523.61,
+      "maxMs": 528.69
+    },
+    {
+      "workload": "stepCells",
+      "media": false,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 219.89,
+      "maxMs": 220.4
+    },
+    {
+      "workload": "actionRoster",
+      "media": true,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 23.77,
+      "maxMs": 23.83
+    },
+    {
+      "workload": "actionRoster",
+      "media": true,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 0.51,
+      "maxMs": 0.57
+    },
+    {
+      "workload": "turnRoster",
+      "media": true,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 35.64,
+      "maxMs": 40.39
+    },
+    {
+      "workload": "turnRoster",
+      "media": true,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 2.64,
+      "maxMs": 2.85
+    },
+    {
+      "workload": "effectRoster",
+      "media": true,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 1.42,
+      "maxMs": 1.53
+    },
+    {
+      "workload": "effectRoster",
+      "media": true,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 0.26,
+      "maxMs": 0.3
+    },
+    {
+      "workload": "stepCells",
+      "media": true,
+      "label": "baseline",
+      "samples": 3,
+      "medianMs": 1454.2,
+      "maxMs": 1513.53
+    },
+    {
+      "workload": "stepCells",
+      "media": true,
+      "label": "changed",
+      "samples": 3,
+      "medianMs": 212.15,
+      "maxMs": 219
+    }
+  ]
+}

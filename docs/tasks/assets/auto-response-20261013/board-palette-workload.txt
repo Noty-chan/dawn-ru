@@ -1,0 +1,4 @@
+Production scene-board-tools mutation callbacks and live category selectors; DOM fixture, not native FPS. Oracle base1368b6f.
+100 unrelated child-list batches: global tool searches1800 ->0.
+100 unchanged category selections: attribute writes600 ->0.
+Late wrapped controls, external relocation, interface round-trip, live locale and Player gating remain covered.

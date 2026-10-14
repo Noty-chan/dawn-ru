@@ -173,7 +173,10 @@
   });
   const sceneFocus = amount => actor => [{ kind: "resource", targetId: actor.id, resource: "focus", operation: "gain", amount: typeof amount === "function" ? amount(actor) : amount }];
   const resourceConfiguration = (actor, id, label, current, options = {}) => [{ kind: "configure-resource", targetId: actor.id, id, label, current, initial: current, scope: options.scope || "scene", lifetime: "scene", replaces: options.replaces || null, replacesAp: options.replacesAp === true, inverted: options.inverted === true, ruleId: options.ruleId || null }];
-  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], choiceSet = false, boundaryOperations, rangeBonus, followUp }) => ({ id, techniqueId: id.replace(/\.\d+$/, ""), level: Number(id.match(/\.(\d+)$/)?.[1] || 0), label, sourceDigest, coverage, available: actor => knows(actor, id.replace(/\.\d+$/, ""), Number(id.match(/\.(\d+)$/)?.[1] || 0)), triggerKey, match, operations, choices, choiceSet, boundaryOperations, rangeBonus, followUp });
+  const eventTrigger = ({ id, label, sourceDigest, coverage = "full", triggerKey, match, operations = [], choices = [], choiceSet = false, boundaryOperations, rangeBonus, followUp }) => {
+    const techniqueId = id.replace(/\.\d+$/, ""), level = Number(id.match(/\.(\d+)$/)?.[1] || 0);
+    return { id, techniqueId, level, label, sourceDigest, coverage, available: actor => knows(actor, techniqueId, level), triggerKey, match, operations, choices, choiceSet, boundaryOperations, rangeBonus, followUp };
+  };
   const typedConfiguration = (actor, id, label, itemKind, source, options = {}) => [{
     kind: "inventory", operation: "configure", targetId: actor.id, ownerActorId: actor.id, sourceActorId: actor.id,
     id, label, inventoryKind: itemKind || "stack", current: options.current ?? (["selected-item", "recorded-value"].includes(itemKind) ? null : options.initial ?? 0), ...(["selected-item", "recorded-value"].includes(itemKind) ? {} : { initial: options.initial ?? 0 }),
@@ -1284,7 +1287,7 @@
     for (const rule of global.DAWN_LIONWING_RESTORED_TECHNIQUES?.rows?.(actor) || []) byId.set(rule.id, rule);
     return [...byId.values()];
   }
-  const enabledActionModifiers = actor => actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);
+  const enabledActionModifiers = actor => actor?.lionwing?.automation == null ? [] : actionModifiers.filter(rule => rule.available(actor) && actor?.lionwing?.automation?.[rule.id] === true);
   const actionQuote = (actor, context = {}) => {
     const baseCost = Number(context.baseCost || 0), baseResource = context.baseResource || null;
     const quote = { cost: baseCost, resource: baseResource, swift: Boolean(context.baseSwift), range: context.baseRange ?? null, ignoreRequirements: [], modifiers: [], reasons: [] };
@@ -1380,7 +1383,29 @@
     const sources = Array.isArray(entry.sources) ? entry.sources.map(item => ({ ...item })) : [];
     return { ok: true, advantage: Math.max(0, Number(entry.advantage || 0)), sources, modifierIds: sources.map(item => item.id) };
   };
-  const enabled = actor => adapters.filter(rule => rule.available(actor) && actor.lionwing?.automation?.[rule.id] === true);
+  const adaptersById = new Map();
+  adapters.forEach((rule, index) => {
+    if (!adaptersById.has(rule.id)) adaptersById.set(rule.id, []);
+    adaptersById.get(rule.id).push({ rule, index });
+  });
+  const enabled = actor => {
+    const automation = actor?.lionwing?.automation;
+    if (!lionwing(actor) || automation == null) return [];
+    const seen = new Set(), candidates = [];
+    // Index the immutable registry, never the Actor result. Read its current
+    // learned levels and switches on every call, preserving registry order
+    // even if the saved switches were inserted in another order. Include
+    // inherited/non-enumerable switches for compatibility with direct callers.
+    for (let record = automation; record != null; record = Object.getPrototypeOf(record)) {
+      for (const id of Object.getOwnPropertyNames(record)) if (!seen.has(id)) {
+        seen.add(id);
+        if (adaptersById.has(id)) candidates.push(...adaptersById.get(id));
+      }
+    }
+    return candidates.sort((left, right) => left.index - right.index)
+      .filter(({ rule }) => rule.available(actor) && automation[rule.id] === true)
+      .map(({ rule }) => rule);
+  };
   const eventTriggerRules = Object.freeze(eventAdapters);
   const afterEvent = (actor, event, context = {}) => {
     if (!actor || !event || !event.type) return [];

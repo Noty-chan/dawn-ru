@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+let attributeWrites=0;
 class Element {
   constructor(tag = "div") { this.tagName = tag; this.children = []; this.attrs = {}; this.listeners = {}; this.textContent = ""; this.innerHTML = ""; this.classes = new Set(); this.classList = { add: name => this.classes.add(name), remove: name => this.classes.delete(name), contains: name => this.classes.has(name) }; }
   append(...nodes) { nodes.forEach(node => { node.remove(); node.parentNode = this; this.children.push(node); }); }
@@ -13,7 +15,7 @@ class Element {
   before(node) { const parent = this.parentNode; node.remove(); parent.children.splice(parent.children.indexOf(this), 0, node); node.parentNode = parent; }
   after(node) { const parent = this.parentNode; node.remove(); parent.children.splice(parent.children.indexOf(this) + 1, 0, node); node.parentNode = parent; }
   querySelector(selector) { return selector === ".scene-board-tool-original-label" && this.innerHTML.includes("scene-board-tool-original-label") ? {} : null; }
-  setAttribute(name, value) { this.attrs[name] = value; }
+  setAttribute(name, value) { attributeWrites++;this.attrs[name] = value; }
   getAttribute(name) { return this.attrs[name] ?? null; }
   removeAttribute(name) { delete this.attrs[name]; }
   addEventListener(type, fn) { this.listeners[type] = fn; }
@@ -46,14 +48,17 @@ operations.set('[data-scene-tool="area"][data-scene-area-type="terrain"]', opera
 const documentListeners = [];
 let lateMount = true;
 const mapTools = new Element();
-const document = { body, readyState: "interactive", querySelector: () => candidate, querySelectorAll: selector => lateMount && /"(?:area|wall|marker|topology|erase)"/.test(selector) ? [] : operations.get(selector) || [], getElementById: id => id === "scene-map-tools" ? mapTools : controls.get(`#${id}`), createElement: tag => new Element(tag), createComment: () => new Element("#comment"), addEventListener(type) { documentListeners.push(type); } };
+let globalSearches = 0;
+const document = { body, readyState: "interactive", querySelector: () => candidate, querySelectorAll: selector => { globalSearches++; return lateMount && /"(?:area|wall|marker|topology|erase)"/.test(selector) ? [] : operations.get(selector) || []; }, getElementById: id => id === "scene-map-tools" ? mapTools : controls.get(`#${id}`), createElement: tag => new Element(tag), createComment: () => new Element("#comment"), addEventListener(type) { documentListeners.push(type); } };
 const observers = [];
 class Observer { constructor(callback) { this.callback = callback; observers.push(this); } observe(target, options) { this.target = target; this.options = options; } }
 let next = false;
 const Scene = { tool: "select", history: ["existing"] };
 class CustomEvent { constructor(type,options){this.type=type;this.detail=options.detail;} }
 const context = vm.createContext({ CustomEvent, document, Scene, usingNextSceneInterface: () => next, window: { DAWN_UI_ICONS: { html: name => `<svg class="dawn-control-icon" data-icon="${name}"></svg>` } }, MutationObserver: Observer });
-vm.runInContext(fs.readFileSync(path.join(root, "scene-board-tools.js"), "utf8"), context);
+const baseline = process.argv.find(arg => arg.startsWith('--baseline='))?.slice(11);
+const source = baseline ? execFileSync('git',['show',`${baseline}:apps/companion/scene-board-tools.js`],{cwd:root,encoding:'utf8'}) : fs.readFileSync(path.join(root, "scene-board-tools.js"), "utf8");
+vm.runInContext(source, context);
 const api = context.window.DAWN_SCENE_BOARD_TOOLS;
 assert.equal(api.isEnabled(), false, "Classic startup does not mount experimental controls");
 assert.equal(oldPrimary.hidden, false);
@@ -126,4 +131,32 @@ for (let cycle = 0; cycle < 3; cycle++) {
 context.t=key=>key==="scene.boardTools.categoriesLabel"?"Board tool categories":key;api.enhance();
 assert.equal(strip.getAttribute("aria-label"),"Board tool categories","Live locale change updates category navigation label without replacing controls");
 assert.equal(JSON.stringify(Scene),sceneBefore);
+// Actual child-list records from unrelated board, log and rule card redraws
+// must not repeat document-wide tool discovery or replace live controls.
+const unrelated = new Element(), beforeUnrelated = globalSearches;
+for(let index=0;index<100;index++)childObserver.callback([{target:unrelated,addedNodes:[new Element()],removedNodes:[new Element()]}]);
+const redrawSearches=globalSearches-beforeUnrelated;
+if(!baseline)assert.equal(redrawSearches,0,'ordinary field/log/card redraws do no global tool discovery');
+assert.equal(selectButton.listeners.click,originalListener);
+assert.equal(JSON.stringify(Scene),sceneBefore);
+// Locale updates remain observable even when the changed subtree is unrelated.
+context.t=key=>key==='scene.boardTools.categoriesLabel'?'Updated categories':key;
+childObserver.callback([{target:unrelated,addedNodes:[],removedNodes:[]}]);
+assert.equal(strip.getAttribute('aria-label'),'Updated categories');
+// Late extensions can arrive inside a newly added wrapper, outside the palette.
+const lateButton=new Element('button');lateButton.id='manual-table-area-tool';lateButton.textContent='Ability area';lateButton.innerHTML='Ability area';
+const wrapper=new Element();wrapper.append(lateButton);wrapper.querySelector=selector=>selector.includes('#manual-table-area-tool')?lateButton:null;
+operations.set('#manual-table-area-tool',[lateButton]);
+childObserver.callback([{target:unrelated,addedNodes:[wrapper],removedNodes:[]}]);
+const highlights=panels.children.find(panel=>panel.id==='scene-board-group-highlights');
+assert.equal(lateButton.parentNode,highlights,'late wrapped tools retain the original node and find their palette owner');
+// External relocation of an already known control must still converge.
+mapDrawer.append(controls.get('#scene-wall-controls'));
+childObserver.callback([{target:mapDrawer,addedNodes:[controls.get('#scene-wall-controls')],removedNodes:[]}]);
+assert.equal(controls.get('#scene-wall-controls').parentNode,walls);
+api.select('tokens');const beforeRepeatedCategory=attributeWrites;
+for(let index=0;index<100;index++)api.select('tokens');
+const redundantCategoryWrites=attributeWrites-beforeRepeatedCategory;
+if(!baseline)assert.equal(redundantCategoryWrites,0,'unchanged category selection does not wake attribute observers');
+console.log(JSON.stringify({workload:'100 unrelated child-list batches and 100 unchanged category selections',baseline:baseline||'current',globalToolSearches:redrawSearches,redundantCategoryWrites}));
 console.log("PASS: actual controls/listeners/state preserved, separate clears, five real categories, player gating, idempotent lifecycle, no Escape interception.");
