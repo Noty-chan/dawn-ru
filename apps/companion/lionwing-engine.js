@@ -66,6 +66,28 @@
       }),
     });
   };
+  // Only a disposable destination query can attach shared initial metadata.
+  // Its source snapshot is private, detached and never used for a commit.
+  const destinationQueryStates = new WeakMap();
+  const destinationProviderKeys = ["DAWN_LIONWING_INFORMATION_QUERY", "DAWN_LIONWING_ADAPTERS", "DAWN_LIONWING_RESTORED_TECHNIQUES", "DAWN_LIONWING_AURA_TRANSITIONS", "DAWN_LIONWING_GEOMETRY", "DAWN_LIONWING_GEOMETRY_RUNTIME", "DAWN_LIONWING_ACTION_PLAN", "DAWN_LIONWING_FOUNDATION"];
+  const destinationProviders = destinationProviderKeys.map(key => Object.getOwnPropertyDescriptor(global, key)?.value);
+  // Most native APIs freeze their functions, but Inventory exposes mutable
+  // membership Sets and Combat Meter exposes writable methods. Those are
+  // normalization inputs too; a shallow API identity check is insufficient.
+  const destinationInventorySets = [inventory?.VISIBILITY, inventory?.BOUNDARIES].map(value => value instanceof Set ? [...value] : null);
+  const destinationMeterMethods = combatMeter ? Object.keys(combatMeter).filter(key => typeof Object.getOwnPropertyDescriptor(combatMeter, key)?.value === "function").map(key => [key, Object.getOwnPropertyDescriptor(combatMeter, key).value]) : [];
+  const destinationSetHas = Set.prototype.has, destinationSetSize = Object.getOwnPropertyDescriptor(Set.prototype, "size").get;
+  const nativeDestinationProviders = () => destinationProviderKeys.every((key, index) => {
+    const descriptor = Object.getOwnPropertyDescriptor(global, key);
+    return (!descriptor || Object.hasOwn(descriptor, "value")) && descriptor?.value === destinationProviders[index]
+      && (!descriptor?.value || Object.isFrozen(descriptor.value));
+  }) && destinationMeterMethods.every(([key, method]) => Object.getOwnPropertyDescriptor(combatMeter, key)?.value === method)
+    && [inventory?.VISIBILITY, inventory?.BOUNDARIES].every((value, index) => {
+      const members = destinationInventorySets[index];
+      return !members ? value == null : Object.getPrototypeOf(value) === Set.prototype && !Object.getOwnPropertyDescriptor(value, "has") && !Object.getOwnPropertyDescriptor(value, "size")
+        && Set.prototype.has === destinationSetHas && Object.getOwnPropertyDescriptor(Set.prototype, "size").get === destinationSetSize
+        && destinationSetSize.call(value) === members.length && members.every(member => destinationSetHas.call(value, member));
+    });
   const sameJson = (left, right) => JSON.stringify(left) === JSON.stringify(right);
   const ids = legacy.ACTION_IDS;
   const actor = (scene, id) => (scene.actors || []).find(item => item.id === id);
@@ -1098,7 +1120,7 @@
   function actionStatus(scene, a, def, request = {}, normalizedState = null) {
     if (!live(a)) return unavailable("Участник выведен из боя");
     if (a.deploymentProxy) return unavailable("Этот НПС не находится на Поле и не может использовать базовые Действия");
-    if (scene.pendingAction || scene.pendingPrompt || (normalizedState || state(copyForStateQuery(scene))).choices?.length) return unavailable("Сначала завершите текущую цепочку");
+    if (scene.pendingAction || scene.pendingPrompt || (normalizedState || destinationQueryStates.get(scene)?.() || state(copyForStateQuery(scene))).choices?.length) return unavailable("Сначала завершите текущую цепочку");
     if (def.type === "reaction") return unavailable("Реакция доступна при соответствующем событии");
     const denial = actionGuardList(scene, a, "denials").find(item => item.actionId === def.id && Number(item.remaining ?? 1) > 0);
     if (denial) return unavailable(denial.reason || "Действие запрещено активным правилом");
@@ -5064,8 +5086,12 @@
    * validators on a disposable snapshot, without consuming gameplay randomness.
    * Intermediate reappearance uses the same validator as action execution. */
   function destinationStatus(scene, request = {}) {
+    try { return destinationStatusFromSnapshot(copyForDestinationQuery(scene), request); }
+    catch (error) { return { available: false, reason: error.message }; }
+  }
+  function destinationStatusFromSnapshot(snapshot, request = {}) {
     try {
-      const snapshot = copyForDestinationQuery(scene), field = request.field || "destination", destination = request.destination;
+      const field = request.field || "destination", destination = request.destination;
       if (!["destination", "reappearance", "areaCenter"].includes(field)) fail("Неизвестный выбор клетки");
       if (!destination || !Number.isInteger(destination.x) || !Number.isInteger(destination.y)) fail("Выберите клетку внутри поля");
       const board = snapshot.spaces?.find(space => space.id === (destination.space || actor(snapshot, request.actorId)?.space));
@@ -5095,6 +5121,53 @@
       }
       return { available: true, reason: "" };
     } catch (error) { return { available: false, reason: error.message }; }
+  }
+  /** Capture one read-only source for a bounded render/chunk sequence. The
+   * caller owns room/view/policy/request generation checks and must dispose
+   * it on any change, including same-object edits without a version bump.
+   * Every cell still runs the actual prepare/commit pipeline on a fresh
+   * working scene. This snapshot grants no execution authority. */
+  function createDestinationQuery(scene) {
+    let snapshot = null, sourceError = null, metadata = null, metadataError = null, metadataRead = false, disposed = false;
+    try {
+      snapshot = copyForDestinationQuery(scene);
+      const pending = [snapshot];
+      while (pending.length) {
+        const value = pending.pop();
+        if (!value || typeof value !== "object" || Object.isFrozen(value)) continue;
+        Object.freeze(value);
+        for (const child of Object.values(value)) if (child && typeof child === "object") pending.push(child);
+      }
+      destinationQueryStates.set(snapshot, () => {
+        // A request/provider accessor can change dependencies after status()
+        // enters. Check again at the actual normalization gate, not earlier.
+        if (!nativeDestinationProviders()) return state(copyForStateQuery(snapshot));
+        // Resolve at the original choices gate: malformed registry errors
+        // must not outrank invalid fields, board bounds or missing actors.
+        if (!metadataRead) {
+          metadataRead = true;
+          try { metadata = state(copyForStateQuery(snapshot)); }
+          catch (error) { metadataError = error; }
+        }
+        if (metadataError) throw metadataError;
+        return metadata;
+      });
+    } catch (error) { sourceError = error; }
+    return Object.freeze({
+      status(request = {}) {
+        if (disposed) return { available: false, reason: "" };
+        if (sourceError) return { available: false, reason: sourceError.message };
+        // Replaced/custom providers may carry their own mutable state or
+        // write to their disposable preparation input. Keep their original
+        // fresh-copy/normalization behavior and never cache their results.
+        return nativeDestinationProviders() ? destinationStatusFromSnapshot(snapshot, request) : destinationStatus(snapshot, request);
+      },
+      dispose() {
+        disposed = true;
+        if (snapshot) destinationQueryStates.delete(snapshot);
+        snapshot = metadata = sourceError = metadataError = null;
+      },
+    });
   }
   const followupStatus = (scene, id = null) => {
     const rows = state(copyForStateQuery(scene)).followups || [];
@@ -5159,7 +5232,7 @@
     return { exists: Boolean(pending), pending, targetIds: targets, eligibleIds, waitingIds, autoPassedIds, answeredIds: eligibleIds.filter(id => !waitingIds.includes(id)), unavailableIds: targets.filter(id => !eligibleIds.includes(id)), canResolve: Boolean(pending && !mustCancel && !waitingIds.length), mustCancel, interruptedReason: mustCancel ? "Источник или все цели недоступны" : "" };
   }
   const api = {
-    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, initializeRulesBattle, destinationStatus, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity, sharedTechniqueRows, masterArmamentStatus,
+    schema: 2, isScene, prepare, command, dispatchMany, replay, undo, reload, previewEvents, initializeRulesBattle, destinationStatus, createDestinationQuery, prepareEntityRemoval, cancelEntityRemoval, removeEntity, destroyEntity: removeEntity, sharedTechniqueRows, masterArmamentStatus,
     combatMeter: combatMeter ? { read: (scene, id) => combatMeter.read(scene, id), quote: (scene, id, change) => combatMeter.quote(scene, id, change) } : null,
     turnStartStatus, roundEndStatus, turnIdentity, followupStatus, pendingFollowups,
     movement, roll, actionStatus, actionGate, actionDef, speed, maxHealth, balance, canSpend, resourceQuote, targetIds, costQuote, detectiveMovementStatus, prepareDetectiveTeleport, reactionOptions,

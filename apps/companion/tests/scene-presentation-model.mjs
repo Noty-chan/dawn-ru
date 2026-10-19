@@ -57,7 +57,8 @@ const panSource=fs.readFileSync(new URL('../app-scene-events.js',import.meta.url
 vm.runInContext(panSource.slice(panSource.indexOf('function resetScenePanGesture()'),panSource.indexOf('document.addEventListener("keydown",event=>{if(event.key.toLowerCase()==="m"')),ctx);
 reset();const panOriginal=JSON.stringify(ctx.Scene);
 const spaceKey=emit(board.events,'keydown','0,0',{key:' ',code:'Space'});assert.ok(!spaceKey.stopped,'presentation leaves Space for camera');
-emit(documentEvents,'keydown','0,0',{key:' ',code:'Space'});assert.equal(ctx.sceneSpaceHeld,true);
+emit(documentEvents,'keydown','0,0',{key:' ',code:'Space'});assert.equal(ctx.sceneSpaceHeld,false,'focused gridcell leaves Space to native activation');
+emit(documentEvents,'keydown','0,0',{key:' ',code:'Space',target:board});assert.equal(ctx.sceneSpaceHeld,true,'background Space still arms camera pan');
 assert.ok(!emit(board.events,'pointerdown').prevented,'Space pointerdown passes through to compatibility mousedown');
 emit(wrap.events,'mousedown','0,0',{currentTarget:wrap,clientX:200,clientY:200});
 emit(windowEvents,'mousemove','0,0',{clientX:180,clientY:190});assert.equal(wrap.scrollLeft,120);assert.equal(wrap.scrollTop,90);

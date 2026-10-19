@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
 
 const current=fs.readFileSync(new URL('../scene-ui.js',import.meta.url),'utf8');
-const section=source=>source.slice(source.indexOf('function renderSceneBoard(){'),source.indexOf('function applyEnemyModifierVisuals()'));
+const section=source=>source.slice(source.indexOf('function sceneDestinationPreviewScene()')>=0?source.indexOf('function sceneDestinationPreviewScene()'):source.indexOf('function renderSceneBoard(){'),source.indexOf('function applyEnemyModifierVisuals()'));
 const baselineRef=process.argv.find(arg=>arg.startsWith('--baseline='))?.split('=')[1];
 const baseline=baselineRef&&execFileSync('git',['show',`${baselineRef}:apps/companion/scene-ui.js`],{encoding:'utf8'});
 function workload(source,{view='gm',manual=false,moving=false,size=12}={}){

@@ -352,10 +352,11 @@ vm.runInContext(source.slice(source.indexOf("function lwPendingWindowHtml("), so
 vm.runInContext(source.slice(source.indexOf("function lwAutomationHtml("), source.indexOf("function lwInventoryHtml(")), context);
 vm.runInContext(source.slice(source.indexOf("function lwActionsHtml("), source.indexOf("function lwEffectSourcesHtml(")), context);
 context.sceneActionPanel = actor => context.lwActionsHtml(actor);
-vm.runInContext(sceneUi.slice(sceneUi.indexOf("function sceneSheetPanel("), sceneUi.indexOf("function sceneUtilityActorAvailable(")), context);
+vm.runInContext(sceneUi.slice(sceneUi.indexOf("function sceneSheetActor("), sceneUi.indexOf("function sceneUtilityActorAvailable(")), context);
 const playUi = read("play-ui.js");
 vm.runInContext(playUi.slice(playUi.indexOf("function renderSceneHeroSheet("), playUi.indexOf("function renderPlay(")), context);
 for(const name of ["sceneDisplayName","sceneSpaceDisplayName"])vm.runInContext(sceneUi.split(/\r?\n/).find(line=>line.startsWith(`function ${name}(`)),context);
+vm.runInContext(sceneUi.split(/\r?\n/).find(line=>line.startsWith('function isScenePanelOpen('))+sceneUi.slice(sceneUi.indexOf('let scenePanelRenderPass='),sceneUi.indexOf('function syncScenePanels(')),context);
 vm.runInContext(sceneUi.slice(sceneUi.indexOf("function renderSceneLog("), sceneUi.indexOf("function activeSceneView(){")), context);
 const baseCommit = context.commitSceneEvents;
 context.commitSceneEvents = (label, events) => { const result = baseCommit(label, events);context.renderScene();return result; };

@@ -227,6 +227,9 @@ function lwApplyDestinationHighlights(board, space) {
     if(!["nails","idol"].includes(draft.mode)&&selectedCells.size)for(const element of board.querySelectorAll("[data-scene-cell]"))if(selectedCells.has(element.dataset.sceneCell))element.classList.add("preview");
   }
   if (!lwDestination) return;
+  const draft=lwDestination;
+  if(typeof queueSceneBoardDestinationHighlights==="function"&&queueSceneBoardDestinationHighlights(board,space,{...draft},
+    {isCurrent:()=>lwDestination===draft,describe:status=>status.available?draft.label:`${draft.label}: ${status.reason}`}))return;
   for (const cell of board.querySelectorAll("[data-scene-cell]")) {
     const [x, y] = cell.dataset.sceneCell.split(",").map(Number), status = lwDestinationCellStatus({ space: space.id, x, y });
     cell.classList.toggle("movement-valid", status.available);
@@ -565,6 +568,15 @@ function lwShowEntityOnField(value) {
   return true;
 }
 const lwFormDraft = new Map();
+function resetSceneCockpitDrafts(){
+  lwFormDraft.clear();
+  if(typeof lwDestination!=="undefined")lwDestination=null;
+  if(typeof lwGeometryPreview!=="undefined")lwGeometryPreview=null;
+  if(typeof lwTechniqueDraft!=="undefined")lwTechniqueDraft=null;
+  if(typeof lwDraftBatch!=="undefined")lwDraftBatch=null;
+  if(typeof lwDraftEnabled!=="undefined")lwDraftEnabled=false;
+  if(typeof scenePreviewCells!=="undefined")scenePreviewCells.clear();
+}
 let lwPaintingDirector = false;
 function lwCockpitUiScope(actorId) {
   const sync=typeof Sync!=="undefined"?Sync?.state?.()||{}:{},actor=Scene.actors?.find(item=>item.id===actorId);
@@ -580,6 +592,7 @@ function lwPrunePendingFormDrafts() {
     if(pending&&pending!==current)lwFormDraft.delete(key);
   }
 }
+function lwDiscardFormDraftScope(scope){for(const key of lwFormDraft.keys())if(JSON.parse(key)[0]===scope)lwFormDraft.delete(key);}
 function lwCockpitElementKey(element) {
   const owner=element.closest?.("[data-lw-root]"),group=element.closest?.("[data-lw-technique-group]"),level=element.closest?.("[data-lw-technique-level]"),pane=element.closest?.("[data-director-pane]"),roll=element.closest?.("[data-lw-roll]"),die=element.closest?.("[data-lw-die]");
   const attributes=[...(element.attributes||[])].filter(attr=>attr.name.startsWith("data-")).map(attr=>[attr.name,attr.value]);
@@ -631,9 +644,10 @@ document.addEventListener("change",event=>{
 function lwDraftKey(input) {
   const attr=[...input.attributes].find(attr=>attr.name.startsWith("data-lw-")),root=input.closest("[data-lw-root]");
   if(!attr||!root)return null;
-  const fields=[...root.querySelectorAll(`[${attr.name}]`)].filter(field=>field.closest("[data-lw-root]")===root);
+  const roll=input.closest("[data-lw-roll]")?.dataset.lwRoll||null,die=input.closest("[data-lw-die]")?.dataset.lwDie||null;
+  const fields=[...root.querySelectorAll(`[${attr.name}]`)].filter(field=>field.closest("[data-lw-root]")===root&&(field.closest("[data-lw-roll]")?.dataset.lwRoll||null)===roll&&(field.closest("[data-lw-die]")?.dataset.lwDie||null)===die);
   const scope=root.closest("[data-lw-technique-group]")?.dataset.lwTechniqueGroup||root.className||"panel";
-  return JSON.stringify([lwCockpitUiScope(root.dataset.lwActor),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input),lwPendingElementWindow(input)]);
+  return JSON.stringify([lwCockpitUiScope(root.dataset.lwActor),root.dataset.lwActor,scope,attr.name,attr.value,fields.indexOf(input),lwPendingElementWindow(input),roll,die]);
 }
 function lwRestoreFormDrafts(root, {refreshActions=true} = {}) {
   if(!root)return;
@@ -1235,12 +1249,11 @@ renderSceneDirector = function() {
   const state=scope?lwCaptureDirectorUi(previousRoot,scope):null,previousPaint=lwPaintingDirector;
   lwPaintingDirector=true;
   try {
-  if (lwActive()) lwReconcileGeometryPreview();
+  if(lwActive()&&!(typeof scenePanelRenderPass!=="undefined"&&scenePanelRenderPass))lwReconcileGeometryPreview();
   lwOldDirector();
   if(previousRoot)previousRoot.dataset.lwCockpitScope=scope||"";
   if (!lwActive()) return;
-  renderLionwingEntities();
-  lwInstallGeometryPreviewGuard();
+  if(!(typeof scenePanelRenderPass!=="undefined"&&scenePanelRenderPass))lwInstallGeometryPreviewGuard();
   const root = $("scene-director"), a = lwActor();
   if (!root || !a) return;
   const holder=document.createElement("div");holder.innerHTML=lwDirectorHtml(a);

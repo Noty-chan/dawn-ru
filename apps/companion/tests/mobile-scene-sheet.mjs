@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const read=name=>fs.readFileSync(new URL(`../${name}`,import.meta.url),'utf8');
-const source=read('scene-ui.js'),start=source.indexOf('function sceneSheetPanel()'),end=source.indexOf('\nfunction sceneUtilityActorAvailable',start);
+const source=read('scene-ui.js'),start=source.indexOf('function sceneSheetActor()'),end=source.indexOf('\nfunction sceneUtilityActorAvailable',start);
 assert.ok(start>=0&&end>start);
 function fixture({gm=true,en=false,actors=[],shared=false}={}){
  const context={Scene:{actors,selectedActor:null,activeActorId:null},S:{id:'own',runtime:{},concept:''},Sync:{state:()=>shared?{sceneId:'room',role:'player'}:null},activeSceneView:()=>gm?'gm':'player',isEnglishPreview:()=>en,

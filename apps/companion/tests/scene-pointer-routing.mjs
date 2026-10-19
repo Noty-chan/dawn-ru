@@ -46,6 +46,7 @@ run(`let store={mode:"play"},Scene,sceneInterfaceVersion="next",sceneLeftPanelsE
   const scenePreviewCells=new Set(),sceneTopologyCells=new Set();let sceneMeasureCells=new Set();`);
 for(const name of ["activeSceneTool","canControlSceneActor","playerCanRepositionSceneActor","sceneHasLocalPendingSelection","measurementPath","usingNextSceneInterface","scenePanelSide","isScenePanelOpen"])load(line(ui,`function ${name}(`));
 load(section(ui,"function moveSceneActorFromBoard(","\nfunction measurementPath("));
+load(section(ui,"let scenePanelRenderPass=","function syncScenePanels("));
 load(section(ui,"function setScenePanel(","\nfunction closeAllScenePanels("));
 load(section(ui,"function hideSceneContextMenu(","\nfunction showSceneContextMenu("));
 load(section(effects,"let sceneMeasurementScope=","\nfunction cancelCommittedAction("));
