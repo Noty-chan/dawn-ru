@@ -1366,6 +1366,7 @@
             "apps/companion/tests/scene-lazy-panels.mjs",
             "apps/companion/tests/scene-measurement.mjs",
             "apps/companion/tests/scene-pointer-routing.mjs",
+            "apps/companion/tests/scene-presentation-model.mjs",
             "apps/companion/tests/scene-reference-pagination.mjs",
             "apps/companion/tests/scene-render-response.mjs",
             "apps/companion/tests/scene-sheet-drafts.mjs",

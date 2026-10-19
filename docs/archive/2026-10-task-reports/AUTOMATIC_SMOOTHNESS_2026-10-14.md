@@ -21,3 +21,12 @@ Evidence:
 - Production fixtures cover asynchronous cancellation/replacement/privacy, lazy panels, fresh dice/dirty drafts, keyboard routing and 30 backup/storage scenarios.
 
 At the 4% remaining-limit checkpoint all agents froze their files. Full `npm test` was started; final status is recorded separately in this report/PR after completion. Local log: `%TEMP%/dawn-smoothness-20261014.log`. Native/prototype evidence remains under `apps/companion/output/`. No live table, Supabase or transport implementation was changed. Reminder is paused; shutdown is cancelled.
+
+Closeout, 2026-10-19:
+
+- Refreshed origin; main still at `2501c8d`. No additional production scope was opened.
+- Fixed the cockpit test loader to include the extracted `sceneSheetActor` helper. Updated two existing presentation/manual-map fixtures to check Space activation on a focused gridcell and camera panning from the background separately; scroll, click suppression and normal drawing assertions remain intact.
+- Full `npm test`, including pretest and all response/workspace/core/rules/network/manual/alpha suites, passed with exit 0. Log: `%TEMP%/dawn-smoothness-final2-20261019.log`. The legacy Raasha exact-sheet fixture remains opt-in and was skipped as declared by that test; shared UI assertions passed.
+- Repeated native browser checks on isolated localhost port 8903: all 49 destination statuses resolved; Escape removed all 49 status stamps and all highlights; continuation Step via Space moved the NPC F2 to F3, exhausted its last movement cell and retained 1 AP. Opening panels and switching actors showed current values. No console warnings/errors.
+- Eight selections with closed panels produced eight board/scene renders and zero Director/sheet/utility/entity renders. Timing of this repeat was not a paired benchmark. The previous comparative measurements above remain the performance evidence.
+- Screenshot: `apps/companion/output/smoothness-final-20261019.png` (local evidence only). Publication must be confirmed by the Pages run for the merged revision; final publication status belongs to the PR/task closeout.

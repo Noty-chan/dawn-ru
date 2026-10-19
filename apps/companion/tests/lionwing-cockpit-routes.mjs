@@ -171,6 +171,7 @@ Object.assign(context, {
   ATTRS: [], activeOutlooks: () => [], techById: id => id===learnedTechnique.id?learnedTechnique:null, sceneRollShortcuts: () => "", hasGift: () => false,
   sceneActionPanel: actor => { profileCalls.push("sheet-executor"); return '<button data-lw-action="spell">execute</button>'+kernel.window.DAWN_LIONWING_TECHNIQUE_SURFACE.render(actor,{scene:table,viewer:{role:"player",actorIds:[actor.id]}}); },
 });
+vm.runInContext(functionBlock(sceneUi, "sceneSheetActor", "sceneSheetPanel"), context);
 vm.runInContext(functionBlock(sceneUi, "sceneSheetPanel", "sceneUtilityActorAvailable"), context);
 run("Scene.selectedActor='hero'");
 const gmSheet = run("sceneSheetPanel()");
